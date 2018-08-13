@@ -7,6 +7,7 @@ The examples below were used to create the `demo` chart found at [paulczar/helm-
 ## Usage
 
 ```bash
+$ go install github.com/paulczar/charthub
 $ charthub
 charthub creates helm chart repositories on github pages by uploading Chart packages
 and Chart metadata to github releases and creating a suitable index file.
