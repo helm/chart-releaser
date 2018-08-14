@@ -123,8 +123,7 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*github.Repository
 			return nil, errors.Wrapf(err,
 				"get release tag: invalid status: %s", res.Status)
 		}
-
-		return nil, ErrReleaseNotFound
+		return nil, nil
 	}
 
 	return release, nil
