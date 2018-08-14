@@ -99,11 +99,17 @@ func Packages(config *Options) error {
 		} else {
 			fmt.Printf("====> Release %s already exists\n", *release.TagName)
 		}
+
 		//fmt.Printf("package %s is for chart %s version %s\n", pkg.file, *release.Name, *release.TagName)
-		var hasMetadata, hasPackage = false, false
+		var hasMetadata, hasPackage, hasProv = false, false, false
 		for _, f := range release.Assets {
 			if *f.Name == path.Base(pkg.file) {
 				hasPackage = true
+				continue
+			}
+			pf := path.Base(pkg.file) + ".prov"
+			if *f.Name == pf {
+				hasProv = true
 				continue
 			}
 			if *f.Name == "Chart.yaml" {
@@ -142,6 +148,24 @@ func Packages(config *Options) error {
 			if err != nil {
 				return errors.Wrapf(err,
 					"failed to upload asset: %s", f)
+			}
+		}
+		pf := pkg.file + ".prov"
+		if hasProv {
+			fmt.Printf("====> Release %s already contains provenance file %s\n", *release.TagName, path.Base(pf))
+		} else {
+			if _, err := os.Stat(pf); err == nil {
+				fmt.Printf("====> Uploading provenance file %s to release %s\n", path.Base(pf), *release.TagName)
+				_, err := ghc.UploadAsset(ctx, *release.ID, pf)
+				if err != nil {
+					return errors.Wrapf(err,
+						"failed to upload asset: %s", pf)
+				}
+			} else {
+				fmt.Println("************************************************************************")
+				fmt.Println("Consider adding a provenance file to improve the integrity of your chart")
+				fmt.Println("https://docs.helm.sh/developing_charts/#helm-provenance-and-integrity")
+				fmt.Println("************************************************************************")
 			}
 		}
 	}
