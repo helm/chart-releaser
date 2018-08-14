@@ -88,9 +88,9 @@ func Packages(config *Options) error {
 		fmt.Printf("release %#v", *req.TagName)
 		release, err := ghc.GetRelease(ctx, *req.TagName)
 		if err != nil {
-			if err != ErrReleaseNotFound {
-				return errors.Wrap(err, "failed to get release")
-			}
+			return errors.Wrap(err, "failed to get release")
+		}
+		if release == nil {
 			fmt.Printf("====> Creating release %s\n", *req.TagName)
 			release, err = ghc.CreateRelease(ctx, req)
 			if err != nil {
