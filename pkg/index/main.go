@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+	"github.com/paulczar/charthub/pkg/config"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,16 +19,8 @@ import (
 	"k8s.io/helm/pkg/repo"
 )
 
-// Options to be passed in from cli
-type Options struct {
-	Owner string
-	Repo  string
-	Path  string
-	Token string
-}
-
 //Create index.yaml file for a give git repo
-func Create(config *Options) error {
+func Create(config *config.Options) error {
 	var ghc github.GitHub
 	var err error
 	var ctx = context.TODO()
