@@ -67,69 +67,69 @@ func Create(config *config.Options) error {
 	fmt.Println("--> Checking for releases with helm chart packages")
 	for _, r := range releases {
 		//fmt.Printf("found release %s\n", *r.TagName)
-		var hasPackage = false
 		var packageName, packageVersion, packageURL string
 		for _, f := range r.Assets {
-			m := "-" + *r.TagName + ".tgz"
-			if strings.Contains(*f.Name, m) {
-				hasPackage = true
+			tagParts := strings.Split(*r.TagName, "+")
+			if len(tagParts) == 2 && *f.Name == fmt.Sprintf("%s-%s.tgz", tagParts[1], tagParts[0]) {
 				p := strings.TrimSuffix(*f.Name, filepath.Ext(*f.Name))
 				ps := strings.Split(p, "-")
 				packageName, packageVersion = ps[0], ps[1]
 				packageURL = *f.BrowserDownloadURL
-				continue
-			}
-		}
-		if hasPackage {
-			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
-			// check if index file already has an entry for current package
-			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				toAdd = append(toAdd, packageURL)
+
+				fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
+				// check if index file already has an entry for current package
+				if _, err := indexFile.Get(packageName, packageVersion); err != nil {
+					toAdd = append(toAdd, packageURL)
+				}
+				break
 			}
 		}
 	}
 	for _, u := range toAdd {
-		// fetch package to temp file so we can extract metadata and stuff
-		dir, err := ioutil.TempDir("", "charthub")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.RemoveAll(dir)
-		arch := path.Join(dir, path.Base(u))
-		fmt.Printf("====> Downloading file %s\n", arch)
-		err = downloadFile(arch, u)
-		if err != nil {
-			panic(err)
-		}
-		// extract chart metadata
-		fmt.Printf("====> Extracting chart metadata from %s\n", arch)
-		c, err := chartutil.Load(arch)
-		if err != nil {
-			// weird, must not be a chart package
-			fmt.Printf("====> %s is not a helm chart package\n", arch)
-			continue
-		}
-		// calculate hash
-		fmt.Printf("====> Calculating Hash for %s\n", arch)
-		hash, err := provenance.DigestFile(arch)
-		if err != nil {
-			return nil
-		}
-
-		// remove file name from url as helm's index library
-		// adds it in during .Add
-		// there should be a better way to handle this :(
-		s := strings.Split(u, "/")
-		s = s[:len(s)-1]
-		u = strings.Join(s, "/")
-
-		// Add to index
-		indexFile.Add(c.Metadata, path.Base(arch), u, hash)
+		addToIndexFile(indexFile, u)
 	}
 	fmt.Printf("--> Updating index %s", config.Path)
 	indexFile.SortEntries()
 	return indexFile.WriteFile(config.Path, 0644)
 
+}
+
+func addToIndexFile(indexFile *repo.IndexFile, url string) {
+	// fetch package to temp url so we can extract metadata and stuff
+	dir, err := ioutil.TempDir("", "charthub")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+	arch := path.Join(dir, path.Base(url))
+	fmt.Printf("====> Downloading url %s\n", arch)
+	err = downloadFile(arch, url)
+	if err != nil {
+		panic(err)
+	}
+	// extract chart metadata
+	fmt.Printf("====> Extracting chart metadata from %s\n", arch)
+	c, err := chartutil.Load(arch)
+	if err != nil {
+		// weird, must not be a chart package
+		fmt.Printf("====> %s is not a helm chart package\n", arch)
+		return
+	}
+	// calculate hash
+	fmt.Printf("====> Calculating Hash for %s\n", arch)
+	hash, err := provenance.DigestFile(arch)
+	if err != nil {
+		return
+	}
+
+	// remove url name from url as helm's index library
+	// adds it in during .Add
+	// there should be a better way to handle this :(
+	s := strings.Split(url, "/")
+	s = s[:len(s)-1]
+
+	// Add to index
+	indexFile.Add(c.Metadata, path.Base(arch), strings.Join(s, "/"), hash)
 }
 
 // from https://golangcode.com/download-a-file-from-a-url/
