@@ -25,15 +25,12 @@ var uploadCmd = &cobra.Command{
 	Use:   "upload",
 	Short: "Uploads Helm Chart packages to github releases",
 	Long:  `Uploads Helm Chart packages to github releases`,
-	PreRunE: func(cmd *cobra.Command, args []string) error {
-		return nil
-	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo", "token"})
 		if err != nil {
 			return err
 		}
-		return upload.Packages(options)
+		return upload.UploadPackages(options)
 	},
 }
 
