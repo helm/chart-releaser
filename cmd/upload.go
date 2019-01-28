@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"github.com/paulczar/charthub/pkg/config"
 	"github.com/paulczar/charthub/pkg/upload"
 	"github.com/spf13/cobra"
 )
@@ -28,21 +29,19 @@ var uploadCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return upload.Packages(uploadOptions)
+		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo", "token"})
+		if err != nil {
+			return err
+		}
+		return upload.Packages(options)
 	},
 }
 
-var uploadOptions = &upload.Options{}
-
 func init() {
 	rootCmd.AddCommand(uploadCmd)
-	uploadCmd.Flags().StringVarP(&uploadOptions.Owner, "owner", "o", "", "github username or organization")
-	uploadCmd.Flags().StringVarP(&uploadOptions.Repo, "repo", "r", "", "github repository")
-	uploadCmd.Flags().StringVarP(&uploadOptions.Path, "path", "p", "", "Path to Helm Artifacts")
-	uploadCmd.Flags().StringVarP(&uploadOptions.Token, "token", "t", "", "Github Auth Token")
-	uploadCmd.Flags().BoolVar(&uploadOptions.Recursive, "recursive", false, "recursively find artifacts")
-	uploadCmd.MarkFlagRequired("owner")
-	uploadCmd.MarkFlagRequired("repo")
-	uploadCmd.MarkFlagRequired("path")
-	uploadCmd.MarkFlagRequired("token")
+	uploadCmd.Flags().StringP("owner", "o", "", "github username or organization")
+	uploadCmd.Flags().StringP("repo", "r", "", "github repository")
+	uploadCmd.Flags().StringP("path", "p", "", "Path to Helm Artifacts")
+	uploadCmd.Flags().StringP("token", "t", "", "Github Auth Token")
+	uploadCmd.Flags().Bool("recursive", false, "recursively find artifacts")
 }

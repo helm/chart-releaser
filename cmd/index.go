@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"github.com/paulczar/charthub/pkg/config"
 	"github.com/paulczar/charthub/pkg/index"
 	"github.com/spf13/cobra"
 )
@@ -28,19 +29,19 @@ Creates a Helm Chart Repository index.yaml file based on a the
 given github repository's releases.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return index.Create(indexOptions)
+		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo"})
+		if err != nil {
+			return err
+		}
+		return index.Create(options)
 	},
 }
 
-var indexOptions = &index.Options{}
-
 func init() {
 	rootCmd.AddCommand(indexCmd)
-	indexCmd.Flags().StringVarP(&indexOptions.Owner, "owner", "o", "", "github username or organization")
-	indexCmd.Flags().StringVarP(&indexOptions.Repo, "repo", "r", "", "github repository")
-	indexCmd.Flags().StringVarP(&indexOptions.Path, "path", "p", "", "Path to index file")
-	indexCmd.Flags().StringVarP(&indexOptions.Token, "token", "t", "", "Github Auth Token (only needed for private repos)")
-	indexCmd.MarkFlagRequired("owner")
-	indexCmd.MarkFlagRequired("repo")
-	indexCmd.MarkFlagRequired("path")
+	flags := indexCmd.Flags()
+	flags.StringP("owner", "o", "", "github username or organization")
+	flags.StringP("repo", "r", "", "github repository")
+	flags.StringP("path", "p", "", "Path to index file")
+	flags.StringP("token", "t", "", "Github Auth Token (only needed for private repos)")
 }
