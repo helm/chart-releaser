@@ -3,6 +3,7 @@ package upload
 import (
 	"context"
 	"fmt"
+	"github.com/paulczar/charthub/pkg/config"
 	"io/ioutil"
 	"log"
 	"os"
@@ -17,15 +18,6 @@ import (
 	"k8s.io/helm/pkg/proto/hapi/chart"
 )
 
-// Options to be passed in from cli
-type Options struct {
-	Owner     string
-	Repo      string
-	Path      string
-	Token     string
-	Recursive bool
-}
-
 type chartPackage struct {
 	file  string
 	chart *chart.Metadata
@@ -37,8 +29,8 @@ var (
 )
 
 // Packages finds and uploads helm chart packages to github
-func Packages(config *Options) error {
-	var chartPackages = []chartPackage{}
+func Packages(config *config.Options) error {
+	var chartPackages []chartPackage
 	var ghc github.GitHub
 	var err error
 	var ctx = context.TODO()
