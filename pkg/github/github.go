@@ -40,11 +40,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// ErrReleaseNotFound contains the error for when a release is not found
-var (
-	ErrReleaseNotFound = errors.New("release is not found")
-)
-
 // GitHub contains the functions necessary for interacting with GitHub release
 // objects
 type GitHub interface {

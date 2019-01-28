@@ -23,13 +23,8 @@ type chartPackage struct {
 	chart *chart.Metadata
 }
 
-// ErrReleaseNotFound contains the error for when a release is not found
-var (
-	ErrReleaseNotFound = errors.New("release is not found")
-)
-
-// Packages finds and uploads helm chart packages to github
-func Packages(config *config.Options) error {
+// UploadPackages finds and uploads helm chart packages to github
+func UploadPackages(config *config.Options) error {
 	var chartPackages []chartPackage
 	var ghc github.GitHub
 	var err error
@@ -71,94 +66,101 @@ func Packages(config *config.Options) error {
 		}
 	}
 	for _, pkg := range chartPackages {
-		fmt.Printf("--> Processing package %s\n", path.Base(pkg.file))
-		req := &gh.RepositoryRelease{
-			Name:    &pkg.chart.Name,
-			Body:    &pkg.chart.Description,
-			TagName: &pkg.chart.Version,
+		if err := UploadPackage(ctx, ghc, pkg); err != nil {
+			return err
 		}
-		fmt.Printf("release %#v", *req.TagName)
-		release, err := ghc.GetRelease(ctx, *req.TagName)
-		if err != nil {
-			return errors.Wrap(err, "failed to get release")
-		}
-		if release == nil {
-			fmt.Printf("====> Creating release %s\n", *req.TagName)
-			release, err = ghc.CreateRelease(ctx, req)
-			if err != nil {
-				return err
-			}
-		} else {
-			fmt.Printf("====> Release %s already exists\n", *release.TagName)
-		}
+	}
 
-		//fmt.Printf("package %s is for chart %s version %s\n", pkg.file, *release.Name, *release.TagName)
-		var hasMetadata, hasPackage, hasProv = false, false, false
-		for _, f := range release.Assets {
-			if *f.Name == path.Base(pkg.file) {
-				hasPackage = true
-				continue
-			}
-			pf := path.Base(pkg.file) + ".prov"
-			if *f.Name == pf {
-				hasProv = true
-				continue
-			}
-			if *f.Name == "Chart.yaml" {
-				hasMetadata = true
-				continue
-			}
+	return nil
+}
+
+func UploadPackage(ctx context.Context, ghc github.GitHub, pkg chartPackage) error {
+	fmt.Printf("--> Processing package %s\n", path.Base(pkg.file))
+
+	tagName := fmt.Sprintf("%s+%s", pkg.chart.Version, pkg.chart.Name)
+	req := &gh.RepositoryRelease{
+		Name:    &tagName,
+		Body:    &pkg.chart.Description,
+		TagName: &tagName,
+	}
+	fmt.Printf("release %#v", tagName)
+	release, err := ghc.GetRelease(ctx, tagName)
+	if err != nil {
+		return errors.Wrap(err, "failed to get release")
+	}
+	if release == nil {
+		fmt.Printf("====> Creating release %s\n", tagName)
+		release, err = ghc.CreateRelease(ctx, req)
+		if err != nil {
+			return err
 		}
-		if hasPackage {
-			fmt.Printf("====> Release %s already contains package %s\n", *release.TagName, path.Base(pkg.file))
-		} else {
-			fmt.Printf("====> Uploading package %s to release %s\n", path.Base(pkg.file), *release.TagName)
-			_, err := ghc.UploadAsset(ctx, *release.ID, pkg.file)
-			if err != nil {
-				return errors.Wrapf(err,
-					"failed to upload asset: %s", pkg.file)
-			}
+	} else {
+		fmt.Printf("====> Release %s already exists\n", *release.TagName)
+	}
+
+	//fmt.Printf("package %s is for chart %s version %s\n", pkg.file, *release.Name, *release.TagName)
+	var hasMetadata, hasPackage, hasProv = false, false, false
+	for _, f := range release.Assets {
+		if *f.Name == path.Base(pkg.file) {
+			hasPackage = true
+			continue
 		}
-		if hasMetadata {
-			fmt.Printf("====> Release %s already contains Chart.yaml\n", *release.TagName)
-		} else {
-			fmt.Printf("====> Uploading Chart.yaml to release %s\n", *release.TagName)
-			dir, err := ioutil.TempDir("", *release.Name)
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer os.RemoveAll(dir)
-			f := path.Join(dir, "Chart.yaml")
-			b, err := yaml.Marshal(pkg.chart)
-			if err != nil {
-				return err
-			}
-			if err = ioutil.WriteFile(f, b, 0644); err != nil {
-				return err
-			}
-			_, err = ghc.UploadAsset(ctx, *release.ID, f)
-			if err != nil {
-				return errors.Wrapf(err,
-					"failed to upload asset: %s", f)
-			}
+		pf := path.Base(pkg.file) + ".prov"
+		if *f.Name == pf {
+			hasProv = true
+			continue
 		}
-		pf := pkg.file + ".prov"
-		if hasProv {
-			fmt.Printf("====> Release %s already contains provenance file %s\n", *release.TagName, path.Base(pf))
-		} else {
-			if _, err := os.Stat(pf); err == nil {
-				fmt.Printf("====> Uploading provenance file %s to release %s\n", path.Base(pf), *release.TagName)
-				_, err := ghc.UploadAsset(ctx, *release.ID, pf)
-				if err != nil {
-					return errors.Wrapf(err,
-						"failed to upload asset: %s", pf)
-				}
-			} else {
-				fmt.Println("************************************************************************")
-				fmt.Println("Consider adding a provenance file to improve the integrity of your chart")
-				fmt.Println("https://docs.helm.sh/developing_charts/#helm-provenance-and-integrity")
-				fmt.Println("************************************************************************")
+		if *f.Name == "Chart.yaml" {
+			hasMetadata = true
+			continue
+		}
+	}
+	if hasPackage {
+		fmt.Printf("====> Release %s already contains package %s\n", *release.TagName, path.Base(pkg.file))
+	} else {
+		fmt.Printf("====> Uploading package %s to release %s\n", path.Base(pkg.file), *release.TagName)
+		_, err := ghc.UploadAsset(ctx, *release.ID, pkg.file)
+		if err != nil {
+			return errors.Wrapf(err, "failed to upload asset: %s", pkg.file)
+		}
+	}
+	if hasMetadata {
+		fmt.Printf("====> Release %s already contains Chart.yaml\n", *release.TagName)
+	} else {
+		fmt.Printf("====> Uploading Chart.yaml to release %s\n", *release.TagName)
+		dir, err := ioutil.TempDir("", *release.Name)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer os.RemoveAll(dir)
+		f := path.Join(dir, "Chart.yaml")
+		b, err := yaml.Marshal(pkg.chart)
+		if err != nil {
+			return err
+		}
+		if err = ioutil.WriteFile(f, b, 0644); err != nil {
+			return err
+		}
+		_, err = ghc.UploadAsset(ctx, *release.ID, f)
+		if err != nil {
+			return errors.Wrapf(err, "failed to upload asset: %s", f)
+		}
+	}
+	pf := pkg.file + ".prov"
+	if hasProv {
+		fmt.Printf("====> Release %s already contains provenance file %s\n", *release.TagName, path.Base(pf))
+	} else {
+		if _, err := os.Stat(pf); err == nil {
+			fmt.Printf("====> Uploading provenance file %s to release %s\n", path.Base(pf), *release.TagName)
+			_, err := ghc.UploadAsset(ctx, *release.ID, pf)
+			if err != nil {
+				return errors.Wrapf(err, "failed to upload asset: %s", pf)
 			}
+		} else {
+			fmt.Println("************************************************************************")
+			fmt.Println("Consider adding a provenance file to improve the integrity of your chart")
+			fmt.Println("https://docs.helm.sh/developing_charts/#helm-provenance-and-integrity")
+			fmt.Println("************************************************************************")
 		}
 	}
 
