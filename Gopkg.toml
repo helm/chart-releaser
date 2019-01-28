@@ -59,7 +59,7 @@
 
 [[constraint]]
   name = "k8s.io/helm"
-  version = "2.9.1"
+  version = "2.12.3"
 
 [prune]
   go-tests = true
