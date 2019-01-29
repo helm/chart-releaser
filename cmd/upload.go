@@ -15,8 +15,8 @@
 package cmd
 
 import (
-	"github.com/paulczar/charthub/pkg/config"
-	"github.com/paulczar/charthub/pkg/upload"
+	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/helm/chart-releaser/pkg/upload"
 	"github.com/spf13/cobra"
 )
 
