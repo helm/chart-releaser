@@ -63,9 +63,9 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".charthub" (without extension).
+		// Search config in home directory with name ".chart-releaser" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".charthub")
+		viper.SetConfigName(".chart-releaser")
 	}
 
 	if err := v.ReadInConfig(); err != nil {
@@ -93,4 +93,3 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	return opts, nil
 }
-

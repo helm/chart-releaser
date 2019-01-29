@@ -3,7 +3,7 @@ package upload
 import (
 	"context"
 	"fmt"
-	"github.com/paulczar/charthub/pkg/config"
+	"github.com/helm/chart-releaser/pkg/config"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	gh "github.com/google/go-github/github"
-	"github.com/paulczar/charthub/pkg/github"
+	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/pkg/errors"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/proto/hapi/chart"

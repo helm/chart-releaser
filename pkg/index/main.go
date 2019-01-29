@@ -3,7 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
-	"github.com/paulczar/charthub/pkg/config"
+	"github.com/helm/chart-releaser/pkg/config"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/paulczar/charthub/pkg/github"
+	"github.com/helm/chart-releaser/pkg/github"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/provenance"
 	"k8s.io/helm/pkg/repo"
@@ -96,7 +96,7 @@ func Create(config *config.Options) error {
 
 func addToIndexFile(indexFile *repo.IndexFile, url string) {
 	// fetch package to temp url so we can extract metadata and stuff
-	dir, err := ioutil.TempDir("", "charthub")
+	dir, err := ioutil.TempDir("", "chart-releaser")
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -25,10 +25,10 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "charthub",
+	Use:   "chart-releaser",
 	Short: "Helm Chart Repos on Github Pages",
 	Long: `
-charthub creates helm chart repositories on github pages by uploading Chart packages
+chart-releaser creates helm chart repositories on github pages by uploading Chart packages
 and Chart metadata to github releases and creating a suitable index file.
 
 `}
@@ -46,5 +46,5 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.charthub.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.chart-releaser.yaml)")
 }
