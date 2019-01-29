@@ -1,19 +1,19 @@
-# ChartHub turns github repositories into Helm Chart Repositories
+# Chart Releaser turns github repositories into Helm Chart Repositories
 
-Charthub is a tool designed to help github repos self-host their own chart repos by adding Helm Chart artifacts to github releases named for the chart version and then creating an `index.yaml` find for those releases that can be hosted in github pages (or elsewhere!).
+Chart Releaser is a tool designed to help github repos self-host their own chart repos by adding Helm Chart artifacts to github releases named for the chart version and then creating an `index.yaml` find for those releases that can be hosted in github pages (or elsewhere!).
 
 The examples below were used to create the `demo` chart found at [paulczar/helm-demo](https://github.com/paulczar/helm-demo) which has github pages configured to serve the `docs` directory of the `master` branch.
 
 ## Usage
 
 ```bash
-$ go install github.com/paulczar/charthub
-$ charthub
-charthub creates helm chart repositories on github pages by uploading Chart packages
+$ go install github.com/helm/chart-releaser
+$ chart-releaser
+chart-releaser creates helm chart repositories on github pages by uploading Chart packages
 and Chart metadata to github releases and creating a suitable index file.
 
 Usage:
-  charthub [command]
+  chart-releaser [command]
 
 Available Commands:
   help        Help about any command
@@ -21,11 +21,11 @@ Available Commands:
   upload      Uploads Helm Chart packages to github releases
 
 Flags:
-      --config string   config file (default is $HOME/.charthub.yaml)
-  -h, --help            help for charthub
+      --config string   config file (default is $HOME/.chart-releaser.yaml)
+  -h, --help            help for chart-releaser
   -t, --toggle          Help message for toggle
 
-Use "charthub [command] --help" for more information about a command.
+Use "chart-releaser [command] --help" for more information about a command.
 ```
 
 ### Upload Helm Chart Packages
@@ -33,7 +33,7 @@ Use "charthub [command] --help" for more information about a command.
 Scans a path for Helm Chart Package and creates a release in the specified github repo then uploads the package and Chart.yaml
 
 ```bash
-./charthub upload -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/ --recursive
+./chart-releaser upload -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/ --recursive
 --> Processing package demo-0.1.0.tgz
 release "0.1.0"====> Release 0.1.0 already exists
 ====> Release 0.1.0 already contains package demo-0.1.0.tgz
@@ -51,7 +51,7 @@ release "0.1.10"====> Release 0.1.10 already exists
 Once uploaded you can create an `index.yaml` file that can be hosted in github pages (or elsewhere).
 
 ```bash
-./charthub index -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/docs/index.yaml 
+./chart-releaser index -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/docs/index.yaml
 ====> Using existing index at /home/pczarkowski/development/scratch/helm/demo/docs/index.yaml
 --> Checking for releases with helm chart packages
 ====> Found demo-0.1.0.tgz

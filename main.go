@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/paulczar/charthub/cmd"
+import "github.com/helm/chart-releaser/cmd"
 
 func main() {
 	cmd.Execute()
