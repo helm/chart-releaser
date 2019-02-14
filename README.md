@@ -6,7 +6,7 @@ The examples below were used to create the `demo` chart found at [paulczar/helm-
 
 ## Usage
 
-```bash
+```console
 $ go install github.com/helm/chart-releaser
 $ chart-releaser
 chart-releaser creates helm chart repositories on github pages by uploading Chart packages
@@ -32,8 +32,8 @@ Use "chart-releaser [command] --help" for more information about a command.
 
 Scans a path for Helm Chart Package and creates a release in the specified github repo then uploads the package and Chart.yaml
 
-```bash
-./chart-releaser upload -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/ --recursive
+```console
+$ chart-releaser upload -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/ --recursive
 --> Processing package demo-0.1.0.tgz
 release "0.1.0"====> Release 0.1.0 already exists
 ====> Release 0.1.0 already contains package demo-0.1.0.tgz
@@ -43,15 +43,14 @@ release "0.1.10"====> Release 0.1.10 already exists
 ====> Release 0.1.10 already contains package demo-0.1.10.tgz
 ====> Release 0.1.10 already contains Chart.yaml
 ...
-...
 ```
 
 ### Create Index from Github releases
 
 Once uploaded you can create an `index.yaml` file that can be hosted in github pages (or elsewhere).
 
-```bash
-./chart-releaser index -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/docs/index.yaml
+```console
+$ chart-releaser index -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/docs/index.yaml
 ====> Using existing index at /home/pczarkowski/development/scratch/helm/demo/docs/index.yaml
 --> Checking for releases with helm chart packages
 ====> Found demo-0.1.0.tgz
@@ -63,11 +62,26 @@ Once uploaded you can create an `index.yaml` file that can be hosted in github p
 
 ### Using the resultant Helm Chart Repository
 
-```bash
+```console
 $ helm repo add demo https://tech.paulcz.net/helm-demo
 "demo" has been added to your repositories
 $ helm install --repo http://tech.paulcz.net/helm-demo demo
 NAME:   kindred-stoat
 ...
 ...
+```
+
+## Installation
+
+### Binaries (recommended)
+
+Download your preferred asset from the [releases page](https://github.com/helm/chart-releaser/releases) and install manually.
+
+### Go get (for contributing)
+
+```console
+$ go get -d github.com/helm/chart-releaser
+$ cd $(go env GOPATH)/src/github.com/helm/chart-releaser
+$ dep ensure -vendor-only
+$ go install
 ```
