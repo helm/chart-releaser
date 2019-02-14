@@ -56,7 +56,6 @@ $ chart-releaser index -o paulczar -r helm-demo -t $TOKEN -p ~/development/scrat
 ====> Found demo-0.1.0.tgz
 ====> Found demo-0.1.14.tgz
 ...
-...
 --> Updating index /home/pczarkowski/development/scratch/helm/demo/docs/index.yaml
 ```
 
@@ -67,7 +66,6 @@ $ helm repo add demo https://tech.paulcz.net/helm-demo
 "demo" has been added to your repositories
 $ helm install --repo http://tech.paulcz.net/helm-demo demo
 NAME:   kindred-stoat
-...
 ...
 ```
 
