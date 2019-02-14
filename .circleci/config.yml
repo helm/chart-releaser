@@ -1,0 +1,19 @@
+version: 2
+jobs:
+  release:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
+      # See https://github.com/goreleaser/get
+      - run: curl -sL https://raw.githubusercontent.com/goreleaser/get/master/get | VERSION=v0.101.0 bash
+workflows:
+  version: 2
+  release:
+    jobs:
+      - release:
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
