@@ -89,10 +89,11 @@ func UploadPackages(config *config.Options) error {
 	return nil
 }
 
+// UploadPackage uploads a single helm chart package to GitHub.
 func UploadPackage(ctx context.Context, ghc github.GitHub, pkg chartPackage) error {
 	fmt.Printf("--> Processing package %s\n", path.Base(pkg.file))
 
-	tagName := fmt.Sprintf("%s+%s", pkg.chart.Version, pkg.chart.Name)
+	tagName := fmt.Sprintf("%s-%s", pkg.chart.Name, pkg.chart.Version)
 	req := &gh.RepositoryRelease{
 		Name:    &tagName,
 		Body:    &pkg.chart.Description,
