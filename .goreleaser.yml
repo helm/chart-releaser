@@ -1,11 +1,5 @@
 # This is an example goreleaser.yaml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
-before:
-  hooks:
-    - go get -u github.com/golang/dep/cmd/dep
-    # `dep ensure` must be run from within a known GOPATH/src.
-    - cd /go/src/github.com/helm/chart-releaser
-    - dep ensure
 builds:
 - env:
   - CGO_ENABLED=0
