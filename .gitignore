@@ -1,2 +1,4 @@
 chart-releaser
 .idea
+/dist
+/vendor
