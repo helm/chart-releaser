@@ -4,7 +4,7 @@ before:
   hooks:
     - go get -u github.com/golang/dep/cmd/dep
     # `dep ensure` must be run from within a known GOPATH/src.
-    - cd $(go env GOPATH)/src/github.com/helm/chart-releaser
+    - cd /go/src/github.com/helm/chart-releaser
     - dep ensure
 builds:
 - env:
