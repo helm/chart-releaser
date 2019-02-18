@@ -84,8 +84,8 @@ func Create(config *config.Options) error {
 		//fmt.Printf("found release %s\n", *r.TagName)
 		var packageName, packageVersion, packageURL string
 		for _, f := range r.Assets {
-			tagParts := strings.Split(*r.TagName, "+")
-			if len(tagParts) == 2 && *f.Name == fmt.Sprintf("%s-%s.tgz", tagParts[1], tagParts[0]) {
+			tagParts := strings.Split(*r.TagName, "-")
+			if len(tagParts) == 2 && *f.Name == fmt.Sprintf("%s-%s.tgz", tagParts[0], tagParts[1]) {
 				p := strings.TrimSuffix(*f.Name, filepath.Ext(*f.Name))
 				ps := strings.Split(p, "-")
 				packageName, packageVersion = ps[0], ps[1]
