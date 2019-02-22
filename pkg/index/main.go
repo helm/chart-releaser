@@ -84,10 +84,10 @@ func Create(config *config.Options) error {
 		//fmt.Printf("found release %s\n", *r.TagName)
 		var packageName, packageVersion, packageURL string
 		for _, f := range r.Assets {
-			tagParts := strings.Split(*r.TagName, "+")
-			if len(tagParts) == 2 && *f.Name == fmt.Sprintf("%s-%s.tgz", tagParts[1], tagParts[0]) {
+			tagParts := splitPackageNameAndVersion(*r.TagName)
+			if len(tagParts) == 2 && *f.Name == fmt.Sprintf("%s-%s.tgz", tagParts[0], tagParts[1]) {
 				p := strings.TrimSuffix(*f.Name, filepath.Ext(*f.Name))
-				ps := strings.Split(p, "-")
+				ps := splitPackageNameAndVersion(p)
 				packageName, packageVersion = ps[0], ps[1]
 				packageURL = *f.BrowserDownloadURL
 
@@ -107,6 +107,11 @@ func Create(config *config.Options) error {
 	indexFile.SortEntries()
 	return indexFile.WriteFile(config.Path, 0644)
 
+}
+
+func splitPackageNameAndVersion(pkg string) []string {
+	delimIndex := strings.LastIndex(pkg, "-")
+	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
 func addToIndexFile(indexFile *repo.IndexFile, url string) {
