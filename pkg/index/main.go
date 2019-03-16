@@ -17,10 +17,7 @@ package index
 import (
 	"context"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"log"
-	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -36,10 +33,6 @@ import (
 
 //Create index.yaml file for a give git repo
 func Create(config *config.Options) error {
-	var indexFile = &repo.IndexFile{}
-	var toAdd []string
-
-	// Create a GitHub client
 	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
 
 	// if path doesn't end with index.yaml we can try and fix it
@@ -54,6 +47,7 @@ func Create(config *config.Options) error {
 		}
 	}
 
+	var indexFile = &repo.IndexFile{}
 	// Load up Index file (or create new one)
 	if _, err := os.Stat(config.Path); err == nil {
 		fmt.Printf("====> Using existing index at %s\n", config.Path)
@@ -66,31 +60,25 @@ func Create(config *config.Options) error {
 		indexFile = repo.NewIndexFile()
 	}
 
-	// Get list of releases for given github repo
 	releases, err := ghc.ListReleases(context.TODO())
 	if err != nil {
 		return err
 	}
-	// Check if release has a package
+
+	var toAdd []string
 	fmt.Println("--> Checking for releases with helm chart packages")
 	for _, r := range releases {
-		//fmt.Printf("found release %s\n", *r.TagName)
-		var packageName, packageVersion, packageURL string
-		for _, f := range r.Assets {
-			tagParts := splitPackageNameAndVersion(*r.TagName)
-			if len(tagParts) == 2 && *f.Name == fmt.Sprintf("%s-%s.tgz", tagParts[0], tagParts[1]) {
-				p := strings.TrimSuffix(*f.Name, filepath.Ext(*f.Name))
-				ps := splitPackageNameAndVersion(p)
-				packageName, packageVersion = ps[0], ps[1]
-				packageURL = *f.BrowserDownloadURL
-
-				fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
-				// check if index file already has an entry for current package
-				if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-					toAdd = append(toAdd, packageURL)
-				}
-				break
+		for _, asset := range r.Assets {
+			downloadUrl, _ := url.Parse(asset.URL)
+			name := path.Base(downloadUrl.Path)
+			baseName := strings.TrimSuffix(name, filepath.Ext(name))
+			tagParts := splitPackageNameAndVersion(baseName)
+			packageName, packageVersion := tagParts[0], tagParts[1]
+			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
+			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
+				toAdd = append(toAdd, downloadUrl.String())
 			}
+			break
 		}
 	}
 	for _, u := range toAdd {
@@ -109,17 +97,14 @@ func splitPackageNameAndVersion(pkg string) []string {
 
 func addToIndexFile(indexFile *repo.IndexFile, url string) {
 	// fetch package to temp url so we can extract metadata and stuff
-	dir, err := ioutil.TempDir("", "chart-releaser")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
-	arch := path.Join(dir, path.Base(url))
-	fmt.Printf("====> Downloading url %s\n", arch)
-	err = downloadFile(arch, url)
-	if err != nil {
-		panic(err)
-	}
+	//dir, err := ioutil.TempDir("", "chart-releaser")
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer os.RemoveAll(dir)
+	// TODO dir
+	arch := path.Join(".", path.Base(url))
+
 	// extract chart metadata
 	fmt.Printf("====> Extracting chart metadata from %s\n", arch)
 	c, err := chartutil.Load(arch)
@@ -143,32 +128,4 @@ func addToIndexFile(indexFile *repo.IndexFile, url string) {
 
 	// Add to index
 	indexFile.Add(c.Metadata, path.Base(arch), strings.Join(s, "/"), hash)
-}
-
-// from https://golangcode.com/download-a-file-from-a-url/
-// downloadFile will download a url to a local file. It's efficient because it will
-// write as it downloads and not load the whole file into memory.
-func downloadFile(filepath string, url string) error {
-
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

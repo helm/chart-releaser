@@ -16,7 +16,6 @@ package github
 
 import (
 	"context"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -39,8 +38,8 @@ type GitHub interface {
 }
 
 type Release struct {
-	Name        string
-	Assets      []*Asset
+	Name   string
+	Assets []*Asset
 }
 
 type Asset struct {
@@ -50,13 +49,13 @@ type Asset struct {
 
 // Client is the client for interacting with the GitHub API
 type Client struct {
-	Owner  string
-	Repo   string
+	Owner string
+	Repo  string
 	*github.Client
 }
 
 // NewClient creates and initializes a new GitHubClient
-func NewClient(owner, repo, token string) *Client{
+func NewClient(owner, repo, token string) *Client {
 	var client *github.Client
 	if token != "" {
 		ts := oauth2.StaticTokenSource(&oauth2.Token{
@@ -93,18 +92,29 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 }
 
 // ListReleases lists Releases given a repository
-func (c *Client) ListReleases(ctx context.Context) ([]*github.RepositoryRelease, error) {
-	var result []*github.RepositoryRelease
+func (c *Client) ListReleases(ctx context.Context) ([]*Release, error) {
+	var result []*Release
 	page := 1
+
 	for {
-		assets, res, err := c.Repositories.ListReleases(context.TODO(), c.Owner, c.Repo, &github.ListOptions{Page: page})
+		repoReleases, res, err := c.Repositories.ListReleases(context.TODO(), c.Owner, c.Repo, &github.ListOptions{Page: page})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to list releases")
 		}
-		if res.StatusCode != http.StatusOK {
-			return nil, errors.Errorf("list repository releases: invalid status code: %s", res.Status)
+
+		for _, repoRelease := range repoReleases {
+			release := &Release{
+				Name:   *repoRelease.Name,
+				Assets: []*Asset{},
+			}
+			for _, ass := range repoRelease.Assets {
+				asset := &Asset{*ass.Name, *ass.BrowserDownloadURL}
+				release.Assets = append(release.Assets, asset)
+			}
+
+			result = append(result, release)
 		}
-		result = append(result, assets...)
+
 		if res.NextPage <= page {
 			break
 		}

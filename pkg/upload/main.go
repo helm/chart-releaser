@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // CreateReleases finds and uploads helm chart packages to github
@@ -38,9 +39,7 @@ func CreateReleases(config *config.Options) error {
 	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
 
 	for _, p := range packages {
-		fileName := filepath.Base(p)
-		fileExt := filepath.Ext(p)
-		baseName := fileName[:len(fileName)-len(fileExt)]
+		baseName := strings.TrimSuffix(p, filepath.Ext(p))
 
 		release := &github.Release{
 			Name: baseName,
