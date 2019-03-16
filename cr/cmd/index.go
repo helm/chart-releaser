@@ -1,4 +1,4 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+// Copyright The Helm Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import (
 // indexCmd represents the index command
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "creates helm repo index.yaml for given github repo",
+	Short: "Create Helm repo index.yaml for the given GitHub repo",
 	Long: `
-Creates a Helm Chart Repository index.yaml file based on a the
-given github repository's releases.
+Create a Helm chart repository index.yaml file based on a the
+given GitHub repository's releases.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo"})

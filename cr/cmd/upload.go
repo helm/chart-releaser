@@ -1,4 +1,4 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+// Copyright The Helm Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import (
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
 	Use:   "upload",
-	Short: "Uploads Helm Chart packages to github releases",
-	Long:  `Uploads Helm Chart packages to github releases`,
+	Short: "Upload Helm chart packages to GitHub Releases",
+	Long:  `Upload Helm chart packages to GitHub Releases`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo", "token"})
 		if err != nil {

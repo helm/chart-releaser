@@ -1,4 +1,4 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+// Copyright The Helm Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,12 +25,11 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "chart-releaser",
+	Use:   "cr",
 	Short: "Helm Chart Repos on Github Pages",
 	Long: `
-chart-releaser creates helm chart repositories on github pages by uploading Chart packages
-and Chart metadata to github releases and creating a suitable index file.
-
+Create Helm chart repositories on GitHub Pages by uploading Chart packages
+and Chart metadata to GitHub Releases and creating a suitable index file
 `}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -46,5 +45,5 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.chart-releaser.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config file (default is $HOME/.chart-releaser.yaml)")
 }
