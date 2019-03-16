@@ -36,18 +36,11 @@ import (
 
 //Create index.yaml file for a give git repo
 func Create(config *config.Options) error {
-	var ghc github.GitHub
-	var err error
-	var ctx = context.TODO()
 	var indexFile = &repo.IndexFile{}
 	var toAdd []string
 
 	// Create a GitHub client
-	ghc, err = github.NewGitHubClient(config.Owner, config.Repo, config.Token)
-	if err != nil {
-		fmt.Println("failed to log into github")
-		os.Exit(1)
-	}
+	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
 
 	// if path doesn't end with index.yaml we can try and fix it
 	if path.Base(config.Path) != "index.yaml" {
@@ -74,7 +67,7 @@ func Create(config *config.Options) error {
 	}
 
 	// Get list of releases for given github repo
-	releases, err := ghc.ListReleases(ctx)
+	releases, err := ghc.ListReleases(context.TODO())
 	if err != nil {
 		return err
 	}

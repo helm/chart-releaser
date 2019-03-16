@@ -30,7 +30,7 @@ var uploadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return upload.UploadPackages(options)
+		return upload.CreateReleases(options)
 	},
 }
 
