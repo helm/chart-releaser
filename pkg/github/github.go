@@ -30,11 +30,9 @@ import (
 // GitHub contains the functions necessary for interacting with GitHub release
 // objects
 type GitHub interface {
-	GetRepository(ctx context.Context) (*github.Repository, error)
-	CreateRelease(ctx context.Context, req *github.RepositoryRelease) (*github.RepositoryRelease, error)
+	CreateRelease(ctx context.Context, input *Release) error
 	GetRelease(ctx context.Context, tag string) (*Release, error)
-	ListReleases(ctx context.Context) ([]*github.RepositoryRelease, error)
-	UploadAsset(ctx context.Context, releaseID int64, filename string) error
+	ListReleases(ctx context.Context) ([]*Release, error)
 }
 
 type Release struct {

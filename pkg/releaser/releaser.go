@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package index
+package releaser
 
 import (
 	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"net/url"
 	"os"
 	"path"
@@ -31,8 +32,14 @@ import (
 	"k8s.io/helm/pkg/repo"
 )
 
-//Create index.yaml file for a give git repo
-func Create(config *config.Options) error {
+type Releaser struct {}
+
+func New() *Releaser {
+	return &Releaser{}
+}
+
+//UpdateIndexFile index.yaml file for a give git repo
+func (r *Releaser) UpdateIndexFile(config *config.Options) error {
 	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
 
 	// if path doesn't end with index.yaml we can try and fix it
@@ -56,7 +63,7 @@ func Create(config *config.Options) error {
 			return err
 		}
 	} else {
-		fmt.Printf("====> Create new index at %s\n", config.Path)
+		fmt.Printf("====> UpdateIndexFile new index at %s\n", config.Path)
 		indexFile = repo.NewIndexFile()
 	}
 
@@ -67,12 +74,12 @@ func Create(config *config.Options) error {
 
 	var toAdd []string
 	fmt.Println("--> Checking for releases with helm chart packages")
-	for _, r := range releases {
-		for _, asset := range r.Assets {
+	for _, rel := range releases {
+		for _, asset := range rel.Assets {
 			downloadUrl, _ := url.Parse(asset.URL)
 			name := path.Base(downloadUrl.Path)
 			baseName := strings.TrimSuffix(name, filepath.Ext(name))
-			tagParts := splitPackageNameAndVersion(baseName)
+			tagParts := r.splitPackageNameAndVersion(baseName)
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
@@ -82,7 +89,7 @@ func Create(config *config.Options) error {
 		}
 	}
 	for _, u := range toAdd {
-		addToIndexFile(indexFile, u)
+		r.addToIndexFile(indexFile, u)
 	}
 	fmt.Printf("--> Updating index %s\n", config.Path)
 	indexFile.SortEntries()
@@ -90,12 +97,12 @@ func Create(config *config.Options) error {
 
 }
 
-func splitPackageNameAndVersion(pkg string) []string {
+func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	delimIndex := strings.LastIndex(pkg, "-")
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func addToIndexFile(indexFile *repo.IndexFile, url string) {
+func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) {
 	// fetch package to temp url so we can extract metadata and stuff
 	//dir, err := ioutil.TempDir("", "chart-releaser")
 	//if err != nil {
@@ -128,4 +135,55 @@ func addToIndexFile(indexFile *repo.IndexFile, url string) {
 
 	// Add to index
 	indexFile.Add(c.Metadata, path.Base(arch), strings.Join(s, "/"), hash)
+}
+
+// CreateReleases finds and uploads helm chart packages to github
+func (r *Releaser) CreateReleases(config *config.Options) error {
+	packages, err := r.getListOfPackages(config.Path, config.Recursive)
+	if err != nil {
+		return err
+	}
+
+	if len(packages) == 0 {
+		return errors.Errorf("No charts found at %s, try --recursive or a different path.\n", config.Path)
+	}
+
+	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
+
+	for _, p := range packages {
+		baseName := strings.TrimSuffix(p, filepath.Ext(p))
+
+		release := &github.Release{
+			Name: baseName,
+			Assets: []*github.Asset{
+				{Path: p},
+			},
+		}
+		provFile := fmt.Sprintf("%s.prov", p)
+		if _, err := os.Stat(provFile); err == nil {
+			asset := &github.Asset{Path: provFile}
+			release.Assets = append(release.Assets, asset)
+		}
+
+		if err := ghc.CreateRelease(context.TODO(), release); err != nil {
+			return errors.Wrap(err, "error creating GitHub release")
+		}
+	}
+
+	return nil
+}
+
+func (r *Releaser) getListOfPackages(dir string, recurse bool) ([]string, error) {
+	archives, err := filepath.Glob(filepath.Join(dir, "*.tgz"))
+	if err != nil {
+		return nil, err
+	}
+	if recurse {
+		moreArchives, err := filepath.Glob(filepath.Join(dir, "**/*.tgz"))
+		if err != nil {
+			return nil, err
+		}
+		archives = append(archives, moreArchives...)
+	}
+	return archives, nil
 }

@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"github.com/helm/chart-releaser/pkg/config"
-	"github.com/helm/chart-releaser/pkg/upload"
+	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
 )
 
@@ -30,7 +30,8 @@ var uploadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		return upload.CreateReleases(options)
+		releaser := releaser.New()
+		return releaser.CreateReleases(options)
 	},
 }
 

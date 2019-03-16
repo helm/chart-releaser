@@ -16,16 +16,16 @@ package cmd
 
 import (
 	"github.com/helm/chart-releaser/pkg/config"
-	"github.com/helm/chart-releaser/pkg/index"
+	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
 )
 
 // indexCmd represents the index command
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "Create Helm repo index.yaml for the given GitHub repo",
+	Short: "UpdateIndexFile Helm repo index.yaml for the given GitHub repo",
 	Long: `
-Create a Helm chart repository index.yaml file based on a the
+UpdateIndexFile a Helm chart repository index.yaml file based on a the
 given GitHub repository's releases.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -33,7 +33,8 @@ given GitHub repository's releases.
 		if err != nil {
 			return err
 		}
-		return index.Create(options)
+		releaser := releaser.New()
+		return releaser.UpdateIndexFile(options)
 	},
 }
 

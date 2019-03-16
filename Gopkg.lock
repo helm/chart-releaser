@@ -341,7 +341,6 @@
   analyzer-version = 1
   input-imports = [
     "github.com/Songmu/retry",
-    "github.com/ghodss/yaml",
     "github.com/google/go-github/github",
     "github.com/mitchellh/go-homedir",
     "github.com/pkg/errors",
@@ -350,7 +349,6 @@
     "github.com/spf13/viper",
     "golang.org/x/oauth2",
     "k8s.io/helm/pkg/chartutil",
-    "k8s.io/helm/pkg/proto/hapi/chart",
     "k8s.io/helm/pkg/provenance",
     "k8s.io/helm/pkg/repo",
   ]
