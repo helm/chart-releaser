@@ -136,7 +136,7 @@ func (c *Client) EditRelease(ctx context.Context, releaseID int64, req *github.R
 
 // ListReleases lists Releases given a repository
 func (c *Client) ListReleases(ctx context.Context) ([]*github.RepositoryRelease, error) {
-	result := []*github.RepositoryRelease{}
+	var result []*github.RepositoryRelease
 	page := 1
 	for {
 		assets, res, err := c.Repositories.ListReleases(context.TODO(), c.Owner, c.Repo, &github.ListOptions{Page: page})

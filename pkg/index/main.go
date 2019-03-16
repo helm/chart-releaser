@@ -103,7 +103,7 @@ func Create(config *config.Options) error {
 	for _, u := range toAdd {
 		addToIndexFile(indexFile, u)
 	}
-	fmt.Printf("--> Updating index %s", config.Path)
+	fmt.Printf("--> Updating index %s\n", config.Path)
 	indexFile.SortEntries()
 	return indexFile.WriteFile(config.Path, 0644)
 
