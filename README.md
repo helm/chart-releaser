@@ -25,7 +25,6 @@ Available Commands:
 Flags:
       --config string   config file (default is $HOME/.chart-releaser.yaml)
   -h, --help            help for chart-releaser
-  -t, --toggle          Help message for toggle
 
 Use "chart-releaser [command] --help" for more information about a command.
 ```
