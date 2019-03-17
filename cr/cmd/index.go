@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
 )
@@ -29,13 +30,18 @@ UpdateIndexFile a Helm chart repository index.yaml file based on a the
 given GitHub repository's releases.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo"})
+		config, err := config.LoadConfiguration(cfgFile, cmd, getRequiredIndexArgs())
 		if err != nil {
 			return err
 		}
-		releaser := releaser.New()
-		return releaser.UpdateIndexFile(options)
+		ghc := github.NewClient(config.Owner, config.Repo, config.Token)
+		releaser := releaser.NewReleaser(config, ghc)
+		return releaser.UpdateIndexFile()
 	},
+}
+
+func getRequiredIndexArgs() []string {
+	return []string{"owner", "path", "repo"}
 }
 
 func init() {

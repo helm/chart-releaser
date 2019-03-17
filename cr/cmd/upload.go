@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
 )
@@ -26,13 +27,18 @@ var uploadCmd = &cobra.Command{
 	Short: "Upload Helm chart packages to GitHub Releases",
 	Long:  `Upload Helm chart packages to GitHub Releases`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo", "token"})
+		config, err := config.LoadConfiguration(cfgFile, cmd, getRequiredUploadArgs())
 		if err != nil {
 			return err
 		}
-		releaser := releaser.New()
-		return releaser.CreateReleases(options)
+		ghc := github.NewClient(config.Owner, config.Repo, config.Token)
+		releaser := releaser.NewReleaser(config, ghc)
+		return releaser.CreateReleases()
 	},
+}
+
+func getRequiredUploadArgs() []string {
+	return []string{"owner", "path", "repo", "token"}
 }
 
 func init() {

@@ -17,6 +17,7 @@ package releaser
 import (
 	"context"
 	"fmt"
+	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/pkg/errors"
 	"net/url"
 	"os"
@@ -24,55 +25,64 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/helm/chart-releaser/pkg/config"
-
 	"github.com/helm/chart-releaser/pkg/github"
 	"k8s.io/helm/pkg/chartutil"
 	"k8s.io/helm/pkg/provenance"
 	"k8s.io/helm/pkg/repo"
 )
 
-type Releaser struct {}
+// GitHub contains the functions necessary for interacting with GitHub release
+// objects
+type GitHub interface {
+	CreateRelease(ctx context.Context, input *github.Release) error
+	GetRelease(ctx context.Context, tag string) (*github.Release, error)
+	ListReleases(ctx context.Context) ([]*github.Release, error)
+}
 
-func New() *Releaser {
-	return &Releaser{}
+type Releaser struct {
+	config *config.Options
+	github GitHub
+}
+
+func NewReleaser(config *config.Options, github GitHub) *Releaser {
+	return &Releaser{
+		config: config,
+		github: github,
+	}
 }
 
 //UpdateIndexFile index.yaml file for a give git repo
-func (r *Releaser) UpdateIndexFile(config *config.Options) error {
-	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
-
+func (r *Releaser) UpdateIndexFile() error {
 	// if path doesn't end with index.yaml we can try and fix it
-	if path.Base(config.Path) != "index.yaml" {
+	if path.Base(r.config.Path) != "index.yaml" {
 		// if path is a directory then add index.yaml
-		if stat, err := os.Stat(config.Path); err == nil && stat.IsDir() {
-			config.Path = path.Join(config.Path, "index.yaml")
+		if stat, err := os.Stat(r.config.Path); err == nil && stat.IsDir() {
+			r.config.Path = path.Join(r.config.Path, "index.yaml")
 			// otherwise error out
 		} else {
-			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", config.Path)
+			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", r.config.Path)
 			os.Exit(1)
 		}
 	}
 
 	var indexFile = &repo.IndexFile{}
 	// Load up Index file (or create new one)
-	if _, err := os.Stat(config.Path); err == nil {
-		fmt.Printf("====> Using existing index at %s\n", config.Path)
-		indexFile, err = repo.LoadIndexFile(config.Path)
+	if _, err := os.Stat(r.config.Path); err == nil {
+		fmt.Printf("====> Using existing index at %s\n", r.config.Path)
+		indexFile, err = repo.LoadIndexFile(r.config.Path)
 		if err != nil {
 			return err
 		}
 	} else {
-		fmt.Printf("====> UpdateIndexFile new index at %s\n", config.Path)
+		fmt.Printf("====> UpdateIndexFile new index at %s\n", r.config.Path)
 		indexFile = repo.NewIndexFile()
 	}
 
-	releases, err := ghc.ListReleases(context.TODO())
+	releases, err := r.github.ListReleases(context.TODO())
 	if err != nil {
 		return err
 	}
 
-	var toAdd []string
 	fmt.Println("--> Checking for releases with helm chart packages")
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
@@ -83,18 +93,15 @@ func (r *Releaser) UpdateIndexFile(config *config.Options) error {
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				toAdd = append(toAdd, downloadUrl.String())
+				r.addToIndexFile(indexFile, downloadUrl.String())
 			}
 			break
 		}
 	}
-	for _, u := range toAdd {
-		r.addToIndexFile(indexFile, u)
-	}
-	fmt.Printf("--> Updating index %s\n", config.Path)
-	indexFile.SortEntries()
-	return indexFile.WriteFile(config.Path, 0644)
 
+	fmt.Printf("--> Updating index %s\n", r.config.Path)
+	indexFile.SortEntries()
+	return indexFile.WriteFile(r.config.Path, 0644)
 }
 
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
@@ -138,17 +145,15 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) {
 }
 
 // CreateReleases finds and uploads helm chart packages to github
-func (r *Releaser) CreateReleases(config *config.Options) error {
-	packages, err := r.getListOfPackages(config.Path, config.Recursive)
+func (r *Releaser) CreateReleases() error {
+	packages, err := r.getListOfPackages(r.config.Path, r.config.Recursive)
 	if err != nil {
 		return err
 	}
 
 	if len(packages) == 0 {
-		return errors.Errorf("No charts found at %s, try --recursive or a different path.\n", config.Path)
+		return errors.Errorf("No charts found at %s, try --recursive or a different path.\n", r.config.Path)
 	}
-
-	ghc := github.NewClient(config.Owner, config.Repo, config.Token)
 
 	for _, p := range packages {
 		baseName := strings.TrimSuffix(p, filepath.Ext(p))
@@ -165,7 +170,8 @@ func (r *Releaser) CreateReleases(config *config.Options) error {
 			release.Assets = append(release.Assets, asset)
 		}
 
-		if err := ghc.CreateRelease(context.TODO(), release); err != nil {
+		// TODO add changelog
+		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
 			return errors.Wrap(err, "error creating GitHub release")
 		}
 	}

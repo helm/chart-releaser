@@ -27,14 +27,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// GitHub contains the functions necessary for interacting with GitHub release
-// objects
-type GitHub interface {
-	CreateRelease(ctx context.Context, input *Release) error
-	GetRelease(ctx context.Context, tag string) (*Release, error)
-	ListReleases(ctx context.Context) ([]*Release, error)
-}
-
 type Release struct {
 	Name   string
 	Assets []*Asset
@@ -47,8 +39,8 @@ type Asset struct {
 
 // Client is the client for interacting with the GitHub API
 type Client struct {
-	Owner string
-	Repo  string
+	owner string
+	repo  string
 	*github.Client
 }
 
@@ -65,8 +57,8 @@ func NewClient(owner, repo, token string) *Client {
 		client = github.NewClient(nil)
 	}
 	return &Client{
-		Owner:  owner,
-		Repo:   repo,
+		owner:  owner,
+		repo:   repo,
 		Client: client,
 	}
 }
@@ -74,7 +66,7 @@ func NewClient(owner, repo, token string) *Client {
 // GetRelease queries the GitHub API for a specified release object
 func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 	// Check Release whether already exists or not
-	release, _, err := c.Repositories.GetReleaseByTag(context.TODO(), c.Owner, c.Repo, tag)
+	release, _, err := c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +87,7 @@ func (c *Client) ListReleases(ctx context.Context) ([]*Release, error) {
 	page := 1
 
 	for {
-		repoReleases, res, err := c.Repositories.ListReleases(context.TODO(), c.Owner, c.Repo, &github.ListOptions{Page: page})
+		repoReleases, res, err := c.Repositories.ListReleases(context.TODO(), c.owner, c.repo, &github.ListOptions{Page: page})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to list releases")
 		}
@@ -128,7 +120,7 @@ func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 		TagName: &input.Name,
 	}
 
-	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.Owner, c.Repo, req)
+	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
 	if err != nil {
 		return err
 	}
@@ -160,7 +152,7 @@ func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filena
 	}
 
 	err = retry.Retry(3, 3*time.Second, func() error {
-		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.Owner, c.Repo, releaseID, opts, f); err != nil {
+		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.owner, c.repo, releaseID, opts, f); err != nil {
 			return errors.Wrapf(err, "failed to upload release asset: %s\n", filename)
 		}
 		return nil
