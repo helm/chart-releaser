@@ -17,6 +17,7 @@ package config
 import (
 	"fmt"
 	"github.com/mitchellh/go-homedir"
+	"os"
 	"path"
 	"reflect"
 	"strings"
@@ -37,11 +38,11 @@ var (
 )
 
 type Options struct {
-	Owner     string
-	Repo      string
-	Path      string
-	Token     string
-	Recursive bool
+	Owner       string `mapstructure:"owner"`
+	Repo        string `mapstructure:"repo"`
+	IndexPath   string `mapstructure:"index-path"`
+	PackagePath string `mapstructure:"package-path"`
+	Token       string `mapstructure:"token"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
@@ -90,6 +91,18 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		value := fmt.Sprintf("%v", f.Interface())
 		if value == "" {
 			return nil, errors.Errorf("'--%s' is required", requiredFlag)
+		}
+	}
+
+	// if path doesn't end with index.yaml we can try and fix it
+	if path.Base(opts.IndexPath) != "index.yaml" {
+		// if path is a directory then add index.yaml
+		if stat, err := os.Stat(opts.IndexPath); err == nil && stat.IsDir() {
+			opts.IndexPath = path.Join(opts.IndexPath, "index.yaml")
+			// otherwise error out
+		} else {
+			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", opts.IndexPath)
+			os.Exit(1)
 		}
 	}
 

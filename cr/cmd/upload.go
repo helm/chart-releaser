@@ -38,14 +38,13 @@ var uploadCmd = &cobra.Command{
 }
 
 func getRequiredUploadArgs() []string {
-	return []string{"owner", "path", "repo", "token"}
+	return []string{"owner", "repo", "token"}
 }
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
 	uploadCmd.Flags().StringP("owner", "o", "", "github username or organization")
 	uploadCmd.Flags().StringP("repo", "r", "", "github repository")
-	uploadCmd.Flags().StringP("path", "p", "", "Path to Helm Artifacts")
+	uploadCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	uploadCmd.Flags().StringP("token", "t", "", "Github Auth Token")
-	uploadCmd.Flags().Bool("recursive", false, "recursively find artifacts")
 }

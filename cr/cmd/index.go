@@ -41,7 +41,7 @@ given GitHub repository's releases.
 }
 
 func getRequiredIndexArgs() []string {
-	return []string{"owner", "path", "repo"}
+	return []string{"owner", "repo"}
 }
 
 func init() {
@@ -49,6 +49,7 @@ func init() {
 	flags := indexCmd.Flags()
 	flags.StringP("owner", "o", "", "github username or organization")
 	flags.StringP("repo", "r", "", "github repository")
-	flags.StringP("path", "p", "", "Path to index file")
+	flags.StringP("index-path", "i", ".cr-index/index.yaml", "Path to index file")
+	flags.StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	flags.StringP("token", "t", "", "Github Auth Token (only needed for private repos)")
 }

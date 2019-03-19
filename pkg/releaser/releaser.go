@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/pkg/errors"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
@@ -53,39 +54,33 @@ func NewReleaser(config *config.Options, github GitHub) *Releaser {
 
 //UpdateIndexFile index.yaml file for a give git repo
 func (r *Releaser) UpdateIndexFile() error {
-	// if path doesn't end with index.yaml we can try and fix it
-	if path.Base(r.config.Path) != "index.yaml" {
-		// if path is a directory then add index.yaml
-		if stat, err := os.Stat(r.config.Path); err == nil && stat.IsDir() {
-			r.config.Path = path.Join(r.config.Path, "index.yaml")
-			// otherwise error out
-		} else {
-			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", r.config.Path)
-			os.Exit(1)
-		}
-	}
-
 	var indexFile = &repo.IndexFile{}
-	// Load up Index file (or create new one)
-	if _, err := os.Stat(r.config.Path); err == nil {
-		fmt.Printf("====> Using existing index at %s\n", r.config.Path)
-		indexFile, err = repo.LoadIndexFile(r.config.Path)
+
+	if _, err := os.Stat(r.config.IndexPath); err == nil {
+		fmt.Printf("====> Using existing index at %s\n", r.config.IndexPath)
+		indexFile, err = repo.LoadIndexFile(r.config.IndexPath)
 		if err != nil {
 			return err
 		}
 	} else {
-		fmt.Printf("====> UpdateIndexFile new index at %s\n", r.config.Path)
+		fmt.Printf("====> UpdateIndexFile new index at %s\n", r.config.IndexPath)
 		indexFile = repo.NewIndexFile()
 	}
 
-	releases, err := r.github.ListReleases(context.TODO())
+	chartPackages, err := ioutil.ReadDir(r.config.PackagePath)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("--> Checking for releases with helm chart packages")
-	for _, rel := range releases {
-		for _, asset := range rel.Assets {
+	for _, chartPackage := range chartPackages {
+		tag := strings.TrimSuffix(chartPackage.Name(), filepath.Ext(chartPackage.Name()))
+
+		release, err := r.github.GetRelease(context.TODO(), tag)
+		if err != nil {
+			return err
+		}
+
+		for _, asset := range release.Assets {
 			downloadUrl, _ := url.Parse(asset.URL)
 			name := path.Base(downloadUrl.Path)
 			baseName := strings.TrimSuffix(name, filepath.Ext(name))
@@ -93,15 +88,17 @@ func (r *Releaser) UpdateIndexFile() error {
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				r.addToIndexFile(indexFile, downloadUrl.String())
+				if err := r.addToIndexFile(indexFile, downloadUrl.String()); err != nil{
+					return err
+				}
+				break
 			}
-			break
 		}
 	}
 
-	fmt.Printf("--> Updating index %s\n", r.config.Path)
+	fmt.Printf("--> Updating index %s\n", r.config.IndexPath)
 	indexFile.SortEntries()
-	return indexFile.WriteFile(r.config.Path, 0644)
+	return indexFile.WriteFile(r.config.IndexPath, 0644)
 }
 
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
@@ -109,29 +106,20 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) {
-	// fetch package to temp url so we can extract metadata and stuff
-	//dir, err := ioutil.TempDir("", "chart-releaser")
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//defer os.RemoveAll(dir)
-	// TODO dir
-	arch := path.Join(".", path.Base(url))
+func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
+	arch := path.Join(r.config.PackagePath, path.Base(url))
 
 	// extract chart metadata
 	fmt.Printf("====> Extracting chart metadata from %s\n", arch)
 	c, err := chartutil.Load(arch)
 	if err != nil {
-		// weird, must not be a chart package
-		fmt.Printf("====> %s is not a helm chart package\n", arch)
-		return
+		return errors.Wrapf(err, "%s is not a helm chart package", arch)
 	}
 	// calculate hash
 	fmt.Printf("====> Calculating Hash for %s\n", arch)
 	hash, err := provenance.DigestFile(arch)
 	if err != nil {
-		return
+		return err
 	}
 
 	// remove url name from url as helm's index library
@@ -142,17 +130,18 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) {
 
 	// Add to index
 	indexFile.Add(c.Metadata, path.Base(arch), strings.Join(s, "/"), hash)
+	return nil
 }
 
 // CreateReleases finds and uploads helm chart packages to github
 func (r *Releaser) CreateReleases() error {
-	packages, err := r.getListOfPackages(r.config.Path, r.config.Recursive)
+	packages, err := r.getListOfPackages(r.config.PackagePath)
 	if err != nil {
 		return err
 	}
 
 	if len(packages) == 0 {
-		return errors.Errorf("No charts found at %s, try --recursive or a different path.\n", r.config.Path)
+		return errors.Errorf("No charts found at %s.\n", r.config.PackagePath)
 	}
 
 	for _, p := range packages {
@@ -179,17 +168,6 @@ func (r *Releaser) CreateReleases() error {
 	return nil
 }
 
-func (r *Releaser) getListOfPackages(dir string, recurse bool) ([]string, error) {
-	archives, err := filepath.Glob(filepath.Join(dir, "*.tgz"))
-	if err != nil {
-		return nil, err
-	}
-	if recurse {
-		moreArchives, err := filepath.Glob(filepath.Join(dir, "**/*.tgz"))
-		if err != nil {
-			return nil, err
-		}
-		archives = append(archives, moreArchives...)
-	}
-	return archives, nil
+func (r *Releaser) getListOfPackages(dir string) ([]string, error) {
+	return filepath.Glob(filepath.Join(dir, "*.tgz"))
 }
