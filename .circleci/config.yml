@@ -1,19 +1,60 @@
 version: 2
 jobs:
-  release:
+  lint:
     docker:
-      - image: circleci/golang:1.12
+      - image: koalaman/shellcheck-alpine
     steps:
       - checkout
-      - run: go mod download
-      - run: curl -sL https://raw.githubusercontent.com/goreleaser/get/master/get | VERSION=v0.101.0 bash
+      - run:
+          name: lint
+          command: |
+            shellcheck -x build.sh
+            shellcheck -x tag.sh
+  build:
+    docker:
+      - image: golang:1.12-alpine
+    steps:
+      - setup_remote_docker
+      - run:
+          name: Install tools
+          command: |
+            apk add bash build-base ca-certificates curl docker git openssh
+            curl -SLO https://github.com/goreleaser/goreleaser/releases/download/v0.104.0/goreleaser_Linux_x86_64.tar.gz
+            mkdir -p /usr/local/goreleaser
+            tar -xzf goreleaser_Linux_x86_64.tar.gz -C /usr/local/goreleaser
+            ln -s /usr/local/goreleaser/goreleaser /usr/local/bin/goreleaser
+            rm -rf goreleaser_Linux_x86_64.tar.gz
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+      - checkout
+      - run:
+          name: gofmt
+          command: |
+            gofmt -w -s . && git diff --exit-code
+      - run:
+          name: Build
+          command: |
+            set -e
+            set -u
+
+            if [[ -z "${CIRCLE_TAG:-}" ]]; then
+              echo "Building snapshot..."
+              ./build.sh
+            else
+              echo "Building release $CIRCLE_TAG..."
+              echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin quay.io
+              ./build.sh --release
+            fi
 workflows:
   version: 2
-  release:
+  untagged-build:
     jobs:
-      - release:
+      - lint
+      - build
+  tagged-build:
+    jobs:
+      - build:
           filters:
+            tags:
+              only: /^v.*/
             branches:
               ignore: /.*/
-            tags:
-              only: /v[0-9]+(\.[0-9]+)*(-.*)*/

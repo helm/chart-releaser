@@ -1,22 +1,46 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
+project_name: chart-testing
 builds:
-- env:
-  - CGO_ENABLED=0
+  - main: cr/main.go
+    binary: cr
+    env:
+      - CGO_ENABLED=0
+    goarch:
+      - amd64
+      - arm
+    goos:
+      - linux
+      - darwin
+      - windows
+    ldflags:
+      - >-
+        -X github.com/helm/chart-releaser/cr/cmd.Version={{ .Tag }}
+        -X github.com/helm/chart-releaser/cr/cmd.GitCommit={{ .Commit }}
+        -X github.com/helm/chart-releaser/cr/cmd.BuildDate={{ .Date }}
 archive:
-  replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
+  format_overrides:
+    - goos: windows
+      format: zip
+  files:
+    - LICENSE
+    - README.md
 checksum:
   name_template: 'checksums.txt'
 snapshot:
   name_template: "{{ .Tag }}-next"
-changelog:
-  sort: asc
-  filters:
-    exclude:
-    - '^docs:'
-    - '^test:'
+dockers:
+  - goos: linux
+    goarch: amd64
+    binaries:
+      - cr
+    skip_push: false
+    dockerfile: Dockerfile
+    image_templates:
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}
+      - quay.io/helmpack/chart-releaser:latest
+    build_flag_templates:
+      - --label=org.label-schema.schema-version=1.0
+      - --label=org.label-schema.version={{ .Version }}
+      - --label=org.label-schema.name={{ .ProjectName }}
+      - --label=org.label-schema.build-date={{ .Date }}
+      - --label=org.label-schema.description='cr - The chart release tool'
+      - --label=org.label-schema.vendor=Helm
