@@ -37,7 +37,6 @@ import (
 type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
-	ListReleases(ctx context.Context) ([]*github.Release, error)
 }
 
 type Releaser struct {

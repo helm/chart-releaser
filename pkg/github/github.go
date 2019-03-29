@@ -81,38 +81,6 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 	return result, nil
 }
 
-// ListReleases lists Releases given a repository
-func (c *Client) ListReleases(ctx context.Context) ([]*Release, error) {
-	var result []*Release
-	page := 1
-
-	for {
-		repoReleases, res, err := c.Repositories.ListReleases(context.TODO(), c.owner, c.repo, &github.ListOptions{Page: page})
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to list releases")
-		}
-
-		for _, repoRelease := range repoReleases {
-			release := &Release{
-				Name:   *repoRelease.Name,
-				Assets: []*Asset{},
-			}
-			for _, ass := range repoRelease.Assets {
-				asset := &Asset{*ass.Name, *ass.BrowserDownloadURL}
-				release.Assets = append(release.Assets, asset)
-			}
-
-			result = append(result, release)
-		}
-
-		if res.NextPage <= page {
-			break
-		}
-		page = res.NextPage
-	}
-	return result, nil
-}
-
 // CreateRelease creates a new release object in the GitHub API
 func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 	req := &github.RepositoryRelease{
