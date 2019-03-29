@@ -45,6 +45,7 @@ func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) e
 func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) {
 	release := &github.Release{
 		Name: "testdata/release-packages/test-chart-0.1.0",
+		Description: "A Helm chart for Kubernetes",
 		Assets: []*github.Asset{
 			{
 				Path: "testdata/release-packages/test-chart-0.1.0.tgz",
@@ -217,7 +218,9 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				releaseName := fmt.Sprintf("%s/%s-%s", r.config.PackagePath, tt.chart, tt.version)
+				releaseDescription := "A Helm chart for Kubernetes"
 				assert.Equal(t, releaseName, fakeGitHub.release.Name)
+				assert.Equal(t, releaseDescription, fakeGitHub.release.Description)
 				assert.Len(t, fakeGitHub.release.Assets, 1)
 				assert.Equal(t, fmt.Sprintf("%s.tgz", releaseName), fakeGitHub.release.Assets[0].Path)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)

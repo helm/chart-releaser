@@ -153,9 +153,13 @@ func (r *Releaser) CreateReleases() error {
 
 	for _, p := range packages {
 		baseName := strings.TrimSuffix(p, filepath.Ext(p))
-
+		chart, err := chartutil.Load(p)
+		if err != nil {
+			return err
+		}
 		release := &github.Release{
 			Name: baseName,
+			Description: chart.Metadata.Description,
 			Assets: []*github.Asset{
 				{Path: p},
 			},

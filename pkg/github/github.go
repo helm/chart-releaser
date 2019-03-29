@@ -28,8 +28,9 @@ import (
 )
 
 type Release struct {
-	Name   string
-	Assets []*Asset
+	Name        string
+	Description string
+	Assets      []*Asset
 }
 
 type Asset struct {
@@ -85,6 +86,7 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 	req := &github.RepositoryRelease{
 		Name:    &input.Name,
+		Body:    &input.Description,
 		TagName: &input.Name,
 	}
 
