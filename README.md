@@ -78,8 +78,8 @@ Download your preferred asset from the [releases page](https://github.com/helm/c
 ### Go get (for contributing)
 
 ```console
-$ go get -d github.com/helm/chart-releaser
-$ cd $(go env GOPATH)/src/github.com/helm/chart-releaser
-$ dep ensure -vendor-only
+$ # clone repo to some directory outside GOPATH
+$ git clone github.com/helm/chart-releaser
+$ go mod download
 $ go install
 ```
