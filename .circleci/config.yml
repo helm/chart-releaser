@@ -7,8 +7,7 @@ jobs:
       - image: circleci/golang:1.12
     steps:
       - checkout
-      - run: go get -u github.com/golang/dep/cmd/dep
-      - run: dep ensure
+      - run: go mod download
       # See https://github.com/goreleaser/get
       - run: curl -sL https://raw.githubusercontent.com/goreleaser/get/master/get | VERSION=v0.101.0 bash
 workflows:
