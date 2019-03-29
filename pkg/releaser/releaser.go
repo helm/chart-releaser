@@ -52,14 +52,14 @@ func NewReleaser(config *config.Options, github GitHub) *Releaser {
 }
 
 //UpdateIndexFile index.yaml file for a give git repo
-func (r *Releaser) UpdateIndexFile() error {
+func (r *Releaser) UpdateIndexFile() (bool, error) {
 	var indexFile = &repo.IndexFile{}
 
 	if _, err := os.Stat(r.config.IndexPath); err == nil {
 		fmt.Printf("====> Using existing index at %s\n", r.config.IndexPath)
 		indexFile, err = repo.LoadIndexFile(r.config.IndexPath)
 		if err != nil {
-			return err
+			return false, err
 		}
 	} else {
 		fmt.Printf("====> UpdateIndexFile new index at %s\n", r.config.IndexPath)
@@ -68,15 +68,16 @@ func (r *Releaser) UpdateIndexFile() error {
 
 	chartPackages, err := ioutil.ReadDir(r.config.PackagePath)
 	if err != nil {
-		return err
+		return false, err
 	}
 
+	var update bool
 	for _, chartPackage := range chartPackages {
 		tag := strings.TrimSuffix(chartPackage.Name(), filepath.Ext(chartPackage.Name()))
 
 		release, err := r.github.GetRelease(context.TODO(), tag)
 		if err != nil {
-			return err
+			return false, err
 		}
 
 		for _, asset := range release.Assets {
@@ -87,17 +88,24 @@ func (r *Releaser) UpdateIndexFile() error {
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				if err := r.addToIndexFile(indexFile, downloadUrl.String()); err != nil{
-					return err
+				if err := r.addToIndexFile(indexFile, downloadUrl.String()); err != nil {
+					return false, err
 				}
+				update = true
 				break
 			}
 		}
 	}
 
-	fmt.Printf("--> Updating index %s\n", r.config.IndexPath)
-	indexFile.SortEntries()
-	return indexFile.WriteFile(r.config.IndexPath, 0644)
+	if update {
+		fmt.Printf("--> Updating index %s\n", r.config.IndexPath)
+		indexFile.SortEntries()
+		return true, indexFile.WriteFile(r.config.IndexPath, 0644)
+	} else {
+		fmt.Printf("--> Index %s did not change\n", r.config.IndexPath)
+	}
+
+	return false, nil
 }
 
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {

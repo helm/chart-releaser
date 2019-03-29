@@ -36,7 +36,8 @@ given GitHub repository's releases.
 		}
 		ghc := github.NewClient(config.Owner, config.Repo, config.Token)
 		releaser := releaser.NewReleaser(config, ghc)
-		return releaser.UpdateIndexFile()
+		_, err = releaser.UpdateIndexFile()
+		return err
 	},
 }
 

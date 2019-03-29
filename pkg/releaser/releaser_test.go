@@ -20,7 +20,11 @@ import (
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"io/ioutil"
+	"k8s.io/helm/pkg/provenance"
 	"k8s.io/helm/pkg/repo"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/helm/chart-releaser/pkg/config"
@@ -39,9 +43,64 @@ func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) e
 }
 
 func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) {
-	f.Called(ctx, tag)
-	f.tag = tag
-	return nil, nil
+	release := &github.Release{
+		Name: "testdata/release-packages/test-chart-0.1.0",
+		Assets: []*github.Asset{
+			{
+				Path: "testdata/release-packages/test-chart-0.1.0.tgz",
+				URL:  "https://myrepo/charts/test-chart-0.1.0.tgz",
+			},
+		},
+	}
+	return release, nil
+}
+
+func TestReleaser_UpdateIndexFile(t *testing.T) {
+	indexDir, _ := ioutil.TempDir(".", "index")
+	defer os.RemoveAll(indexDir)
+
+	tests := []struct {
+		name      string
+		indexPath string
+		exists    bool
+	}{
+		{
+			"index-file-exists",
+			"testdata/index/index.yaml",
+			true,
+		},
+		{
+			"index-file-does-not-exist",
+			filepath.Join(indexDir, "index.yaml"),
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGitHub := new(FakeGitHub)
+			r := &Releaser{
+				config: &config.Options{
+					IndexPath:   tt.indexPath,
+					PackagePath: "testdata/release-packages",
+				},
+				github: fakeGitHub,
+			}
+			var sha256 string
+			if tt.exists {
+				sha256, _ = provenance.DigestFile(tt.indexPath)
+			}
+			update, err := r.UpdateIndexFile()
+			assert.NoError(t, err)
+			assert.Equal(t, update, !tt.exists)
+			if tt.exists {
+				newSha256, _ := provenance.DigestFile(tt.indexPath)
+				assert.Equal(t, sha256, newSha256)
+			} else {
+				_, err := os.Stat(tt.indexPath)
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestReleaser_splitPackageNameAndVersion(t *testing.T) {
