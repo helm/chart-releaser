@@ -1,4 +1,4 @@
-project_name: chart-testing
+project_name: chart-releaser
 builds:
   - main: cr/main.go
     binary: cr
