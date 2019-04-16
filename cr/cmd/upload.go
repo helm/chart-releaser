@@ -1,4 +1,4 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+// Copyright The Helm Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,29 +16,35 @@ package cmd
 
 import (
 	"github.com/helm/chart-releaser/pkg/config"
-	"github.com/helm/chart-releaser/pkg/upload"
+	"github.com/helm/chart-releaser/pkg/github"
+	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
 )
 
 // uploadCmd represents the upload command
 var uploadCmd = &cobra.Command{
 	Use:   "upload",
-	Short: "Uploads Helm Chart packages to github releases",
-	Long:  `Uploads Helm Chart packages to github releases`,
+	Short: "Upload Helm chart packages to GitHub Releases",
+	Long:  `Upload Helm chart packages to GitHub Releases`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		options, err := config.LoadConfiguration(cfgFile, cmd, []string{"owner", "path", "repo", "token"})
+		config, err := config.LoadConfiguration(cfgFile, cmd, getRequiredUploadArgs())
 		if err != nil {
 			return err
 		}
-		return upload.UploadPackages(options)
+		ghc := github.NewClient(config.Owner, config.Repo, config.Token)
+		releaser := releaser.NewReleaser(config, ghc)
+		return releaser.CreateReleases()
 	},
+}
+
+func getRequiredUploadArgs() []string {
+	return []string{"owner", "repo", "token"}
 }
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
 	uploadCmd.Flags().StringP("owner", "o", "", "github username or organization")
 	uploadCmd.Flags().StringP("repo", "r", "", "github repository")
-	uploadCmd.Flags().StringP("path", "p", "", "Path to Helm Artifacts")
+	uploadCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	uploadCmd.Flags().StringP("token", "t", "", "Github Auth Token")
-	uploadCmd.Flags().Bool("recursive", false, "recursively find artifacts")
 }

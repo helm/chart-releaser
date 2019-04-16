@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"github.com/mitchellh/go-homedir"
 	"os"
+	"path"
 	"reflect"
 	"strings"
 
@@ -27,12 +28,21 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	homeDir, _            = homedir.Dir()
+	configSearchLocations = []string{
+		".",
+		path.Join(homeDir, ".cr"),
+		"/etc/cr",
+	}
+)
+
 type Options struct {
-	Owner     string
-	Repo      string
-	Path      string
-	Token     string
-	Recursive bool
+	Owner       string `mapstructure:"owner"`
+	Repo        string `mapstructure:"repo"`
+	IndexPath   string `mapstructure:"index-path"`
+	PackagePath string `mapstructure:"package-path"`
+	Token       string `mapstructure:"token"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
@@ -50,22 +60,15 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	v.SetEnvPrefix("CH")
+	v.SetEnvPrefix("CR")
 
 	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		v.SetConfigFile(cfgFile)
 	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		v.SetConfigName("cr")
+		for _, searchLocation := range configSearchLocations {
+			v.AddConfigPath(searchLocation)
 		}
-
-		// Search config in home directory with name ".chart-releaser" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".chart-releaser")
 	}
 
 	if err := v.ReadInConfig(); err != nil {
@@ -88,6 +91,18 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		value := fmt.Sprintf("%v", f.Interface())
 		if value == "" {
 			return nil, errors.Errorf("'--%s' is required", requiredFlag)
+		}
+	}
+
+	// if path doesn't end with index.yaml we can try and fix it
+	if path.Base(opts.IndexPath) != "index.yaml" {
+		// if path is a directory then add index.yaml
+		if stat, err := os.Stat(opts.IndexPath); err == nil && stat.IsDir() {
+			opts.IndexPath = path.Join(opts.IndexPath, "index.yaml")
+			// otherwise error out
+		} else {
+			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", opts.IndexPath)
+			os.Exit(1)
 		}
 	}
 
