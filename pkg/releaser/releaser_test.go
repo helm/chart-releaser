@@ -44,7 +44,7 @@ func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) e
 
 func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) {
 	release := &github.Release{
-		Name: "testdata/release-packages/test-chart-0.1.0",
+		Name:        "testdata/release-packages/test-chart-0.1.0",
 		Description: "A Helm chart for Kubernetes",
 		Assets: []*github.Asset{
 			{

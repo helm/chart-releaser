@@ -158,7 +158,7 @@ func (r *Releaser) CreateReleases() error {
 			return err
 		}
 		release := &github.Release{
-			Name: baseName,
+			Name:        baseName,
 			Description: chart.Metadata.Description,
 			Assets: []*github.Asset{
 				{Path: p},
