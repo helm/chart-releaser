@@ -24,9 +24,9 @@ import (
 // indexCmd represents the index command
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "UpdateIndexFile Helm repo index.yaml for the given GitHub repo",
+	Short: "Update Helm repo index.yaml for the given GitHub repo",
 	Long: `
-UpdateIndexFile a Helm chart repository index.yaml file based on a the
+Update a Helm chart repository index.yaml file based on a the
 given GitHub repository's releases.
 	`,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,9 +48,9 @@ func getRequiredIndexArgs() []string {
 func init() {
 	rootCmd.AddCommand(indexCmd)
 	flags := indexCmd.Flags()
-	flags.StringP("owner", "o", "", "github username or organization")
-	flags.StringP("repo", "r", "", "github repository")
+	flags.StringP("owner", "o", "", "GitHub username or organization")
+	flags.StringP("repo", "r", "", "GitHub repository")
 	flags.StringP("index-path", "i", ".cr-index/index.yaml", "Path to index file")
 	flags.StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
-	flags.StringP("token", "t", "", "Github Auth Token (only needed for private repos)")
+	flags.StringP("token", "t", "", "GitHub Auth Token (only needed for private repos)")
 }
