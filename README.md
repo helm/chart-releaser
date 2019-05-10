@@ -1,74 +1,11 @@
-# Chart Releaser 
+# Chart Releaser
+
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CircleCI](https://circleci.com/gh/helm/chart-releaser/tree/master.svg?style=svg)](https://circleci.com/gh/helm/chart-releaser/tree/master)
 
 **Helps Turn GitHub Repositories into Helm Chart Repositories**
 
-Chart Releaser is a tool designed to help GitHub repos self-host their own chart repos by adding Helm Chart artifacts to GitHub Releases named for the chart version and then creating an `index.yaml` file for those releases that can be hosted on GitHub Pages (or elsewhere!).
-
-The examples below were used to create the `demo` chart found at [paulczar/helm-demo](https://github.com/paulczar/helm-demo) which has GitHub Pages configured to serve the `docs` directory of the `master` branch.
-
-## Usage
-
-```console
-$ go get github.com/helm/chart-releaser
-$ chart-releaser
-chart-releaser creates helm chart repositories on github pages by uploading Chart packages
-and Chart metadata to github releases and creating a suitable index file.
-
-Usage:
-  chart-releaser [command]
-
-Available Commands:
-  help        Help about any command
-  index       creates helm repo index.yaml for given github repo
-  upload      Uploads Helm Chart packages to github releases
-
-Flags:
-      --config string   config file (default is $HOME/.chart-releaser.yaml)
-  -h, --help            help for chart-releaser
-
-Use "chart-releaser [command] --help" for more information about a command.
-```
-
-### Upload Helm Chart Packages
-
-Scans a path for Helm chart packages and creates releases in the specified GitHub repo uploading the packages and `Chart.yaml` files.
-
-```console
-$ chart-releaser upload -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/ --recursive
---> Processing package demo-0.1.0.tgz
-release "0.1.0"====> Release 0.1.0 already exists
-====> Release 0.1.0 already contains package demo-0.1.0.tgz
-====> Release 0.1.0 already contains Chart.yaml
---> Processing package demo-0.1.10.tgz
-release "0.1.10"====> Release 0.1.10 already exists
-====> Release 0.1.10 already contains package demo-0.1.10.tgz
-====> Release 0.1.10 already contains Chart.yaml
-...
-```
-
-### Creating the Repository Index from GitHub Releases
-
-Once uploaded you can create an `index.yaml` file that can be hosted on GitHub Pages (or elsewhere).
-
-```console
-$ chart-releaser index -o paulczar -r helm-demo -t $TOKEN -p ~/development/scratch/helm/demo/docs/index.yaml
-====> Using existing index at /home/pczarkowski/development/scratch/helm/demo/docs/index.yaml
---> Checking for releases with helm chart packages
-====> Found demo-0.1.0.tgz
-====> Found demo-0.1.14.tgz
-...
---> Updating index /home/pczarkowski/development/scratch/helm/demo/docs/index.yaml
-```
-
-### Using the Resultant Helm Chart Repository
-
-```console
-$ helm repo add demo https://tech.paulcz.net/helm-demo
-"demo" has been added to your repositories
-$ helm install --repo http://tech.paulcz.net/helm-demo demo
-NAME:   kindred-stoat
-...
-```
+`cr` is a tool designed to help GitHub repos self-host their own chart repos by adding Helm chart artifacts to GitHub Releases named for the chart version and then creating an `index.yaml` file for those releases that can be hosted on GitHub Pages (or elsewhere!).
 
 ## Installation
 
@@ -84,3 +21,126 @@ $ git clone github.com/helm/chart-releaser
 $ go mod download
 $ go install
 ```
+
+## Usage
+
+Currently, `cr` can create GitHub Releases from a set of charts packaged up into a directory and create an `index.yaml` file for the chart repository from GitHub Releases.
+
+```console
+$ cr --help
+Create Helm chart repositories on GitHub Pages by uploading Chart packages
+and Chart metadata to GitHub Releases and creating a suitable index file
+
+Usage:
+  cr [command]
+
+Available Commands:
+  help        Help about any command
+  index       Update Helm repo index.yaml for the given GitHub repo
+  upload      Upload Helm chart packages to GitHub Releases
+  version     Print version information
+
+Flags:
+      --config string   Config file (default is $HOME/.chart-releaser.yaml)
+  -h, --help            help for cr
+
+Use "cr [command] --help" for more information about a command.
+```
+
+### Create GitHub Releases from Helm Chart Packages
+
+Scans a path for Helm chart packages and creates releases in the specified GitHub repo uploading the packages.
+
+```console
+$ cr upload --help
+Upload Helm chart packages to GitHub Releases
+
+Usage:
+  cr upload [flags]
+
+Flags:
+  -h, --help                  help for upload
+  -o, --owner string          GitHub username or organization
+  -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
+  -r, --repo string           GitHub repository
+  -t, --token string          GitHub Auth Token
+
+Global Flags:
+      --config string   Config file (default is $HOME/.chart-releaser.yaml)
+```
+
+### Create the Repository Index from GitHub Releases
+
+Once uploaded you can create an `index.yaml` file that can be hosted on GitHub Pages (or elsewhere).
+
+```console
+$ cr index --help
+
+Update a Helm chart repository index.yaml file based on a the
+given GitHub repository's releases.
+
+Usage:
+  cr index [flags]
+
+Flags:
+  -h, --help                  help for index
+  -i, --index-path string     Path to index file (default ".cr-index/index.yaml")
+  -o, --owner string          GitHub username or organization
+  -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
+  -r, --repo string           GitHub repository
+  -t, --token string          GitHub Auth Token (only needed for private repos)
+
+Global Flags:
+      --config string   Config file (default is $HOME/.chart-releaser.yaml)
+```
+
+## Configuration
+
+`cr` is a command-line application.
+All command-line flags can also be set via environment variables or config file.
+Environment variables must be prefixed with `CR_`.
+Underscores must be used instead of hyphens.
+
+CLI flags, environment variables, and a config file can be mixed.
+The following order of precedence applies:
+
+1. CLI flags
+1. Environment variables
+1. Config file
+
+### Examples
+
+The following example show various ways of configuring the same thing:
+
+#### CLI
+
+    cr upload --owner myaccount --repo helm-charts --package-path .deploy --token 123456789
+
+#### Environment Variables
+
+    export CR_OWNER=myaccount
+    export CR_REPO=helm-charts
+    export CR_PACKAGE_PATH=.deploy
+    export CR_TOKEN="123456789"
+
+    cr upload
+
+#### Config File
+
+`config.yaml`:
+
+```yaml
+owner: myaccount
+repo: helm-charts
+package-path: .deploy
+token: 123456789
+```
+
+#### Config Usage
+
+    cr upload --config config.yaml
+
+
+`cr` supports any format [Viper](https://github.com/spf13/viper) can read, i. e. JSON, TOML, YAML, HCL, and Java properties files.
+
+Notice that if no config file is specified, `cr.yaml` (or any of the supported formats) is loaded from the current directory, `$HOME/.cr`, or `/etc/cr`, in that order, if found.

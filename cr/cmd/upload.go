@@ -43,8 +43,8 @@ func getRequiredUploadArgs() []string {
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
-	uploadCmd.Flags().StringP("owner", "o", "", "github username or organization")
-	uploadCmd.Flags().StringP("repo", "r", "", "github repository")
+	uploadCmd.Flags().StringP("owner", "o", "", "GitHub username or organization")
+	uploadCmd.Flags().StringP("repo", "r", "", "GitHub repository")
 	uploadCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
-	uploadCmd.Flags().StringP("token", "t", "", "Github Auth Token")
+	uploadCmd.Flags().StringP("token", "t", "", "GitHub Auth Token")
 }
