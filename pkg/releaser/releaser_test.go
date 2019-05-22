@@ -17,15 +17,16 @@ package releaser
 import (
 	"context"
 	"fmt"
-	"github.com/helm/chart-releaser/pkg/github"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"io/ioutil"
-	"k8s.io/helm/pkg/provenance"
-	"k8s.io/helm/pkg/repo"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/helm/chart-releaser/pkg/github"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"k8s.io/helm/pkg/provenance"
+	"k8s.io/helm/pkg/repo"
 
 	"github.com/helm/chart-releaser/pkg/config"
 )
@@ -217,12 +218,13 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 0)
 			} else {
 				assert.NoError(t, err)
-				releaseName := fmt.Sprintf("%s/%s-%s", r.config.PackagePath, tt.chart, tt.version)
+				releaseName := fmt.Sprintf("%s-%s", tt.chart, tt.version)
+				assetPath := fmt.Sprintf("%s/%s-%s.tgz", r.config.PackagePath, tt.chart, tt.version)
 				releaseDescription := "A Helm chart for Kubernetes"
 				assert.Equal(t, releaseName, fakeGitHub.release.Name)
 				assert.Equal(t, releaseDescription, fakeGitHub.release.Description)
 				assert.Len(t, fakeGitHub.release.Assets, 1)
-				assert.Equal(t, fmt.Sprintf("%s.tgz", releaseName), fakeGitHub.release.Assets[0].Path)
+				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
 		})
