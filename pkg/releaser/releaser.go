@@ -17,14 +17,15 @@ package releaser
 import (
 	"context"
 	"fmt"
-	"github.com/helm/chart-releaser/pkg/config"
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+
+	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/pkg/errors"
 
 	"github.com/helm/chart-releaser/pkg/github"
 	"k8s.io/helm/pkg/chartutil"
@@ -53,6 +54,18 @@ func NewReleaser(config *config.Options, github GitHub) *Releaser {
 
 //UpdateIndexFile index.yaml file for a give git repo
 func (r *Releaser) UpdateIndexFile() (bool, error) {
+	// if path doesn't end with index.yaml we can try and fix it
+	if path.Base(r.config.IndexPath) != "index.yaml" {
+		// if path is a directory then add index.yaml
+		if stat, err := os.Stat(r.config.IndexPath); err == nil && stat.IsDir() {
+			r.config.IndexPath = path.Join(r.config.IndexPath, "index.yaml")
+			// otherwise error out
+		} else {
+			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", r.config.IndexPath)
+			os.Exit(1)
+		}
+	}
+
 	var indexFile = &repo.IndexFile{}
 
 	if _, err := os.Stat(r.config.IndexPath); err == nil {
@@ -152,7 +165,7 @@ func (r *Releaser) CreateReleases() error {
 	}
 
 	for _, p := range packages {
-		baseName := strings.TrimSuffix(p, filepath.Ext(p))
+		baseName := filepath.Base(strings.TrimSuffix(p, filepath.Ext(p)))
 		chart, err := chartutil.Load(p)
 		if err != nil {
 			return err

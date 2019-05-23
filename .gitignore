@@ -2,3 +2,4 @@ chart-releaser
 .idea
 /dist
 /vendor
+.vscode
