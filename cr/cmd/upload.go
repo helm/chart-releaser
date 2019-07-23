@@ -31,20 +31,20 @@ var uploadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		ghc := github.NewClient(config.Owner, config.Repo, config.Token)
+		ghc := github.NewClient(config.Owner, config.GitRepo, config.Token)
 		releaser := releaser.NewReleaser(config, ghc)
 		return releaser.CreateReleases()
 	},
 }
 
 func getRequiredUploadArgs() []string {
-	return []string{"owner", "repo", "token"}
+	return []string{"owner", "git-repo", "token"}
 }
 
 func init() {
 	rootCmd.AddCommand(uploadCmd)
 	uploadCmd.Flags().StringP("owner", "o", "", "GitHub username or organization")
-	uploadCmd.Flags().StringP("repo", "r", "", "GitHub repository")
+	uploadCmd.Flags().StringP("git-repo", "r", "", "GitHub repository")
 	uploadCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	uploadCmd.Flags().StringP("token", "t", "", "GitHub Auth Token")
 }

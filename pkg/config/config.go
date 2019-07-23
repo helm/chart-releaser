@@ -17,7 +17,7 @@ package config
 import (
 	"fmt"
 	"github.com/mitchellh/go-homedir"
-	"path"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -31,14 +31,15 @@ var (
 	homeDir, _            = homedir.Dir()
 	configSearchLocations = []string{
 		".",
-		path.Join(homeDir, ".cr"),
+		filepath.Join(homeDir, ".cr"),
 		"/etc/cr",
 	}
 )
 
 type Options struct {
 	Owner       string `mapstructure:"owner"`
-	Repo        string `mapstructure:"repo"`
+	GitRepo     string `mapstructure:"git-repo"`
+	ChartsRepo  string `mapstructure:"charts-repo"`
 	IndexPath   string `mapstructure:"index-path"`
 	PackagePath string `mapstructure:"package-path"`
 	Token       string `mapstructure:"token"`
@@ -86,7 +87,8 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	elem := reflect.ValueOf(opts).Elem()
 	for _, requiredFlag := range requiredFlags {
-		f := elem.FieldByName(strings.Title(requiredFlag))
+		fieldName := kebabCaseToTitleCamelCase(requiredFlag)
+		f := elem.FieldByName(fieldName)
 		value := fmt.Sprintf("%v", f.Interface())
 		if value == "" {
 			return nil, errors.Errorf("'--%s' is required", requiredFlag)
@@ -94,4 +96,21 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 	}
 
 	return opts, nil
+}
+
+func kebabCaseToTitleCamelCase(input string) (result string) {
+	nextToUpper := true
+	for _, runeValue := range input {
+		if nextToUpper {
+			result += strings.ToUpper(string(runeValue))
+			nextToUpper = false
+		} else {
+			if runeValue == '-' {
+				nextToUpper = true
+			} else {
+				result += string(runeValue)
+			}
+		}
+	}
+	return
 }

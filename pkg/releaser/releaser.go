@@ -17,10 +17,11 @@ package releaser
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -52,13 +53,13 @@ func NewReleaser(config *config.Options, github GitHub) *Releaser {
 	}
 }
 
-//UpdateIndexFile index.yaml file for a give git repo
+// UpdateIndexFile index.yaml file for a give git repo
 func (r *Releaser) UpdateIndexFile() (bool, error) {
 	// if path doesn't end with index.yaml we can try and fix it
-	if path.Base(r.config.IndexPath) != "index.yaml" {
+	if filepath.Base(r.config.IndexPath) != "index.yaml" {
 		// if path is a directory then add index.yaml
 		if stat, err := os.Stat(r.config.IndexPath); err == nil && stat.IsDir() {
-			r.config.IndexPath = path.Join(r.config.IndexPath, "index.yaml")
+			r.config.IndexPath = filepath.Join(r.config.IndexPath, "index.yaml")
 			// otherwise error out
 		} else {
 			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", r.config.IndexPath)
@@ -66,9 +67,27 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		}
 	}
 
-	var indexFile = &repo.IndexFile{}
+	var indexFile *repo.IndexFile
 
-	if _, err := os.Stat(r.config.IndexPath); err == nil {
+	resp, err := http.Get(fmt.Sprintf("%s/index.yaml", r.config.ChartsRepo))
+	if err != nil {
+		return false, err
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		out, err := os.Create(r.config.IndexPath)
+		if err != nil {
+			return false, err
+		}
+		defer out.Close()
+
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return false, err
+		}
+
 		fmt.Printf("====> Using existing index at %s\n", r.config.IndexPath)
 		indexFile, err = repo.LoadIndexFile(r.config.IndexPath)
 		if err != nil {
@@ -95,7 +114,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 
 		for _, asset := range release.Assets {
 			downloadUrl, _ := url.Parse(asset.URL)
-			name := path.Base(downloadUrl.Path)
+			name := filepath.Base(downloadUrl.Path)
 			baseName := strings.TrimSuffix(name, filepath.Ext(name))
 			tagParts := r.splitPackageNameAndVersion(baseName)
 			packageName, packageVersion := tagParts[0], tagParts[1]
@@ -127,7 +146,7 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 }
 
 func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
-	arch := path.Join(r.config.PackagePath, path.Base(url))
+	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
 
 	// extract chart metadata
 	fmt.Printf("====> Extracting chart metadata from %s\n", arch)
@@ -149,7 +168,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	s = s[:len(s)-1]
 
 	// Add to index
-	indexFile.Add(c.Metadata, path.Base(arch), strings.Join(s, "/"), hash)
+	indexFile.Add(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
 	return nil
 }
 
