@@ -41,15 +41,28 @@ type GitHub interface {
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 }
 
+type HttpClient interface {
+	Get(url string) (*http.Response, error)
+}
+
+type DefaultHttpClient struct {
+}
+
+func (c *DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
+	return http.Get(url)
+}
+
 type Releaser struct {
 	config *config.Options
 	github GitHub
+	httpClient HttpClient
 }
 
 func NewReleaser(config *config.Options, github GitHub) *Releaser {
 	return &Releaser{
 		config: config,
 		github: github,
+		httpClient: &DefaultHttpClient{},
 	}
 }
 
@@ -69,7 +82,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 
 	var indexFile *repo.IndexFile
 
-	resp, err := http.Get(fmt.Sprintf("%s/index.yaml", r.config.ChartsRepo))
+	resp, err := r.httpClient.Get(fmt.Sprintf("%s/index.yaml", r.config.ChartsRepo))
 	if err != nil {
 		return false, err
 	}

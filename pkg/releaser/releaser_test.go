@@ -15,9 +15,11 @@
 package releaser
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,6 +37,20 @@ type FakeGitHub struct {
 	mock.Mock
 	release *github.Release
 	tag     string
+}
+
+type MockClient struct {
+	statusCode int
+}
+
+func (m *MockClient) Get(url string) (*http.Response, error) {
+	if m.statusCode == http.StatusOK {
+		file, _ := os.Open("testdata/repo/index.yaml")
+		reader := bufio.NewReader(file)
+		return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(reader)}, nil
+	} else {
+		return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(nil)}, nil
+	}
 }
 
 func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) error {
@@ -61,44 +77,52 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 	indexDir, _ := ioutil.TempDir(".", "index")
 	defer os.RemoveAll(indexDir)
 
+	fakeGitHub := new(FakeGitHub)
+
 	tests := []struct {
 		name      string
-		indexPath string
 		exists    bool
+		releaser  *Releaser
 	}{
 		{
 			"index-file-exists",
-			"testdata/index/index.yaml",
 			true,
+			&Releaser{
+				config: &config.Options{
+					IndexPath:   "testdata/index/index.yaml",
+					PackagePath: "testdata/release-packages",
+				},
+				github:     fakeGitHub,
+				httpClient: &MockClient{http.StatusOK},
+			},
 		},
 		{
 			"index-file-does-not-exist",
-			filepath.Join(indexDir, "index.yaml"),
 			false,
+			&Releaser{
+				config: &config.Options{
+					IndexPath:   filepath.Join(indexDir, "index.yaml"),
+					PackagePath: "testdata/release-packages",
+				},
+				github:     fakeGitHub,
+				httpClient: &MockClient{http.StatusNotFound},
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeGitHub := new(FakeGitHub)
-			r := &Releaser{
-				config: &config.Options{
-					IndexPath:   tt.indexPath,
-					PackagePath: "testdata/release-packages",
-				},
-				github: fakeGitHub,
-			}
 			var sha256 string
 			if tt.exists {
-				sha256, _ = provenance.DigestFile(tt.indexPath)
+				sha256, _ = provenance.DigestFile(tt.releaser.config.IndexPath)
 			}
-			update, err := r.UpdateIndexFile()
+			update, err := tt.releaser.UpdateIndexFile()
 			assert.NoError(t, err)
 			assert.Equal(t, update, !tt.exists)
 			if tt.exists {
-				newSha256, _ := provenance.DigestFile(tt.indexPath)
+				newSha256, _ := provenance.DigestFile(tt.releaser.config.IndexPath)
 				assert.Equal(t, sha256, newSha256)
 			} else {
-				_, err := os.Stat(tt.indexPath)
+				_, err := os.Stat(tt.releaser.config.IndexPath)
 				assert.NoError(t, err)
 			}
 		})
