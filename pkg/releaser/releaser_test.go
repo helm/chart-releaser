@@ -80,9 +80,9 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 	fakeGitHub := new(FakeGitHub)
 
 	tests := []struct {
-		name      string
-		exists    bool
-		releaser  *Releaser
+		name     string
+		exists   bool
+		releaser *Releaser
 	}{
 		{
 			"index-file-exists",

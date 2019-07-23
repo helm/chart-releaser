@@ -53,15 +53,15 @@ func (c *DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
 }
 
 type Releaser struct {
-	config *config.Options
-	github GitHub
+	config     *config.Options
+	github     GitHub
 	httpClient HttpClient
 }
 
 func NewReleaser(config *config.Options, github GitHub) *Releaser {
 	return &Releaser{
-		config: config,
-		github: github,
+		config:     config,
+		github:     github,
 		httpClient: &DefaultHttpClient{},
 	}
 }
