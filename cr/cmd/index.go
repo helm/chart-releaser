@@ -34,7 +34,7 @@ given GitHub repository's releases.
 		if err != nil {
 			return err
 		}
-		ghc := github.NewClient(config.Owner, config.Repo, config.Token)
+		ghc := github.NewClient(config.Owner, config.GitRepo, config.Token)
 		releaser := releaser.NewReleaser(config, ghc)
 		_, err = releaser.UpdateIndexFile()
 		return err
@@ -42,14 +42,15 @@ given GitHub repository's releases.
 }
 
 func getRequiredIndexArgs() []string {
-	return []string{"owner", "repo"}
+	return []string{"owner", "git-repo", "charts-repo"}
 }
 
 func init() {
 	rootCmd.AddCommand(indexCmd)
 	flags := indexCmd.Flags()
 	flags.StringP("owner", "o", "", "GitHub username or organization")
-	flags.StringP("repo", "r", "", "GitHub repository")
+	flags.StringP("git-repo", "r", "", "GitHub repository")
+	flags.StringP("charts-repo", "c", "", "The URL to the charts repository")
 	flags.StringP("index-path", "i", ".cr-index/index.yaml", "Path to index file")
 	flags.StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	flags.StringP("token", "t", "", "GitHub Auth Token (only needed for private repos)")
