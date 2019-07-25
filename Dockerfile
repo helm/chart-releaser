@@ -1,7 +1,6 @@
 FROM alpine:3.9
 
-RUN apk update && \
-    apk add ca-certificates
+RUN apk --no-cache add ca-certificates
 
 COPY cr /usr/local/bin/cr
 
