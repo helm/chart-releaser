@@ -17,9 +17,10 @@ Download your preferred asset from the [releases page](https://github.com/helm/c
 
 ```console
 $ # clone repo to some directory outside GOPATH
-$ git clone github.com/helm/chart-releaser
+$ git clone https://github.com/helm/chart-releaser
+$ cd chart-releaser
 $ go mod download
-$ go install
+$ go install ./...
 ```
 
 ### Docker (for Continuous Integration)
