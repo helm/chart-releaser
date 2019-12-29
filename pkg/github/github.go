@@ -16,8 +16,10 @@ package github
 
 import (
 	"context"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/Songmu/retry"
@@ -46,7 +48,7 @@ type Client struct {
 }
 
 // NewClient creates and initializes a new GitHubClient
-func NewClient(owner, repo, token string) *Client {
+func NewClient(owner, repo, token, baseURL, uploadURL string) *Client {
 	var client *github.Client
 	if token != "" {
 		ts := oauth2.StaticTokenSource(&oauth2.Token{
@@ -57,6 +59,21 @@ func NewClient(owner, repo, token string) *Client {
 	} else {
 		client = github.NewClient(nil)
 	}
+
+	if baseEndpoint, err := url.Parse(baseURL); err == nil {
+		if !strings.HasSuffix(baseEndpoint.Path, "/") {
+			baseEndpoint.Path += "/"
+		}
+		client.BaseURL = baseEndpoint
+	}
+
+	if uploadEndpoint, err := url.Parse(uploadURL); err == nil {
+		if !strings.HasSuffix(uploadEndpoint.Path, "/") {
+			uploadEndpoint.Path += "/"
+		}
+		client.UploadURL = uploadEndpoint
+	}
+
 	return &Client{
 		owner:  owner,
 		repo:   repo,

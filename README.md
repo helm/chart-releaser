@@ -62,8 +62,10 @@ Flags:
   -h, --help                  help for upload
   -o, --owner string          GitHub username or organization
   -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
-  -r, --repo string           GitHub repository
+  -r, --git-repo string       GitHub repository
   -t, --token string          GitHub Auth Token
+  -b, --git-base-url string   GitHub Base URL (only needed for private github)
+  -u, --git-upload-url string GitHub Upload URL (only needed for private github)
 
 Global Flags:
       --config string   Config file (default is $HOME/.chart-releaser.yaml)
@@ -87,8 +89,10 @@ Flags:
   -i, --index-path string     Path to index file (default ".cr-index/index.yaml")
   -o, --owner string          GitHub username or organization
   -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
-  -r, --repo string           GitHub repository
+  -r, --git-repo string           GitHub repository
   -t, --token string          GitHub Auth Token (only needed for private repos)
+  -b, --git-base-url string   GitHub Base URL (only needed for private github)
+  -u, --git-upload-url string GitHub Upload URL (only needed for private github)
 
 Global Flags:
       --config string   Config file (default is $HOME/.chart-releaser.yaml)
@@ -114,14 +118,16 @@ The following example show various ways of configuring the same thing:
 
 #### CLI
 
-    cr upload --owner myaccount --repo helm-charts --package-path .deploy --token 123456789
+    cr upload --owner myaccount --git-repo helm-charts --package-path .deploy --token 123456789
 
 #### Environment Variables
 
     export CR_OWNER=myaccount
-    export CR_REPO=helm-charts
+    export CR_GIT_REPO=helm-charts
     export CR_PACKAGE_PATH=.deploy
     export CR_TOKEN="123456789"
+    export CR_GIT_BASE_URL="https://api.github.com/"
+    export CR_GIT_UPLOAD_URL="https://uploads.github.com/"
 
     cr upload
 
@@ -134,6 +140,8 @@ owner: myaccount
 repo: helm-charts
 package-path: .deploy
 token: 123456789
+git-base-url: https://api.github.com/
+git-upload-url: https://uploads.github.com/
 ```
 
 #### Config Usage
