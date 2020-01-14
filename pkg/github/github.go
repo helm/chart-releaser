@@ -33,6 +33,7 @@ type Release struct {
 	Name        string
 	Description string
 	Assets      []*Asset
+	Commit      string
 }
 
 type Asset struct {
@@ -102,9 +103,10 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 // CreateRelease creates a new release object in the GitHub API
 func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 	req := &github.RepositoryRelease{
-		Name:    &input.Name,
-		Body:    &input.Description,
-		TagName: &input.Name,
+		Name:            &input.Name,
+		Body:            &input.Description,
+		TagName:         &input.Name,
+		TargetCommitish: &input.Commit,
 	}
 
 	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)

@@ -49,4 +49,5 @@ func init() {
 	uploadCmd.Flags().StringP("token", "t", "", "GitHub Auth Token")
 	uploadCmd.Flags().StringP("git-base-url", "b", "https://api.github.com/", "GitHub Base URL (only needed for private GitHub)")
 	uploadCmd.Flags().StringP("git-upload-url", "u", "https://uploads.github.com/", "GitHub Upload URL (only needed for private GitHub)")
+	uploadCmd.Flags().StringP("commit", "c", "", "Target commit for release")
 }
