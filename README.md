@@ -25,7 +25,7 @@ $ go install ./...
 
 ### Docker (for Continuous Integration)
 
-Docker images are pushed to the quay.io/helmpack/chart-releaser Docker repository. The Docker image is built on top of Alpine and its default entry-point is cr. See the `Dockerfile` for more informations about the Docker image.
+Docker images are pushed to the [helmpack/chart-releaser](https://quay.io/repository/helmpack/chart-releaser?tab=tags) Quay container registry. The Docker image is built on top of Alpine and its default entry-point is `cr`. See the [Dockerfile](./Dockerfile) for more details.
 
 ## Usage
 
