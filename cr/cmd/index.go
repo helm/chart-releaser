@@ -54,6 +54,6 @@ func init() {
 	flags.StringP("index-path", "i", ".cr-index/index.yaml", "Path to index file")
 	flags.StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	flags.StringP("token", "t", "", "GitHub Auth Token (only needed for private repos)")
-	flags.StringP("git-base-url", "b", "https://api.github.com/", "GitHub Base URL (only needed for private github)")
-	flags.StringP("git-upload-url", "u", "https://uploads.github.com/", "GitHub Upload URL (only needed for private github)")
+	flags.StringP("git-base-url", "b", "https://api.github.com/", "GitHub Base URL (only needed for private GitHub)")
+	flags.StringP("git-upload-url", "u", "https://uploads.github.com/", "GitHub Upload URL (only needed for private GitHub)")
 }
