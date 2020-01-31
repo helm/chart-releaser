@@ -64,8 +64,8 @@ Flags:
   -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
   -r, --git-repo string       GitHub repository
   -t, --token string          GitHub Auth Token
-  -b, --git-base-url string   GitHub Base URL (only needed for private github)
-  -u, --git-upload-url string GitHub Upload URL (only needed for private github)
+  -b, --git-base-url string   GitHub Base URL (only needed for private GitHub)
+  -u, --git-upload-url string GitHub Upload URL (only needed for private GitHub)
 
 Global Flags:
       --config string   Config file (default is $HOME/.chart-releaser.yaml)
@@ -91,8 +91,8 @@ Flags:
   -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
   -r, --git-repo string           GitHub repository
   -t, --token string          GitHub Auth Token (only needed for private repos)
-  -b, --git-base-url string   GitHub Base URL (only needed for private github)
-  -u, --git-upload-url string GitHub Upload URL (only needed for private github)
+  -b, --git-base-url string   GitHub Base URL (only needed for private GitHub)
+  -u, --git-upload-url string GitHub Upload URL (only needed for private GitHub)
 
 Global Flags:
       --config string   Config file (default is $HOME/.chart-releaser.yaml)
