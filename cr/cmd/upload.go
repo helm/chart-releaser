@@ -31,7 +31,7 @@ var uploadCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		ghc := github.NewClient(config.Owner, config.GitRepo, config.Token)
+		ghc := github.NewClient(config.Owner, config.GitRepo, config.Token, config.GitBaseURL, config.GitUploadURL)
 		releaser := releaser.NewReleaser(config, ghc)
 		return releaser.CreateReleases()
 	},
@@ -47,4 +47,6 @@ func init() {
 	uploadCmd.Flags().StringP("git-repo", "r", "", "GitHub repository")
 	uploadCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	uploadCmd.Flags().StringP("token", "t", "", "GitHub Auth Token")
+	uploadCmd.Flags().StringP("git-base-url", "b", "https://api.github.com/", "GitHub Base URL (only needed for private GitHub)")
+	uploadCmd.Flags().StringP("git-upload-url", "u", "https://uploads.github.com/", "GitHub Upload URL (only needed for private GitHub)")
 }
