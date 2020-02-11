@@ -25,13 +25,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/pkg/errors"
+	"helm.sh/helm/v3/pkg/chart/loader"
+
+	"github.com/helm/chart-releaser/pkg/config"
+
+	"helm.sh/helm/v3/pkg/provenance"
+	"helm.sh/helm/v3/pkg/repo"
 
 	"github.com/helm/chart-releaser/pkg/github"
-	"k8s.io/helm/pkg/chartutil"
-	"k8s.io/helm/pkg/provenance"
-	"k8s.io/helm/pkg/repo"
 )
 
 // GitHub contains the functions necessary for interacting with GitHub release
@@ -163,7 +165,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 
 	// extract chart metadata
 	fmt.Printf("====> Extracting chart metadata from %s\n", arch)
-	c, err := chartutil.Load(arch)
+	c, err := loader.LoadFile(arch)
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a helm chart package", arch)
 	}
@@ -198,7 +200,7 @@ func (r *Releaser) CreateReleases() error {
 
 	for _, p := range packages {
 		baseName := filepath.Base(strings.TrimSuffix(p, filepath.Ext(p)))
-		chart, err := chartutil.Load(p)
+		chart, err := loader.LoadFile(p)
 		if err != nil {
 			return err
 		}

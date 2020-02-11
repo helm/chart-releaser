@@ -27,8 +27,8 @@ import (
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"k8s.io/helm/pkg/provenance"
-	"k8s.io/helm/pkg/repo"
+	"helm.sh/helm/v3/pkg/provenance"
+	"helm.sh/helm/v3/pkg/repo"
 
 	"github.com/helm/chart-releaser/pkg/config"
 )
@@ -36,7 +36,6 @@ import (
 type FakeGitHub struct {
 	mock.Mock
 	release *github.Release
-	tag     string
 }
 
 type MockClient struct {
