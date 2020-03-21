@@ -46,7 +46,7 @@ Available Commands:
   version     Print version information
 
 Flags:
-      --config string   Config file (default is $HOME/.chart-releaser.yaml)
+      --config string   Config file (default is $HOME/.cr.yaml)
   -h, --help            help for cr
 
 Use "cr [command] --help" for more information about a command.
@@ -64,16 +64,16 @@ Usage:
   cr upload [flags]
 
 Flags:
-  -h, --help                  help for upload
-  -o, --owner string          GitHub username or organization
-  -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
-  -r, --git-repo string       GitHub repository
-  -t, --token string          GitHub Auth Token
-  -b, --git-base-url string   GitHub Base URL (only needed for private GitHub)
-  -u, --git-upload-url string GitHub Upload URL (only needed for private GitHub)
+  -b, --git-base-url string     GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
+  -r, --git-repo string         GitHub repository
+  -u, --git-upload-url string   GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
+  -h, --help                    help for upload
+  -o, --owner string            GitHub username or organization
+  -p, --package-path string     Path to directory with chart packages (default ".cr-release-packages")
+  -t, --token string            GitHub Auth Token
 
 Global Flags:
-      --config string   Config file (default is $HOME/.chart-releaser.yaml)
+      --config string   Config file (default is $HOME/.cr.yaml)
 ```
 
 ### Create the Repository Index from GitHub Releases
@@ -82,7 +82,6 @@ Once uploaded you can create an `index.yaml` file that can be hosted on GitHub P
 
 ```console
 $ cr index --help
-
 Update a Helm chart repository index.yaml file based on a the
 given GitHub repository's releases.
 
@@ -90,17 +89,18 @@ Usage:
   cr index [flags]
 
 Flags:
-  -h, --help                  help for index
-  -i, --index-path string     Path to index file (default ".cr-index/index.yaml")
-  -o, --owner string          GitHub username or organization
-  -p, --package-path string   Path to directory with chart packages (default ".cr-release-packages")
-  -r, --git-repo string           GitHub repository
-  -t, --token string          GitHub Auth Token (only needed for private repos)
-  -b, --git-base-url string   GitHub Base URL (only needed for private GitHub)
-  -u, --git-upload-url string GitHub Upload URL (only needed for private GitHub)
+  -c, --charts-repo string      The URL to the charts repository
+  -b, --git-base-url string     GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
+  -r, --git-repo string         GitHub repository
+  -u, --git-upload-url string   GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
+  -h, --help                    help for index
+  -i, --index-path string       Path to index file (default ".cr-index/index.yaml")
+  -o, --owner string            GitHub username or organization
+  -p, --package-path string     Path to directory with chart packages (default ".cr-release-packages")
+  -t, --token string            GitHub Auth Token (only needed for private repos)
 
 Global Flags:
-      --config string   Config file (default is $HOME/.chart-releaser.yaml)
+      --config string   Config file (default is $HOME/.cr.yaml)
 ```
 
 ## Configuration
