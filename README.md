@@ -13,6 +13,13 @@
 
 Download your preferred asset from the [releases page](https://github.com/helm/chart-releaser/releases) and install manually.
 
+### Homebrew
+
+```console
+$ brew tap helm/tap
+$ brew install chart-releaser
+```
+
 ### Go get (for contributing)
 
 ```console
