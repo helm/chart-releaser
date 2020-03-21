@@ -12,23 +12,20 @@ jobs:
             shellcheck -x tag.sh
   build:
     docker:
-      - image: golang:1.12-alpine
+      - image: cimg/go:1.14
     steps:
       - setup_remote_docker
-      - run:
-          name: Install tools
-          command: |
-            apk add bash build-base ca-certificates curl docker git openssh
-            curl -SLO https://github.com/goreleaser/goreleaser/releases/download/v0.104.0/goreleaser_Linux_x86_64.tar.gz
-            mkdir -p /usr/local/goreleaser
-            tar -xzf goreleaser_Linux_x86_64.tar.gz -C /usr/local/goreleaser
-            ln -s /usr/local/goreleaser/goreleaser /usr/local/bin/goreleaser
-            rm -rf goreleaser_Linux_x86_64.tar.gz
       - checkout
       - run:
-          name: gofmt
+          name: Install tools
+          command: ./setup.sh
+      - run:
+          name: lint
           command: |
-            gofmt -w -s . && git diff --exit-code
+            go vet -v ./...
+            goimports -w -l .
+            go mod tidy
+            git diff --exit-code
       - run:
           name: Build
           command: |

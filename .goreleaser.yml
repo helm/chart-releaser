@@ -16,13 +16,13 @@ builds:
         -X github.com/helm/chart-releaser/cr/cmd.Version={{ .Tag }}
         -X github.com/helm/chart-releaser/cr/cmd.GitCommit={{ .Commit }}
         -X github.com/helm/chart-releaser/cr/cmd.BuildDate={{ .Date }}
-archive:
-  format_overrides:
-    - goos: windows
-      format: zip
-  files:
-    - LICENSE
-    - README.md
+archives:
+  - format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - LICENSE
+      - README.md
 checksum:
   name_template: 'checksums.txt'
 snapshot:
