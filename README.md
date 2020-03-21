@@ -142,7 +142,7 @@ The following example show various ways of configuring the same thing:
 
 ```yaml
 owner: myaccount
-repo: helm-charts
+git-repo: helm-charts
 package-path: .deploy
 token: 123456789
 git-base-url: https://api.github.com/
