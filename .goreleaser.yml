@@ -44,3 +44,15 @@ dockers:
       - --label=org.label-schema.build-date={{ .Date }}
       - --label=org.label-schema.description='cr - The chart release tool'
       - --label=org.label-schema.vendor=Helm
+brews:
+  - github:
+      owner: helm
+      name: homebrew-tap
+    commit_author:
+      name: helm-bot
+      email: helm-bot@users.noreply.github.com
+    folder: Formula
+    homepage: https://github.com/helm/chart-releaser/
+    description: Hosting Helm Charts via GitHub Pages and Releases
+    test: |
+      system "#{bin}/cr --version"
