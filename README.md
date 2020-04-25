@@ -172,8 +172,8 @@ For Github Enterprise, `chart-releaser` users need to set `git-base-url` and `gi
 By default they are often along these lines:
 
 ```
-https://example.com/api/v3/
-https://example.com/api/uploads/
+https://ghe.example.com/api/v3/
+https://ghe.example.com/api/uploads/
 ```
 
 If you are trying to figure out what your `upload_url` is try to use a curl command like this:
