@@ -164,3 +164,26 @@ git-upload-url: https://uploads.github.com/
 `cr` supports any format [Viper](https://github.com/spf13/viper) can read, i. e. JSON, TOML, YAML, HCL, and Java properties files.
 
 Notice that if no config file is specified, `cr.yaml` (or any of the supported formats) is loaded from the current directory, `$HOME/.cr`, or `/etc/cr`, in that order, if found.
+
+#### Notes for Github Enterprise Users
+
+For Github Enterprise, `chart-releaser` users need to set `git-base-url` and `git-upload-url` correctly, but the correct values are not always obvious to endusers.
+
+By default they are often along these lines:
+
+```
+https://ghe.example.com/api/v3/
+https://ghe.example.com/api/uploads/
+```
+
+If you are trying to figure out what your `upload_url` is try to use a curl command like this:
+`curl -u username:token https://example.com/api/v3/repos/org/repo/releases`
+and then look for `upload_url`. You need the part of the URL that appears before `repos/` in the path.
+
+##### Known Bug
+
+Currently, if you set the upload URL incorrectly, let's say to something like `https://example.com/uploads/`, then `cr upload` will appear to work, but the release will not be complete. When everything is working there should be 3 assets in each release, but instead there will only be the 2 source code assets. The third asset, which is what helm actually uses, is missing. This issue will become apparent when you run `cr index` and it always claims that nothing has changed, because it can't find the asset it expects for the release.
+
+It appears like the [go-github Do call](https://github.com/google/go-github/blob/master/github/github.go#L520) does not catch the fact that the upload URL is incorrect and pass back the excpected error. If the asset upload fails, it would be better if the release was rolled back (deleted) and an appropriate log message is be displayed to the user.
+
+The `cr index` command should also generate a warning when a release has no assets attached to it, to help people detect and troubleshoot this type of problem.
