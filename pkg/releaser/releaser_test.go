@@ -209,6 +209,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		packagePath string
 		chart       string
 		version     string
+		commit      string
 		error       bool
 	}{
 		{
@@ -216,6 +217,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"testdata/does-not-exist",
 			"test-chart",
 			"0.1.0",
+			"",
 			true,
 		},
 		{
@@ -223,6 +225,15 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"testdata/release-packages",
 			"test-chart",
 			"0.1.0",
+			"",
+			false,
+		},
+		{
+			"valid-package-path-with-commit",
+			"testdata/release-packages",
+			"test-chart",
+			"0.1.0",
+			"5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
 			false,
 		},
 	}
@@ -230,7 +241,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeGitHub := new(FakeGitHub)
 			r := &Releaser{
-				config: &config.Options{PackagePath: tt.packagePath},
+				config: &config.Options{PackagePath: tt.packagePath, Commit: tt.commit},
 				github: fakeGitHub,
 			}
 			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
@@ -248,6 +259,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Equal(t, releaseDescription, fakeGitHub.release.Description)
 				assert.Len(t, fakeGitHub.release.Assets, 1)
 				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
+				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
 		})
