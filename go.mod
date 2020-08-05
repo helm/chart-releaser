@@ -6,9 +6,11 @@ require (
 	github.com/Azure/go-autorest/autorest/azure/auth v0.4.2 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.3.0 // indirect
 	github.com/Azure/go-autorest/autorest/validation v0.2.0 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Songmu/retry v0.1.0
 	github.com/google/go-github/v30 v30.0.0
 	github.com/goreleaser/goreleaser v0.129.0
+	github.com/helm/helm v2.16.9+incompatible
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
@@ -18,9 +20,11 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.5.1
+	github.com/ulule/deepcopier v0.0.0-20200430083143-45decc6639b6
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/tools v0.0.0-20200204192400-7124308813f3
 	helm.sh/helm/v3 v3.1.2
+	k8s.io/helm v2.16.9+incompatible // indirect
 )
 
 exclude (
