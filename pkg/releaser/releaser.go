@@ -19,11 +19,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -41,13 +43,27 @@ import (
 type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
+	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 }
 
 type HttpClient interface {
 	Get(url string) (*http.Response, error)
 }
 
-type DefaultHttpClient struct {
+type Git interface {
+	AddWorktree(workingDir string, committish string) (string, error)
+	RemoveWorktree(workingDir string, path string) error
+	Add(workingDir string, args ...string) error
+	Commit(workingDir string, message string) error
+	Push(workingDir string, args ...string) error
+}
+
+type DefaultHttpClient struct{}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func (c *DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
@@ -58,17 +74,19 @@ type Releaser struct {
 	config     *config.Options
 	github     GitHub
 	httpClient HttpClient
+	git        Git
 }
 
-func NewReleaser(config *config.Options, github GitHub) *Releaser {
+func NewReleaser(config *config.Options, github GitHub, git Git) *Releaser {
 	return &Releaser{
 		config:     config,
 		github:     github,
 		httpClient: &DefaultHttpClient{},
+		git:        git,
 	}
 }
 
-// UpdateIndexFile index.yaml file for a give git repo
+// UpdateIndexFile updates the index.yaml file for a given Git repo
 func (r *Releaser) UpdateIndexFile() (bool, error) {
 	// if path doesn't end with index.yaml we can try and fix it
 	if filepath.Base(r.config.IndexPath) != "index.yaml" {
@@ -103,13 +121,13 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			return false, err
 		}
 
-		fmt.Printf("====> Using existing index at %s\n", r.config.IndexPath)
+		fmt.Printf("Using existing index at %s\n", r.config.IndexPath)
 		indexFile, err = repo.LoadIndexFile(r.config.IndexPath)
 		if err != nil {
 			return false, err
 		}
 	} else {
-		fmt.Printf("====> UpdateIndexFile new index at %s\n", r.config.IndexPath)
+		fmt.Printf("UpdateIndexFile new index at %s\n", r.config.IndexPath)
 		indexFile = repo.NewIndexFile()
 	}
 
@@ -133,7 +151,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			baseName := strings.TrimSuffix(name, filepath.Ext(name))
 			tagParts := r.splitPackageNameAndVersion(baseName)
 			packageName, packageVersion := tagParts[0], tagParts[1]
-			fmt.Printf("====> Found %s-%s.tgz\n", packageName, packageVersion)
+			fmt.Printf("Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
 				if err := r.addToIndexFile(indexFile, downloadUrl.String()); err != nil {
 					return false, err
@@ -144,15 +162,62 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		}
 	}
 
-	if update {
-		fmt.Printf("--> Updating index %s\n", r.config.IndexPath)
-		indexFile.SortEntries()
-		return true, indexFile.WriteFile(r.config.IndexPath, 0644)
-	} else {
-		fmt.Printf("--> Index %s did not change\n", r.config.IndexPath)
+	if !update {
+		fmt.Printf("Index %s did not change\n", r.config.IndexPath)
+		return false, nil
 	}
 
-	return false, nil
+	fmt.Printf("Updating index %s\n", r.config.IndexPath)
+	indexFile.SortEntries()
+
+	if err := indexFile.WriteFile(r.config.IndexPath, 0644); err != nil {
+		return false, err
+	}
+
+	if !r.config.Push && !r.config.PR {
+		return true, nil
+	}
+
+	worktree, err := r.git.AddWorktree("", "origin/"+r.config.PagesBranch)
+	if err != nil {
+		return false, err
+	}
+	defer r.git.RemoveWorktree("", worktree)
+
+	indexYamlPath := filepath.Join(worktree, "index.yaml")
+	if err := copyFile(r.config.IndexPath, indexYamlPath); err != nil {
+		return false, err
+	}
+	if err := r.git.Add(worktree, indexYamlPath); err != nil {
+		return false, err
+	}
+	if err := r.git.Commit(worktree, "Update index.yaml"); err != nil {
+		return false, err
+	}
+
+	pushURL := fmt.Sprintf("https://x-access-token:%s@github.com/%s/%s", r.config.Token, r.config.Owner, r.config.GitRepo)
+
+	if r.config.Push {
+		fmt.Printf("Pushing to branch %q\n", r.config.PagesBranch)
+		if err := r.git.Push(worktree, pushURL, "HEAD:refs/heads/"+r.config.PagesBranch); err != nil {
+			return false, err
+		}
+	} else if r.config.PR {
+		branch := fmt.Sprintf("chart-releaser-%s", randomString(16))
+
+		fmt.Printf("Pushing to branch %q\n", branch)
+		if err := r.git.Push(worktree, pushURL, "HEAD:refs/heads/"+branch); err != nil {
+			return false, err
+		}
+		fmt.Printf("Creating pull request against branch %q\n", r.config.PagesBranch)
+		prURL, err := r.github.CreatePullRequest(r.config.Owner, r.config.GitRepo, "Update index.yaml", branch, r.config.PagesBranch)
+		if err != nil {
+			return false, err
+		}
+		fmt.Println("Pull request created:", prURL)
+	}
+
+	return true, nil
 }
 
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
@@ -164,13 +229,13 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
 
 	// extract chart metadata
-	fmt.Printf("====> Extracting chart metadata from %s\n", arch)
+	fmt.Printf("Extracting chart metadata from %s\n", arch)
 	c, err := loader.LoadFile(arch)
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a helm chart package", arch)
 	}
 	// calculate hash
-	fmt.Printf("====> Calculating Hash for %s\n", arch)
+	fmt.Printf("Calculating Hash for %s\n", arch)
 	hash, err := provenance.DigestFile(arch)
 	if err != nil {
 		return err
@@ -187,7 +252,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	return nil
 }
 
-// CreateReleases finds and uploads helm chart packages to github
+// CreateReleases finds and uploads Helm chart packages to GitHub
 func (r *Releaser) CreateReleases() error {
 	packages, err := r.getListOfPackages(r.config.PackagePath)
 	if err != nil {
@@ -229,4 +294,29 @@ func (r *Releaser) CreateReleases() error {
 
 func (r *Releaser) getListOfPackages(dir string) ([]string, error) {
 	return filepath.Glob(filepath.Join(dir, "*.tgz"))
+}
+
+func copyFile(srcFile string, dstFile string) error {
+	source, err := os.Open(srcFile)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+
+	destination, err := os.Create(dstFile)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+func randomString(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

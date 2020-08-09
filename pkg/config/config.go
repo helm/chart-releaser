@@ -47,6 +47,9 @@ type Options struct {
 	GitBaseURL   string `mapstructure:"git-base-url"`
 	GitUploadURL string `mapstructure:"git-upload-url"`
 	Commit       string `mapstructure:"commit"`
+	PagesBranch  string `mapstructure:"pages-branch"`
+	Push         bool   `mapstructure:"push"`
+	PR           bool   `mapstructure:"pr"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
@@ -87,6 +90,10 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 	opts := &Options{}
 	if err := v.Unmarshal(opts); err != nil {
 		return nil, errors.Wrap(err, "Error unmarshaling configuration")
+	}
+
+	if opts.Push && opts.PR {
+		return nil, errors.New("specify either --push or --pr, but not both")
 	}
 
 	elem := reflect.ValueOf(opts).Elem()

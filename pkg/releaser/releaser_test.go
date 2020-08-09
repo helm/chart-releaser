@@ -72,6 +72,11 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 	return release, nil
 }
 
+func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
+	f.Called(owner, repo, message, head, base)
+	return "https://github.com/owner/repo/pull/42", nil
+}
+
 func TestReleaser_UpdateIndexFile(t *testing.T) {
 	indexDir, _ := ioutil.TempDir(".", "index")
 	defer os.RemoveAll(indexDir)

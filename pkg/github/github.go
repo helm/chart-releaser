@@ -122,6 +122,29 @@ func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 	return nil
 }
 
+// CreatePullRequest creates a pull request in the repository specified by repoURL.
+// The return value is the pull request URL.
+func (c *Client) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
+	split := strings.SplitN(message, "\n", 2)
+	title := split[0]
+
+	pr := &github.NewPullRequest{
+		Title: &title,
+		Head:  &head,
+		Base:  &base,
+	}
+	if len(split) == 2 {
+		body := strings.TrimSpace(split[1])
+		pr.Body = &body
+	}
+
+	pullRequest, _, err := c.PullRequests.Create(context.Background(), owner, repo, pr)
+	if err != nil {
+		return "", err
+	}
+	return *pullRequest.HTMLURL, nil
+}
+
 // UploadAsset uploads specified assets to a given release object
 func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filename string) error {
 
