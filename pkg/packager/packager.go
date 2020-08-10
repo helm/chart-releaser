@@ -30,7 +30,7 @@ type Packager struct {
 	paths  []string
 }
 
-// NewPackager does a thing
+// NewPackager returns a configured Packager
 func NewPackager(config *config.Options, paths []string) *Packager {
 	return &Packager{
 		config: config,
