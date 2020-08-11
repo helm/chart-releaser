@@ -166,7 +166,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 }
 
 func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
-	tmpl, err := template.New("gotpl").Parse(r.config.ReleaseTemplate)
+	tmpl, err := template.New("gotpl").Parse(r.config.ReleaseNameTemplate)
 	if err != nil {
 		return "", err
 	}
@@ -176,8 +176,8 @@ func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
 		return "", err
 	}
 
-	tag := buffer.String()
-	return tag, nil
+	releaseName := buffer.String()
+	return releaseName, nil
 }
 
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {

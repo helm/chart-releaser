@@ -242,9 +242,9 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			fakeGitHub := new(FakeGitHub)
 			r := &Releaser{
 				config: &config.Options{
-					PackagePath:     tt.packagePath,
-					Commit:          tt.commit,
-					ReleaseTemplate: "{{ .Name }}-{{ .Version }}",
+					PackagePath:         tt.packagePath,
+					Commit:              tt.commit,
+					ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}",
 				},
 				github: fakeGitHub,
 			}

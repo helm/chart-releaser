@@ -56,5 +56,5 @@ func init() {
 	flags.StringP("token", "t", "", "GitHub Auth Token (only needed for private repos)")
 	flags.StringP("git-base-url", "b", "https://api.github.com/", "GitHub Base URL (only needed for private GitHub)")
 	flags.StringP("git-upload-url", "u", "https://uploads.github.com/", "GitHub Upload URL (only needed for private GitHub)")
-	flags.String("release-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names.")
+	flags.String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 }
