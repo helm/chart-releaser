@@ -178,7 +178,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return true, nil
 	}
 
-	worktree, err := r.git.AddWorktree("", "origin/"+r.config.PagesBranch)
+	worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
 	if err != nil {
 		return false, err
 	}

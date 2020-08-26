@@ -50,6 +50,7 @@ type Options struct {
 	PagesBranch  string `mapstructure:"pages-branch"`
 	Push         bool   `mapstructure:"push"`
 	PR           bool   `mapstructure:"pr"`
+	Remote       string `mapstructure:"remote"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
