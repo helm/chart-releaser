@@ -61,4 +61,5 @@ func init() {
 	flags.String("remote", "origin", "The Git remote used when creating a local worktree for the GitHub Pages branch")
 	flags.Bool("push", false, "Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)")
 	flags.Bool("pr", false, "Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)")
+	flags.String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 }

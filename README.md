@@ -71,13 +71,15 @@ Usage:
   cr upload [flags]
 
 Flags:
-  -b, --git-base-url string     GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
-  -r, --git-repo string         GitHub repository
-  -u, --git-upload-url string   GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
-  -h, --help                    help for upload
-  -o, --owner string            GitHub username or organization
-  -p, --package-path string     Path to directory with chart packages (default ".cr-release-packages")
-  -t, --token string            GitHub Auth Token
+  -c, --commit string                  Target commit for release
+  -b, --git-base-url string            GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
+  -r, --git-repo string                GitHub repository
+  -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
+  -h, --help                           help for upload
+  -o, --owner string                   GitHub username or organization
+  -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
+      --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
+  -t, --token string                   GitHub Auth Token
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
@@ -96,15 +98,16 @@ Usage:
   cr index [flags]
 
 Flags:
-  -c, --charts-repo string      The URL to the charts repository
-  -b, --git-base-url string     GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
-  -r, --git-repo string         GitHub repository
-  -u, --git-upload-url string   GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
-  -h, --help                    help for index
-  -i, --index-path string       Path to index file (default ".cr-index/index.yaml")
-  -o, --owner string            GitHub username or organization
-  -p, --package-path string     Path to directory with chart packages (default ".cr-release-packages")
-  -t, --token string            GitHub Auth Token (only needed for private repos)
+  -c, --charts-repo string             The URL to the charts repository
+  -b, --git-base-url string            GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
+  -r, --git-repo string                GitHub repository
+  -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
+  -h, --help                           help for index
+  -i, --index-path string              Path to index file (default ".cr-index/index.yaml")
+  -o, --owner string                   GitHub username or organization
+  -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
+      --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
+  -t, --token string                   GitHub Auth Token (only needed for private repos)
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)

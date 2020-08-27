@@ -15,6 +15,7 @@
 package releaser
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -26,6 +27,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"text/template"
+
+	"helm.sh/helm/v3/pkg/chart"
 
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -138,9 +143,15 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 
 	var update bool
 	for _, chartPackage := range chartPackages {
-		tag := strings.TrimSuffix(chartPackage.Name(), filepath.Ext(chartPackage.Name()))
-
-		release, err := r.github.GetRelease(context.TODO(), tag)
+		ch, err := loader.LoadFile(filepath.Join(r.config.PackagePath, chartPackage.Name()))
+		if err != nil {
+			return false, err
+		}
+		releaseName, err := r.computeReleaseName(ch)
+		if err != nil {
+			return false, err
+		}
+		release, err := r.github.GetRelease(context.TODO(), releaseName)
 		if err != nil {
 			return false, err
 		}
@@ -220,6 +231,21 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	return true, nil
 }
 
+func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
+	tmpl, err := template.New("gotpl").Parse(r.config.ReleaseNameTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	var buffer bytes.Buffer
+	if err := tmpl.Execute(&buffer, chart.Metadata); err != nil {
+		return "", err
+	}
+
+	releaseName := buffer.String()
+	return releaseName, nil
+}
+
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	delimIndex := strings.LastIndex(pkg, "-")
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
@@ -264,14 +290,17 @@ func (r *Releaser) CreateReleases() error {
 	}
 
 	for _, p := range packages {
-		baseName := filepath.Base(strings.TrimSuffix(p, filepath.Ext(p)))
-		chart, err := loader.LoadFile(p)
+		ch, err := loader.LoadFile(p)
+		if err != nil {
+			return err
+		}
+		releaseName, err := r.computeReleaseName(ch)
 		if err != nil {
 			return err
 		}
 		release := &github.Release{
-			Name:        baseName,
-			Description: chart.Metadata.Description,
+			Name:        releaseName,
+			Description: ch.Metadata.Description,
 			Assets: []*github.Asset{
 				{Path: p},
 			},
@@ -283,7 +312,6 @@ func (r *Releaser) CreateReleases() error {
 			release.Assets = append(release.Assets, asset)
 		}
 
-		// TODO add changelog
 		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
 			return errors.Wrap(err, "error creating GitHub release")
 		}

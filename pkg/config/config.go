@@ -38,19 +38,20 @@ var (
 )
 
 type Options struct {
-	Owner        string `mapstructure:"owner"`
-	GitRepo      string `mapstructure:"git-repo"`
-	ChartsRepo   string `mapstructure:"charts-repo"`
-	IndexPath    string `mapstructure:"index-path"`
-	PackagePath  string `mapstructure:"package-path"`
-	Token        string `mapstructure:"token"`
-	GitBaseURL   string `mapstructure:"git-base-url"`
-	GitUploadURL string `mapstructure:"git-upload-url"`
-	Commit       string `mapstructure:"commit"`
-	PagesBranch  string `mapstructure:"pages-branch"`
-	Push         bool   `mapstructure:"push"`
-	PR           bool   `mapstructure:"pr"`
-	Remote       string `mapstructure:"remote"`
+	Owner               string `mapstructure:"owner"`
+	GitRepo             string `mapstructure:"git-repo"`
+	ChartsRepo          string `mapstructure:"charts-repo"`
+	IndexPath           string `mapstructure:"index-path"`
+	PackagePath         string `mapstructure:"package-path"`
+	Token               string `mapstructure:"token"`
+	GitBaseURL          string `mapstructure:"git-base-url"`
+	GitUploadURL        string `mapstructure:"git-upload-url"`
+	Commit              string `mapstructure:"commit"`
+	PagesBranch         string `mapstructure:"pages-branch"`
+	Push                bool   `mapstructure:"push"`
+	PR                  bool   `mapstructure:"pr"`
+	Remote              string `mapstructure:"remote"`
+	ReleaseNameTemplate string `mapstructure:"release-name-template"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
