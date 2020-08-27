@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/helm/chart-releaser/pkg/git"
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
@@ -32,7 +33,7 @@ var uploadCmd = &cobra.Command{
 			return err
 		}
 		ghc := github.NewClient(config.Owner, config.GitRepo, config.Token, config.GitBaseURL, config.GitUploadURL)
-		releaser := releaser.NewReleaser(config, ghc)
+		releaser := releaser.NewReleaser(config, ghc, &git.Git{})
 		return releaser.CreateReleases()
 	},
 }
