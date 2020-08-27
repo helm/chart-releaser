@@ -50,6 +50,7 @@ Available Commands:
   help        Help about any command
   index       Update Helm repo index.yaml for the given GitHub repo
   upload      Upload Helm chart packages to GitHub Releases
+  package     Package Helm charts
   version     Print version information
 
 Flags:

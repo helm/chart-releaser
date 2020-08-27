@@ -18,9 +18,11 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.5.1
+	github.com/ulule/deepcopier v0.0.0-20200430083143-45decc6639b6
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	golang.org/x/tools v0.0.0-20200204192400-7124308813f3
 	helm.sh/helm/v3 v3.1.2
+	rsc.io/letsencrypt v0.0.3 // indirect
 )
 
 exclude (
