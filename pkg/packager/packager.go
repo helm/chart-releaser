@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 
 	"github.com/helm/chart-releaser/pkg/config"
-	"github.com/ulule/deepcopier"
 	"helm.sh/helm/v3/pkg/action"
 )
 
@@ -40,10 +39,7 @@ func NewPackager(config *config.Options, paths []string) *Packager {
 
 // CreatePackages creates Helm chart packages
 func (p *Packager) CreatePackages() error {
-	var settings map[string]interface{}
-
 	helmClient := action.NewPackage()
-
 	helmClient.Destination = p.config.PackagePath
 
 	for i := 0; i < len(p.paths); i++ {
@@ -54,9 +50,8 @@ func (p *Packager) CreatePackages() error {
 		if _, err := os.Stat(p.paths[i]); err != nil {
 			return err
 		}
-		deepcopier.Copy(p.config).To(settings)
-		packageRun, err := helmClient.Run(path, settings)
 
+		packageRun, err := helmClient.Run(path, nil)
 		if err != nil {
 			fmt.Printf("Failed to package chart in %s (%s)\n", path, err.Error())
 			return err

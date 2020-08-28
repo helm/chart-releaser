@@ -1,0 +1,31 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Tag
+        uses: tvdias/github-tagger@v0.0.2
+        with:
+          repo-token: "${{ secrets.CI_TOKEN }}"
+          tag: "${{ github.event.inputs.version }}"
+
+      - name: Test
+        run: mage -v test
+
+      - name: Release
+        run: mage -v release
+        env:
+          GITHUB_TOKEN: "${{ secrets.CI_TOKEN }}"
