@@ -32,7 +32,7 @@ func Lint() error {
 	if err := sh.RunV("bash", "-c", "shopt -s globstar; shellcheck **/*.sh"); err != nil {
 		return err
 	}
-	if err := sh.RunV("golangci-lint", "run"); err != nil {
+	if err := sh.RunV("golangci-lint", "run", "--timeout", "3m"); err != nil {
 		return err
 	}
 	if err := sh.RunV("go", "vet", "-v", "./..."); err != nil {
