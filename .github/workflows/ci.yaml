@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Setup Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: "1.14.5"
+
+      - uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install tools
+        run: |
+          ./setup.sh
+          echo "::add-path::$(go env GOPATH)/bin"
+
+      - name: Check License Headers
+        run: mage -v checkLicenseHeaders
+
+      - name: Lint
+        run: mage -v lint
+
+      - name: Test
+        run: mage -v test
+
+      - name: Build
+        run: mage -v build
