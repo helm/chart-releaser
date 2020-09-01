@@ -32,14 +32,6 @@ jobs:
       - name: Install tools
         run: ./setup.sh
 
-      - name: Tag
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-          tag='${{ github.event.inputs.version }}'
-          git tag --annotate --message "Tag for release $tag" "$tag"
-          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY" "refs/tags/$tag"
 
       - name: Check License Headers
         run: mage -v checkLicenseHeaders
@@ -49,6 +41,15 @@ jobs:
 
       - name: Test
         run: mage -v test
+
+      - name: Tag
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+          tag='${{ github.event.inputs.version }}'
+          git tag --annotate --message "Tag for release $tag" "$tag"
+          git push origin "refs/tags/$tag"
 
       - name: Release
         run: mage -v release
