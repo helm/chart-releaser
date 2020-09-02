@@ -16,14 +16,39 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Tag
-        uses: tvdias/github-tagger@v0.0.2
+      - name: Setup Go
+        uses: actions/setup-go@v2
         with:
-          repo-token: "${{ secrets.CI_TOKEN }}"
-          tag: "${{ github.event.inputs.version }}"
+          go-version: "1.14.5"
+
+      - name: Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Install tools
+        run: ./setup.sh
+
+      - name: Check License Headers
+        run: mage -v checkLicenseHeaders
+
+      - name: Lint
+        run: mage -v lint
 
       - name: Test
         run: mage -v test
+
+      - name: Tag
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+          tag='${{ github.event.inputs.version }}'
+          git tag --annotate --message "Tag for release $tag" "$tag"
+          git push origin "refs/tags/$tag"
 
       - name: Release
         run: mage -v release
