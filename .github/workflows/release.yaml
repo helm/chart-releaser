@@ -32,7 +32,6 @@ jobs:
       - name: Install tools
         run: ./setup.sh
 
-
       - name: Check License Headers
         run: mage -v checkLicenseHeaders
 
