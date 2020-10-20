@@ -15,8 +15,11 @@
 package cmd
 
 import (
+	"path/filepath"
+
 	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/helm/chart-releaser/pkg/packager"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
@@ -52,6 +55,15 @@ func getRequiredPackageArgs() []string {
 }
 
 func init() {
+	dir, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
+
 	rootCmd.AddCommand(packageCmd)
 	packageCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
+	packageCmd.Flags().Bool("sign", false, "Path to directory with chart packages")
+	packageCmd.Flags().String("key", "", "Name of the key to use when signing")
+	packageCmd.Flags().String("keyring", filepath.Join(dir, ".gnupg", "pubring.gpg"), "Location of a public keyring")
+	packageCmd.Flags().String("passphrase-file", "", "Location of a file which contains the passphrase for the signing key. Use '-' in order to read from stdin")
 }

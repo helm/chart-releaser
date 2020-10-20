@@ -43,6 +43,10 @@ type Options struct {
 	ChartsRepo          string `mapstructure:"charts-repo"`
 	IndexPath           string `mapstructure:"index-path"`
 	PackagePath         string `mapstructure:"package-path"`
+	Sign                bool   `mapstructure:"sign"`
+	Key                 string `mapstructure:"key"`
+	KeyRing             string `mapstructure:"keyring"`
+	PassphraseFile      string `mapstructure:"passphrase-file"`
 	Token               string `mapstructure:"token"`
 	GitBaseURL          string `mapstructure:"git-base-url"`
 	GitUploadURL        string `mapstructure:"git-upload-url"`

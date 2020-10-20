@@ -18,8 +18,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/helm/chart-releaser/pkg/config"
 )
@@ -28,48 +30,67 @@ func TestPackager_CreatePackages(t *testing.T) {
 	packagePath, _ := ioutil.TempDir(".", "packages")
 	invalidPackagePath := filepath.Join(packagePath, "bad")
 	file, _ := os.Create(invalidPackagePath)
-	defer file.Close()
-	defer os.RemoveAll(packagePath)
+	t.Cleanup(func() {
+		file.Close()
+		os.RemoveAll(packagePath)
+	})
+
 	tests := []struct {
-		name        string
-		chartPath   string
-		packagePath string
-		error       bool
+		name      string
+		chartPath string
+		options   *config.Options
+		error     bool
 	}{
 		{
-			"valid-chart-path",
-			"testdata/test-chart",
-			packagePath,
-			false,
+			name:      "valid-chart-path",
+			chartPath: "testdata/test-chart",
+			options:   &config.Options{PackagePath: packagePath},
+			error:     false,
 		},
 		{
-			"invalid-package-path",
-			"testdata/test-chart",
-			invalidPackagePath,
-			true,
+			name:      "invalid-package-path",
+			chartPath: "testdata/test-chart",
+			options:   &config.Options{PackagePath: invalidPackagePath},
+			error:     true,
 		},
 		{
-			"invalid-chart-path",
-			"testdata/invalid-chart",
-			packagePath,
-			true,
+			name:      "invalid-chart-path",
+			chartPath: "testdata/invalid-chart",
+			options:   &config.Options{PackagePath: packagePath},
+			error:     true,
+		},
+		{
+			name:      "valid-chart-path-with-provenance",
+			chartPath: "testdata/test-chart",
+			options: &config.Options{
+				PackagePath:    packagePath,
+				Sign:           true,
+				Key:            "Chart Releaser Test Key <no-reply@example.com>",
+				KeyRing:        "testdata/testkeyring.gpg",
+				PassphraseFile: "testdata/passphrase-file.txt",
+			},
+			error: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Cleanup(func() {
+				os.Remove(filepath.Join(packagePath, "test-chart-0.1.0.tgz"))
+				os.Remove(filepath.Join(packagePath, "test-chart-0.1.0.tgz.prov"))
+			})
+
 			p := &Packager{
-				paths:  strings.Split(tt.chartPath, ","),
-				config: &config.Options{PackagePath: tt.packagePath},
+				paths:  []string{tt.chartPath},
+				config: tt.options,
 			}
 			err := p.CreatePackages()
-
 			if tt.error {
-				if err == nil {
-					t.Error()
-				}
+				require.Error(t, err)
 			} else {
-				if err != nil {
-					t.Error()
+				require.NoError(t, err)
+				assert.FileExists(t, filepath.Join(tt.options.PackagePath, "test-chart-0.1.0.tgz"))
+				if tt.options.Sign {
+					assert.FileExists(t, filepath.Join(tt.options.PackagePath, "test-chart-0.1.0.tgz.prov"))
 				}
 			}
 		})

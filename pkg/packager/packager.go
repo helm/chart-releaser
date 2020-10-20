@@ -41,6 +41,12 @@ func NewPackager(config *config.Options, paths []string) *Packager {
 func (p *Packager) CreatePackages() error {
 	helmClient := action.NewPackage()
 	helmClient.Destination = p.config.PackagePath
+	if p.config.Sign {
+		helmClient.Sign = true
+		helmClient.Key = p.config.Key
+		helmClient.Keyring = p.config.KeyRing
+		helmClient.PassphraseFile = p.config.PassphraseFile
+	}
 
 	for i := 0; i < len(p.paths); i++ {
 		path, err := filepath.Abs(p.paths[i])
