@@ -62,7 +62,7 @@ func init() {
 
 	rootCmd.AddCommand(packageCmd)
 	packageCmd.Flags().StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
-	packageCmd.Flags().Bool("sign", false, "Path to directory with chart packages")
+	packageCmd.Flags().Bool("sign", false, "Use a PGP private key to sign this package")
 	packageCmd.Flags().String("key", "", "Name of the key to use when signing")
 	packageCmd.Flags().String("keyring", filepath.Join(dir, ".gnupg", "pubring.gpg"), "Location of a public keyring")
 	packageCmd.Flags().String("passphrase-file", "", "Location of a file which contains the passphrase for the signing key. Use '-' in order to read from stdin")
