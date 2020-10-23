@@ -40,6 +40,7 @@ func NewPackager(config *config.Options, paths []string) *Packager {
 // CreatePackages creates Helm chart packages
 func (p *Packager) CreatePackages() error {
 	helmClient := action.NewPackage()
+	helmClient.DependencyUpdate = true
 	helmClient.Destination = p.config.PackagePath
 	if p.config.Sign {
 		helmClient.Sign = true
