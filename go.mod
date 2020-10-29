@@ -28,7 +28,7 @@ require (
 	golang.org/x/tools v0.0.0-20200812195022-5ae4c3c160a0
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
-	helm.sh/helm/v3 v3.4.0-rc.1
+	helm.sh/helm/v3 v3.4.0
 	honnef.co/go/tools v0.0.1-2020.1.5 // indirect
 	rsc.io/letsencrypt v0.0.3 // indirect; indirect)
 )
