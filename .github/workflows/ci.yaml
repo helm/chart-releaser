@@ -32,8 +32,10 @@ jobs:
       - name: Check License Headers
         run: mage -v checkLicenseHeaders
 
-      - name: Lint
-        run: mage -v lint
+# Commented out because it randomly changes go.mod and go.sum.
+# This needs some investigation.
+#      - name: Lint
+#        run: mage -v lint
 
       - name: Test
         run: mage -v test
