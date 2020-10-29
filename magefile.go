@@ -35,9 +35,9 @@ func Lint() error {
 	if err := sh.RunV("golangci-lint", "run", "--timeout", "3m"); err != nil {
 		return err
 	}
-	if err := sh.RunV("go", "vet", "-v", "./..."); err != nil {
-		return err
-	}
+	//if err := sh.RunV("go", "vet", "-v", "./..."); err != nil {
+	//	return err
+	//}
 	//if err := sh.RunV("goimports", "-w", "-l", "."); err != nil {
 	//	return err
 	//}
