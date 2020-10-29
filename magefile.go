@@ -41,11 +41,7 @@ func Lint() error {
 	if err := sh.RunV("goimports", "-w", "-l", "."); err != nil {
 		return err
 	}
-	if err := sh.RunV("go", "mod", "tidy"); err != nil {
-		return err
-	}
-	// Exclude go.mod and go.sum because 'go mod tidy' produces random changes different from when run locally
-	return sh.RunV("git", "diff", "--exit-code", ":(exclude)go.mod", ":(exclude)go.sum")
+	return sh.RunV("git", "diff", "--exit-code")
 }
 
 func CheckLicenseHeaders() error {
