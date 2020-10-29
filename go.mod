@@ -37,3 +37,5 @@ exclude (
 	github.com/Azure/go-autorest v0.9.0
 	github.com/Azure/go-autorest v12.0.0+incompatible
 )
+
+replace golang.org/x/sys => golang.org/x/sys v0.0.0-20200826173525-f9321e4c35a6
