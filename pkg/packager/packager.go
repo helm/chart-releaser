@@ -16,15 +16,15 @@ package packager
 
 import (
 	"fmt"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/downloader"
-	"helm.sh/helm/v3/pkg/getter"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/helm/chart-releaser/pkg/config"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/downloader"
+	"helm.sh/helm/v3/pkg/getter"
 )
 
 // Packager exposes the packager object

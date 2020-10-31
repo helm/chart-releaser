@@ -16,6 +16,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -33,6 +34,7 @@ var (
 	configSearchLocations = []string{
 		".",
 		filepath.Join(homeDir, ".cr"),
+		"/usr/local/etc/cr",
 		"/etc/cr",
 	}
 )
@@ -79,8 +81,12 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		v.SetConfigFile(cfgFile)
 	} else {
 		v.SetConfigName("cr")
-		for _, searchLocation := range configSearchLocations {
-			v.AddConfigPath(searchLocation)
+		if cfgFile, ok := os.LookupEnv("CR_CONFIG_DIR"); ok {
+			v.AddConfigPath(cfgFile)
+		} else {
+			for _, searchLocation := range configSearchLocations {
+				v.AddConfigPath(searchLocation)
+			}
 		}
 	}
 
