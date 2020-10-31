@@ -16,6 +16,10 @@ package packager
 
 import (
 	"fmt"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/downloader"
+	"helm.sh/helm/v3/pkg/getter"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -49,6 +53,9 @@ func (p *Packager) CreatePackages() error {
 		helmClient.PassphraseFile = p.config.PassphraseFile
 	}
 
+	settings := cli.New()
+	getters := getter.All(settings)
+
 	for i := 0; i < len(p.paths); i++ {
 		path, err := filepath.Abs(p.paths[i])
 		if err != nil {
@@ -58,6 +65,18 @@ func (p *Packager) CreatePackages() error {
 			return err
 		}
 
+		downloadManager := &downloader.Manager{
+			Out:              ioutil.Discard,
+			ChartPath:        path,
+			Keyring:          helmClient.Keyring,
+			Getters:          getters,
+			Debug:            settings.Debug,
+			RepositoryConfig: settings.RepositoryConfig,
+			RepositoryCache:  settings.RepositoryCache,
+		}
+		if err := downloadManager.Build(); err != nil {
+			return err
+		}
 		packageRun, err := helmClient.Run(path, nil)
 		if err != nil {
 			fmt.Printf("Failed to package chart in %s (%s)\n", path, err.Error())
