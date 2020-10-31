@@ -74,7 +74,7 @@ func (p *Packager) CreatePackages() error {
 			RepositoryConfig: settings.RepositoryConfig,
 			RepositoryCache:  settings.RepositoryCache,
 		}
-		if err := downloadManager.Build(); err != nil {
+		if err := downloadManager.Update(); err != nil {
 			return err
 		}
 		packageRun, err := helmClient.Run(path, nil)
