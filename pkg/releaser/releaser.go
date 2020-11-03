@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -136,14 +135,16 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		indexFile = repo.NewIndexFile()
 	}
 
-	chartPackages, err := ioutil.ReadDir(r.config.PackagePath)
+	// We have to explicitly glob for *.tgz files only. If GPG signing is enabled,
+	// this would also return *.tgz.prov files otherwise, which we don't want here.
+	chartPackages, err := filepath.Glob(r.config.PackagePath + "/*.tgz")
 	if err != nil {
 		return false, err
 	}
 
 	var update bool
 	for _, chartPackage := range chartPackages {
-		ch, err := loader.LoadFile(filepath.Join(r.config.PackagePath, chartPackage.Name()))
+		ch, err := loader.LoadFile(chartPackage)
 		if err != nil {
 			return false, err
 		}
