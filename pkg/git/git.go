@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 type Git struct{}
@@ -66,6 +67,17 @@ func (g *Git) Push(workingDir string, args ...string) error {
 	pushArgs = append(pushArgs, args...)
 	command := exec.Command("git", pushArgs...)
 	return runCommand(workingDir, command)
+}
+
+// GetPushURL returns the push url with a token inserted
+func (g *Git) GetPushURL(remote string, token string) (string, error) {
+	pushURL, err := exec.Command("git", "remote", "get-url", "--push", remote).Output()
+	if err != nil {
+		return "", err
+	}
+	pushURLArray := strings.SplitAfter(string(pushURL), "https://")
+	pushURLWithToken := pushURLArray[0] + token + "@" + pushURLArray[1]
+	return pushURLWithToken, nil
 }
 
 func runCommand(workingDir string, command *exec.Cmd) error {
