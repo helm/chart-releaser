@@ -75,8 +75,9 @@ func (g *Git) GetPushURL(remote string, token string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	pushURLArray := strings.SplitAfter(string(pushURL), "https://")
-	pushURLWithToken := pushURLArray[0] + token + "@" + pushURLArray[1]
+
+	pushURLArray := strings.SplitAfter(strings.TrimSpace(string(pushURL)), "https://")
+	pushURLWithToken := fmt.Sprintf("https://x-access-token:%s@%s", token, pushURLArray[1])
 	return pushURLWithToken, nil
 }
 
