@@ -182,6 +182,8 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	fmt.Printf("Updating index %s\n", r.config.IndexPath)
 	indexFile.SortEntries()
 
+	indexFile.Generated = time.Now()
+
 	if err := indexFile.WriteFile(r.config.IndexPath, 0644); err != nil {
 		return false, err
 	}
