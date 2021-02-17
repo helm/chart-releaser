@@ -287,7 +287,9 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	s = s[:len(s)-1]
 
 	// Add to index
-	indexFile.Add(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	if err := indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash); err != nil {
+		return err
+	}
 	return nil
 }
 

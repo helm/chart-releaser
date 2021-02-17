@@ -45,7 +45,7 @@ dockers:
       - --label=org.label-schema.description='cr - The chart release tool'
       - --label=org.label-schema.vendor=Helm
 brews:
-  - github:
+  - tap:
       owner: helm
       name: homebrew-tap
     commit_author:
