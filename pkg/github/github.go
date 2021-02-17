@@ -22,8 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-retryablehttp"
-
 	"github.com/Songmu/retry"
 	"github.com/pkg/errors"
 
@@ -52,20 +50,15 @@ type Client struct {
 
 // NewClient creates and initializes a new GitHubClient
 func NewClient(owner, repo, token, baseURL, uploadURL string) *Client {
-	// Does four retries with exponential backoff by default, which should be sufficient.
-	retryClient := retryablehttp.NewClient()
-	standardClient := retryClient.StandardClient()
-
 	var client *github.Client
 	if token != "" {
-		ctx := context.WithValue(context.TODO(), oauth2.HTTPClient, standardClient)
 		ts := oauth2.StaticTokenSource(&oauth2.Token{
 			AccessToken: token,
 		})
-		tc := oauth2.NewClient(ctx, ts)
+		tc := oauth2.NewClient(context.TODO(), ts)
 		client = github.NewClient(tc)
 	} else {
-		client = github.NewClient(standardClient)
+		client = github.NewClient(nil)
 	}
 
 	if baseEndpoint, err := url.Parse(baseURL); err == nil {
@@ -170,12 +163,14 @@ func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filena
 		Name: filepath.Base(filename),
 	}
 
-	err = retry.Retry(3, 3*time.Second, func() error {
+	if err := retry.Retry(3, 3*time.Second, func() error {
 		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.owner, c.repo, releaseID, opts, f); err != nil {
 			return errors.Wrapf(err, "failed to upload release asset: %s\n", filename)
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }

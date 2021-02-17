@@ -27,6 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Songmu/retry"
+
 	"text/template"
 
 	"helm.sh/helm/v3/pkg/chart"
@@ -152,8 +154,16 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		release, err := r.github.GetRelease(context.TODO(), releaseName)
-		if err != nil {
+
+		var release *github.Release
+		if err := retry.Retry(3, 3*time.Second, func() error {
+			rel, err := r.github.GetRelease(context.TODO(), releaseName)
+			if err != nil {
+				return err
+			}
+			release = rel
+			return nil
+		}); err != nil {
 			return false, err
 		}
 

@@ -10,7 +10,6 @@ require (
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/go-github/v30 v30.0.0
 	github.com/goreleaser/goreleaser v0.129.0
-	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/jmoiron/sqlx v1.2.1-0.20190826204134-d7d95172beb5 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/magefile/mage v1.10.0
