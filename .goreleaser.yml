@@ -54,5 +54,7 @@ brews:
     folder: Formula
     homepage: https://github.com/helm/chart-releaser/
     description: Hosting Helm Charts via GitHub Pages and Releases
+    install: |
+      bin.install "cr"
     test: |
       system "#{bin}/cr --version"
