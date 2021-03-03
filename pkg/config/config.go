@@ -54,6 +54,7 @@ type Options struct {
 	PagesBranch         string `mapstructure:"pages-branch"`
 	Push                bool   `mapstructure:"push"`
 	PR                  bool   `mapstructure:"pr"`
+	Prerelease          bool   `mapstructure:"prerelease"`
 	Remote              string `mapstructure:"remote"`
 	ReleaseNameTemplate string `mapstructure:"release-name-template"`
 }

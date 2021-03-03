@@ -79,6 +79,7 @@ Flags:
   -h, --help                           help for upload
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
+      --prerelease bool                Create a prerelease instead of a release (default false)
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
   -t, --token string                   GitHub Auth Token
 
