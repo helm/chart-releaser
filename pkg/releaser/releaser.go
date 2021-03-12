@@ -326,7 +326,12 @@ func (r *Releaser) CreateReleases() error {
 			asset := &github.Asset{Path: provFile}
 			release.Assets = append(release.Assets, asset)
 		}
-
+		if r.config.SkipExisting {
+			existingRelease, _ := r.github.GetRelease(context.TODO(), releaseName)
+			if existingRelease != nil && len(existingRelease.Assets) > 0 {
+				continue
+			}
+		}
 		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
 			return errors.Wrap(err, "error creating GitHub release")
 		}
