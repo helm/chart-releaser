@@ -328,7 +328,7 @@ func (r *Releaser) CreateReleases() error {
 		}
 		if r.config.SkipExisting {
 			existingRelease, _ := r.github.GetRelease(context.TODO(), releaseName)
-			if existingRelease != nil && len(existingRelease.Assets) > 0 {
+			if existingRelease != nil {
 				continue
 			}
 		}
