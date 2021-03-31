@@ -25,7 +25,10 @@ import (
 func TestGit_GetPushURL(t *testing.T) {
 	curDir, _ := os.Getwd()
 	repoPath := t.TempDir()
-	os.Chdir(repoPath)
+	repoDirErr := os.Chdir(repoPath)
+	if repoDirErr != nil {
+		t.Error(repoDirErr.Error())
+	}
 
 	t.Cleanup(func() {
 		chdirErr := os.Chdir(curDir)
