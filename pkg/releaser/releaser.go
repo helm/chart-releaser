@@ -27,6 +27,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Songmu/retry"
+
 	"text/template"
 
 	"helm.sh/helm/v3/pkg/chart"
@@ -153,8 +155,16 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		release, err := r.github.GetRelease(context.TODO(), releaseName)
-		if err != nil {
+
+		var release *github.Release
+		if err := retry.Retry(3, 3*time.Second, func() error {
+			rel, err := r.github.GetRelease(context.TODO(), releaseName)
+			if err != nil {
+				return err
+			}
+			release = rel
+			return nil
+		}); err != nil {
 			return false, err
 		}
 
@@ -182,6 +192,8 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 
 	fmt.Printf("Updating index %s\n", r.config.IndexPath)
 	indexFile.SortEntries()
+
+	indexFile.Generated = time.Now()
 
 	if err := indexFile.WriteFile(r.config.IndexPath, 0644); err != nil {
 		return false, err
@@ -279,7 +291,9 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	s = s[:len(s)-1]
 
 	// Add to index
-	indexFile.Add(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	if err := indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -316,7 +330,12 @@ func (r *Releaser) CreateReleases() error {
 			asset := &github.Asset{Path: provFile}
 			release.Assets = append(release.Assets, asset)
 		}
-
+		if r.config.SkipExisting {
+			existingRelease, _ := r.github.GetRelease(context.TODO(), releaseName)
+			if existingRelease != nil {
+				continue
+			}
+		}
 		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
 			return errors.Wrap(err, "error creating GitHub release")
 		}

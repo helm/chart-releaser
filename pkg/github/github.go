@@ -25,7 +25,7 @@ import (
 	"github.com/Songmu/retry"
 	"github.com/pkg/errors"
 
-	"github.com/google/go-github/v30/github"
+	"github.com/google/go-github/v33/github"
 	"golang.org/x/oauth2"
 )
 
@@ -153,22 +153,24 @@ func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filena
 		return errors.Wrap(err, "failed to get abs path")
 	}
 
-	f, err := os.Open(filename)
-	if err != nil {
-		return errors.Wrap(err, "failed to open file")
-	}
-
 	opts := &github.UploadOptions{
 		// Use base name by default
 		Name: filepath.Base(filename),
 	}
 
-	err = retry.Retry(3, 3*time.Second, func() error {
+	if err := retry.Retry(3, 3*time.Second, func() error {
+		f, err := os.Open(filename)
+		if err != nil {
+			return errors.Wrap(err, "failed to open file")
+		}
+		defer f.Close()
 		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.owner, c.repo, releaseID, opts, f); err != nil {
 			return errors.Wrapf(err, "failed to upload release asset: %s\n", filename)
 		}
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -19,7 +19,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: "1.14.5"
+          go-version: "1.15.8"
 
       - name: Cache
         uses: actions/cache@v2
@@ -46,6 +46,13 @@ jobs:
           tag='${{ github.event.inputs.version }}'
           git tag --annotate --message "Tag for release $tag" "$tag"
           git push origin "refs/tags/$tag"
+
+      - name: Login to registry
+        uses: docker/login-action@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Release
         run: mage -v release

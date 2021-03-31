@@ -16,12 +16,13 @@ package packager
 
 import (
 	"fmt"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/downloader"
-	"helm.sh/helm/v3/pkg/getter"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/downloader"
+	"helm.sh/helm/v3/pkg/getter"
 
 	"github.com/helm/chart-releaser/pkg/config"
 	"helm.sh/helm/v3/pkg/action"

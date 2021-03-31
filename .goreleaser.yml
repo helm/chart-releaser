@@ -45,7 +45,7 @@ dockers:
       - --label=org.label-schema.description='cr - The chart release tool'
       - --label=org.label-schema.vendor=Helm
 brews:
-  - github:
+  - tap:
       owner: helm
       name: homebrew-tap
     commit_author:
@@ -54,5 +54,7 @@ brews:
     folder: Formula
     homepage: https://github.com/helm/chart-releaser/
     description: Hosting Helm Charts via GitHub Pages and Releases
+    install: |
+      bin.install "cr"
     test: |
       system "#{bin}/cr --version"

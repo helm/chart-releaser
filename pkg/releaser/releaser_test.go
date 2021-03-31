@@ -40,11 +40,12 @@ type FakeGitHub struct {
 
 type MockClient struct {
 	statusCode int
+	file       string
 }
 
 func (m *MockClient) Get(url string) (*http.Response, error) {
 	if m.statusCode == http.StatusOK {
-		file, _ := os.Open("testdata/repo/index.yaml")
+		file, _ := os.Open(m.file)
 		reader := bufio.NewReader(file)
 		return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(reader)}, nil
 	} else {
@@ -97,7 +98,7 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 					PackagePath: "testdata/release-packages",
 				},
 				github:     fakeGitHub,
-				httpClient: &MockClient{http.StatusOK},
+				httpClient: &MockClient{http.StatusOK, "testdata/repo/index.yaml"},
 			},
 		},
 		{
@@ -109,7 +110,7 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 					PackagePath: "testdata/release-packages",
 				},
 				github:     fakeGitHub,
-				httpClient: &MockClient{http.StatusNotFound},
+				httpClient: &MockClient{http.StatusNotFound, ""},
 			},
 		},
 	}
@@ -129,6 +130,42 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 				_, err := os.Stat(tt.releaser.config.IndexPath)
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
+	indexDir, _ := ioutil.TempDir(".", "index")
+	defer os.RemoveAll(indexDir)
+
+	fakeGitHub := new(FakeGitHub)
+
+	tests := []struct {
+		name     string
+		releaser *Releaser
+	}{
+		{
+			"index-file-exists",
+			&Releaser{
+				config: &config.Options{
+					IndexPath:   filepath.Join(indexDir, "index.yaml"),
+					PackagePath: "testdata/release-packages",
+				},
+				github:     fakeGitHub,
+				httpClient: &MockClient{http.StatusOK, "testdata/empty-repo/index.yaml"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			indexFile, _ := repo.LoadIndexFile("testdata/empty-repo/index.yaml")
+			generated := indexFile.Generated
+			update, err := tt.releaser.UpdateIndexFile()
+			assert.NoError(t, err)
+			assert.True(t, update)
+			newIndexFile, _ := repo.LoadIndexFile(tt.releaser.config.IndexPath)
+			newGenerated := newIndexFile.Generated
+			assert.True(t, newGenerated.After(generated))
 		})
 	}
 }
