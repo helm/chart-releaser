@@ -333,7 +333,7 @@ func (r *Releaser) CreateReleases() error {
 			}
 		}
 		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
-			return errors.Wrap(err, "error creating GitHub release")
+			return errors.Wrapf(err, "error creating GitHub release %s", releaseName)
 		}
 	}
 
