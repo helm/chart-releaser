@@ -62,6 +62,7 @@ type Git interface {
 	Add(workingDir string, args ...string) error
 	Commit(workingDir string, message string) error
 	Push(workingDir string, args ...string) error
+	GetPushURL(remote string, token string) (string, error)
 }
 
 type DefaultHttpClient struct{}
@@ -219,7 +220,10 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return false, err
 	}
 
-	pushURL := fmt.Sprintf("https://x-access-token:%s@github.com/%s/%s", r.config.Token, r.config.Owner, r.config.GitRepo)
+	pushURL, err := r.git.GetPushURL(r.config.Remote, r.config.Token)
+	if err != nil {
+		return false, err
+	}
 
 	if r.config.Push {
 		fmt.Printf("Pushing to branch %q\n", r.config.PagesBranch)
