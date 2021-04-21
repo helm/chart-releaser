@@ -1,7 +1,7 @@
 # Chart Releaser
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![CI](https://github.com/helm/chart-releaser/workflows/CI/badge.svg?branch=master&event=push)
+![CI](https://github.com/helm/chart-releaser/workflows/CI/badge.svg?branch=main&event=push)
 
 **Helps Turn GitHub Repositories into Helm Chart Repositories**
 
