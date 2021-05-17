@@ -86,6 +86,7 @@ Flags:
       --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
+      --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
@@ -118,6 +119,7 @@ Flags:
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
   -t, --token string                   GitHub Auth Token (only needed for private repos)
+      --packages-with-index                Host the package files in the GitHub Pages branch
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
