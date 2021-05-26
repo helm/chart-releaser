@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -53,11 +52,6 @@ type GitHub interface {
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 }
 
-type HTTPClient interface {
-	Get(url string) (*http.Response, error)
-	GetWithToken(url string, token string) (*http.Response, error)
-}
-
 type Git interface {
 	AddWorktree(workingDir string, committish string) (string, error)
 	RemoveWorktree(workingDir string, path string) error
@@ -68,18 +62,12 @@ type Git interface {
 	GetPushURL(remote string, token string) (string, error)
 }
 
-type DefaultHTTPClient struct{}
-
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 
 const chartAssetFileExtension = ".tgz"
 
 func init() {
 	rand.New(rand.NewSource(time.Now().UnixNano())) // nolint: gosec
-}
-
-func (c *DefaultHTTPClient) Get(url string) (resp *http.Response, err error) {
-	return http.Get(url) // nolint: gosec
 }
 
 type Releaser struct {
