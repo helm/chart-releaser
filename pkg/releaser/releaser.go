@@ -55,6 +55,7 @@ type GitHub interface {
 
 type HTTPClient interface {
 	Get(url string) (*http.Response, error)
+	GetWithToken(url string, token string) (*http.Response, error)
 }
 
 type Git interface {
@@ -79,6 +80,13 @@ func init() {
 func (c *DefaultHTTPClient) Get(url string) (resp *http.Response, err error) {
 	return http.Get(url) // nolint: gosec
 }
+
+// func (c *DefaultHttpClient) GetWithToken(url string, token string) (resp *http.Response, err error) {
+// 	req, _ := http.NewRequest("GET", url, nil)
+// 	req.Header.Add("Authorization", fmt.Sprintf("token %s", token))
+// 	client := &http.Client{}
+// 	return client.Do(req)
+// }
 
 type Releaser struct {
 	config *config.Options
