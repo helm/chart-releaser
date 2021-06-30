@@ -30,8 +30,6 @@ snapshot:
 dockers:
   - goos: linux
     goarch: amd64
-    binaries:
-      - cr
     skip_push: false
     dockerfile: Dockerfile
     image_templates:
