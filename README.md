@@ -81,6 +81,7 @@ Flags:
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
   -t, --token string                   GitHub Auth Token
+      --packages-with-index                Host the package files in the GitHub Pages branch
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
@@ -109,6 +110,7 @@ Flags:
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
   -t, --token string                   GitHub Auth Token (only needed for private repos)
+      --packages-with-index                Host the package files in the GitHub Pages branch
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)

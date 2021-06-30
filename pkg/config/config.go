@@ -57,6 +57,7 @@ type Options struct {
 	Remote              string `mapstructure:"remote"`
 	ReleaseNameTemplate string `mapstructure:"release-name-template"`
 	SkipExisting        bool   `mapstructure:"skip-existing"`
+	PackagesWithIndex   bool   `mapstructure:"packages-with-index"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {

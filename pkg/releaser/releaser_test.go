@@ -38,12 +38,26 @@ type FakeGitHub struct {
 	release *github.Release
 }
 
+type FakeGit struct {
+	mock.Mock
+}
+
 type MockClient struct {
 	statusCode int
 	file       string
 }
 
 func (m *MockClient) Get(url string) (*http.Response, error) {
+	if m.statusCode == http.StatusOK {
+		file, _ := os.Open(m.file)
+		reader := bufio.NewReader(file)
+		return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(reader)}, nil
+	} else {
+		return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(nil)}, nil
+	}
+}
+
+func (m *MockClient) GetWithToken(url string, token string) (*http.Response, error) {
 	if m.statusCode == http.StatusOK {
 		file, _ := os.Open(m.file)
 		reader := bufio.NewReader(file)
@@ -76,6 +90,44 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
 	f.Called(owner, repo, message, head, base)
 	return "https://github.com/owner/repo/pull/42", nil
+}
+
+func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) {
+	f.Called(workingDir, committish)
+	dir, err := ioutil.TempDir("testdata", "chart-releaser-")
+	if err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+func (f *FakeGit) RemoveWorktree(workingDir string, path string) error {
+	f.Called(workingDir, path)
+	return os.RemoveAll(workingDir)
+}
+
+func (f *FakeGit) Add(workingDir string, args ...string) error {
+	f.Called(workingDir, args)
+	if len(args) == 0 {
+		return fmt.Errorf("no args specified")
+	}
+	return nil
+}
+
+func (f *FakeGit) Commit(workingDir string, message string) error {
+	f.Called(workingDir, message)
+	return nil
+}
+
+func (f *FakeGit) Push(workingDir string, args ...string) error {
+	f.Called(workingDir, args)
+	return nil
+}
+
+func (f *FakeGit) GetPushURL(remote string, token string) (string, error) {
+	f.Called(remote, token)
+	pushURLWithToken := fmt.Sprintf("https://x-access-token:%s@github.com/owner/repo", token)
+	return pushURLWithToken, nil
 }
 
 func TestReleaser_UpdateIndexFile(t *testing.T) {
@@ -209,37 +261,70 @@ func TestReleaser_splitPackageNameAndVersion(t *testing.T) {
 
 func TestReleaser_addToIndexFile(t *testing.T) {
 	tests := []struct {
-		name    string
-		chart   string
-		version string
-		error   bool
+		name              string
+		chart             string
+		version           string
+		releaser          *Releaser
+		packagesWithIndex bool
+		error             bool
 	}{
 		{
 			"invalid-package",
 			"does-not-exist",
 			"0.1.0",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					PackagesWithIndex: false,
+				},
+			},
+			false,
 			true,
 		},
 		{
 			"valid-package",
 			"test-chart",
 			"0.1.0",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					PackagesWithIndex: false,
+				},
+			},
+			false,
+			false,
+		},
+		{
+			"valid-package-with-index",
+			"test-chart",
+			"0.1.0",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					PackagesWithIndex: true,
+				},
+			},
+			true,
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &Releaser{
-				config: &config.Options{PackagePath: "testdata/release-packages"},
-			}
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			err := r.addToIndexFile(indexFile, url)
+			err := tt.releaser.addToIndexFile(indexFile, url)
 			if tt.error {
 				assert.Error(t, err)
 				assert.False(t, indexFile.Has(tt.chart, tt.version))
 			} else {
 				assert.True(t, indexFile.Has(tt.chart, tt.version))
+
+				indexEntry, _ := indexFile.Get(tt.chart, tt.version)
+				if tt.packagesWithIndex {
+					assert.Equal(t, filepath.Base(url), indexEntry.URLs[0])
+				} else {
+					assert.Equal(t, url, indexEntry.URLs[0])
+				}
 			}
 		})
 	}
@@ -247,51 +332,82 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 
 func TestReleaser_CreateReleases(t *testing.T) {
 	tests := []struct {
-		name        string
-		packagePath string
-		chart       string
-		version     string
-		commit      string
-		error       bool
+		name     string
+		chart    string
+		version  string
+		Releaser *Releaser
+		error    bool
 	}{
 		{
 			"invalid-package-path",
-			"testdata/does-not-exist",
 			"test-chart",
 			"0.1.0",
-			"",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/does-not-exist",
+					Commit:            "",
+					PackagesWithIndex: false,
+				},
+			},
 			true,
 		},
 		{
 			"valid-package-path",
-			"testdata/release-packages",
 			"test-chart",
 			"0.1.0",
-			"",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					Commit:            "",
+					PackagesWithIndex: false,
+				},
+			},
 			false,
 		},
 		{
 			"valid-package-path-with-commit",
-			"testdata/release-packages",
 			"test-chart",
 			"0.1.0",
-			"5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					Commit:            "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+					PackagesWithIndex: false,
+				},
+			},
+			false,
+		},
+		{
+			"valid-package-path-with-commit-package-with-index",
+			"test-chart",
+			"0.1.0",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					Commit:            "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+					PackagesWithIndex: true,
+					Push:              true,
+				},
+			},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeGitHub := new(FakeGitHub)
-			r := &Releaser{
-				config: &config.Options{
-					PackagePath:         tt.packagePath,
-					Commit:              tt.commit,
-					ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}",
-				},
-				github: fakeGitHub,
-			}
 			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
-			err := r.CreateReleases()
+			tt.Releaser.github = fakeGitHub
+			fakeGit := new(FakeGit)
+			fakeGit.On("AddWorktree", mock.Anything, mock.Anything).Return("/tmp/chart-releaser-012345678", nil)
+			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Push", mock.Anything, mock.Anything).Return(nil)
+			pushURL := fmt.Sprintf("https://x-access-token:%s@github.com/owner/repo", tt.Releaser.config.Token)
+			fakeGit.On("GetPushURL", mock.Anything, mock.Anything).Return(pushURL, nil)
+			tt.Releaser.git = fakeGit
+			tt.Releaser.config.ReleaseNameTemplate = "{{ .Name }}-{{ .Version }}"
+			err := tt.Releaser.CreateReleases()
 			if tt.error {
 				assert.Error(t, err)
 				assert.Nil(t, fakeGitHub.release)
@@ -299,13 +415,13 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				releaseName := fmt.Sprintf("%s-%s", tt.chart, tt.version)
-				assetPath := fmt.Sprintf("%s/%s-%s.tgz", r.config.PackagePath, tt.chart, tt.version)
+				assetPath := fmt.Sprintf("%s/%s-%s.tgz", tt.Releaser.config.PackagePath, tt.chart, tt.version)
 				releaseDescription := "A Helm chart for Kubernetes"
 				assert.Equal(t, releaseName, fakeGitHub.release.Name)
 				assert.Equal(t, releaseDescription, fakeGitHub.release.Description)
 				assert.Len(t, fakeGitHub.release.Assets, 1)
 				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
-				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
+				assert.Equal(t, tt.Releaser.config.Commit, fakeGitHub.release.Commit)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
 		})
