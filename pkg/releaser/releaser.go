@@ -207,7 +207,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer r.git.RemoveWorktree("", worktree) // nolint, errcheck
+	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
 
 	indexYamlPath := filepath.Join(worktree, "index.yaml")
 	if err := copyFile(r.config.IndexPath, indexYamlPath); err != nil {

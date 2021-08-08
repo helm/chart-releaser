@@ -25,7 +25,7 @@ import (
 	"github.com/Songmu/retry"
 	"github.com/pkg/errors"
 
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v36/github"
 	"golang.org/x/oauth2"
 )
 
