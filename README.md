@@ -80,6 +80,7 @@ Flags:
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
+      --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
 
 Global Flags:
@@ -144,6 +145,7 @@ The following example show various ways of configuring the same thing:
     export CR_TOKEN="123456789"
     export CR_GIT_BASE_URL="https://api.github.com/"
     export CR_GIT_UPLOAD_URL="https://uploads.github.com/"
+    export CR_SKIP_EXISTING=true
 
     cr upload
 
