@@ -311,3 +311,55 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		})
 	}
 }
+
+func TestReleaser_ReleaseNotes(t *testing.T) {
+	tests := []struct {
+		name                 string
+		packagePath          string
+		chart                string
+		version              string
+		releaseNotesFile     string
+		expectedReleaseNotes string
+	}{
+		{
+			"chart-package-with-release-notes-file",
+			"testdata/release-packages",
+			"test-chart",
+			"0.1.0",
+			"release-notes.md",
+			"The release notes file content is used as release notes",
+		},
+		{
+			"chart-package-with-non-exists-release-notes-file",
+			"testdata/release-packages",
+			"test-chart",
+			"0.1.0",
+			"non-exists-release-notes.md",
+			"A Helm chart for Kubernetes",
+		},
+		{
+			"chart-package-with-empty-release-notes-file-config-value",
+			"testdata/release-packages",
+			"test-chart",
+			"0.1.0",
+			"",
+			"A Helm chart for Kubernetes",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGitHub := new(FakeGitHub)
+			r := &Releaser{
+				config: &config.Options{
+					PackagePath:      "testdata/release-packages",
+					ReleaseNotesFile: tt.releaseNotesFile,
+				},
+				github: fakeGitHub,
+			}
+			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
+			err := r.CreateReleases()
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectedReleaseNotes, fakeGitHub.release.Description)
+		})
+	}
+}

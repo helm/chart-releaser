@@ -263,6 +263,17 @@ func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
 	return releaseName, nil
 }
 
+func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
+	if r.config.ReleaseNotesFile != "" {
+		for _, f := range chart.Files {
+			if f.Name == r.config.ReleaseNotesFile {
+				return string(f.Data)
+			}
+		}
+	}
+	return chart.Metadata.Description
+}
+
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	delimIndex := strings.LastIndex(pkg, "-")
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
@@ -317,9 +328,10 @@ func (r *Releaser) CreateReleases() error {
 		if err != nil {
 			return err
 		}
+
 		release := &github.Release{
 			Name:        releaseName,
-			Description: ch.Metadata.Description,
+			Description: r.getReleaseNotes(ch),
 			Assets: []*github.Asset{
 				{Path: p},
 			},
