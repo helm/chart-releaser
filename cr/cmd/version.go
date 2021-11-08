@@ -15,8 +15,13 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"runtime"
+	"strings"
+	"text/tabwriter"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -27,19 +32,81 @@ var (
 	BuildDate = "unknown"
 	// Version is updated with the latest tag by the Goreleaser build
 	Version = "unreleased"
+
+	outputJSON bool
 )
+
+type Info struct {
+	Version   string
+	GitCommit string
+	BuildDate string
+	GoVersion string
+	Compiler  string
+	Platform  string
+	License   string
+}
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Version:\t", Version)
-		fmt.Println("Git commit:\t", GitCommit)
-		fmt.Println("Date:\t\t", BuildDate)
-		fmt.Println("License:\t Apache 2.0")
+	RunE: func(cmd *cobra.Command, args []string) error {
+		v := GetVersionInfo()
+		res := v.String()
+		if outputJSON {
+			j, err := v.JSONString()
+			if err != nil {
+				return errors.Wrap(err, "unable to generate JSON from version info")
+			}
+			res = j
+		}
+
+		fmt.Println(res)
+		return nil
 	},
 }
 
 func init() {
+	versionCmd.Flags().BoolVar(&outputJSON, "json", false,
+		"print JSON instead of text")
+
 	rootCmd.AddCommand(versionCmd)
+}
+
+func GetVersionInfo() Info {
+	return Info{
+		Version:   Version,
+		GitCommit: GitCommit,
+		BuildDate: BuildDate,
+		GoVersion: runtime.Version(),
+		Compiler:  runtime.Compiler,
+		Platform:  fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
+		License:   "Apache 2.0",
+	}
+}
+
+// String returns the string representation of the version info
+func (i *Info) String() string {
+	b := strings.Builder{}
+	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+
+	fmt.Fprintf(w, "GitVersion:\t%s\n", i.Version)
+	fmt.Fprintf(w, "GitCommit:\t%s\n", i.GitCommit)
+	fmt.Fprintf(w, "BuildDate:\t%s\n", i.BuildDate)
+	fmt.Fprintf(w, "GoVersion:\t%s\n", i.GoVersion)
+	fmt.Fprintf(w, "Compiler:\t%s\n", i.Compiler)
+	fmt.Fprintf(w, "Platform:\t%s\n", i.Platform)
+	fmt.Fprintf(w, "License:\t%s\n", i.License)
+
+	w.Flush()
+	return b.String()
+}
+
+// JSONString returns the JSON representation of the version info
+func (i *Info) JSONString() (string, error) {
+	b, err := json.MarshalIndent(i, "", "  ")
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
