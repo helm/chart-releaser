@@ -114,13 +114,16 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	indexYamlPath := filepath.Join(worktree, "index.yaml")
 
 	var indexFile *repo.IndexFile
-	if _, err := os.Stat(indexYamlPath); errors.Is(err, os.ErrNotExist) {
-		indexFile = repo.NewIndexFile()
-	} else {
+	_, err = os.Stat(indexYamlPath)
+	if err == nil {
 		indexFile, err = repo.LoadIndexFile(indexYamlPath)
 		if err != nil {
 			return false, err
 		}
+	} else if errors.Is(err, os.ErrNotExist) {
+		indexFile = repo.NewIndexFile()
+	} else {
+		return false, err
 	}
 
 	// We have to explicitly glob for *.tgz files only. If GPG signing is enabled,
