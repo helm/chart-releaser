@@ -291,7 +291,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				github: fakeGitHub,
 			}
 			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
-			err := r.CreateReleases()
+			err := r.CreateReleases(false)
 			if tt.error {
 				assert.Error(t, err)
 				assert.Nil(t, fakeGitHub.release)
@@ -357,7 +357,7 @@ func TestReleaser_ReleaseNotes(t *testing.T) {
 				github: fakeGitHub,
 			}
 			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
-			err := r.CreateReleases()
+			err := r.CreateReleases(false)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedReleaseNotes, fakeGitHub.release.Description)
 		})

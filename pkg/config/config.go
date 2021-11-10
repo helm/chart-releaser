@@ -56,6 +56,7 @@ type Options struct {
 	PR                  bool   `mapstructure:"pr"`
 	Remote              string `mapstructure:"remote"`
 	ReleaseNameTemplate string `mapstructure:"release-name-template"`
+	PreRelease          bool   `mapstructure:"pre-release"`
 	SkipExisting        bool   `mapstructure:"skip-existing"`
 	ReleaseNotesFile    string `mapstructure:"release-notes-file"`
 }

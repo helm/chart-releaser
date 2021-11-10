@@ -309,7 +309,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
-func (r *Releaser) CreateReleases() error {
+func (r *Releaser) CreateReleases(preRelease bool) error {
 	packages, err := r.getListOfPackages(r.config.PackagePath)
 	if err != nil {
 		return err
@@ -335,7 +335,8 @@ func (r *Releaser) CreateReleases() error {
 			Assets: []*github.Asset{
 				{Path: p},
 			},
-			Commit: r.config.Commit,
+			Commit:     r.config.Commit,
+			PreRelease: preRelease,
 		}
 		provFile := fmt.Sprintf("%s.prov", p)
 		if _, err := os.Stat(provFile); err == nil {
