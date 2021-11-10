@@ -15,11 +15,9 @@
 package releaser
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -38,19 +36,40 @@ type FakeGitHub struct {
 	release *github.Release
 }
 
-type MockClient struct {
-	statusCode int
-	file       string
+type FakeGit struct {
+	indexFile string
 }
 
-func (m *MockClient) Get(url string) (*http.Response, error) {
-	if m.statusCode == http.StatusOK {
-		file, _ := os.Open(m.file)
-		reader := bufio.NewReader(file)
-		return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(reader)}, nil
-	} else {
-		return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(nil)}, nil
+func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) {
+	dir, err := ioutil.TempDir("", "chart-releaser-")
+	if err != nil {
+		return "", err
 	}
+	if len(f.indexFile) == 0 {
+		return dir, nil
+	}
+
+	return dir, copyFile(f.indexFile, filepath.Join(dir, "index.yaml"))
+}
+
+func (f *FakeGit) RemoveWorktree(workingDir string, path string) error {
+	return nil
+}
+
+func (f *FakeGit) Add(workingDir string, args ...string) error {
+	panic("implement me")
+}
+
+func (f *FakeGit) Commit(workingDir string, message string) error {
+	panic("implement me")
+}
+
+func (f *FakeGit) Push(workingDir string, args ...string) error {
+	panic("implement me")
+}
+
+func (f *FakeGit) GetPushURL(remote string, token string) (string, error) {
+	panic("implement me")
 }
 
 func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) error {
@@ -97,8 +116,8 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 					IndexPath:   "testdata/index/index.yaml",
 					PackagePath: "testdata/release-packages",
 				},
-				github:     fakeGitHub,
-				httpClient: &MockClient{http.StatusOK, "testdata/repo/index.yaml"},
+				github: fakeGitHub,
+				git:    &FakeGit{"testdata/repo/index.yaml"},
 			},
 		},
 		{
@@ -109,8 +128,8 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 					IndexPath:   filepath.Join(indexDir, "index.yaml"),
 					PackagePath: "testdata/release-packages",
 				},
-				github:     fakeGitHub,
-				httpClient: &MockClient{http.StatusNotFound, ""},
+				github: fakeGitHub,
+				git:    &FakeGit{""},
 			},
 		},
 	}
@@ -151,8 +170,8 @@ func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 					IndexPath:   filepath.Join(indexDir, "index.yaml"),
 					PackagePath: "testdata/release-packages",
 				},
-				github:     fakeGitHub,
-				httpClient: &MockClient{http.StatusOK, "testdata/empty-repo/index.yaml"},
+				github: fakeGitHub,
+				git:    &FakeGit{indexFile: "testdata/empty-repo/index.yaml"},
 			},
 		},
 	}
@@ -166,6 +185,7 @@ func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 			newIndexFile, _ := repo.LoadIndexFile(tt.releaser.config.IndexPath)
 			newGenerated := newIndexFile.Generated
 			assert.True(t, newGenerated.After(generated))
+			assert.Equal(t, 2, len(newIndexFile.Entries))
 		})
 	}
 }
