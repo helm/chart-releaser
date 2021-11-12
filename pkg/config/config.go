@@ -40,6 +40,7 @@ var (
 type Options struct {
 	Owner               string `mapstructure:"owner"`
 	GitRepo             string `mapstructure:"git-repo"`
+	ChartsRepo          string `mapstructure:"charts-repo"`
 	IndexPath           string `mapstructure:"index-path"`
 	PackagePath         string `mapstructure:"package-path"`
 	Sign                bool   `mapstructure:"sign"`
