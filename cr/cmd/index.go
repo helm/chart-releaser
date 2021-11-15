@@ -16,12 +16,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/helm/chart-releaser/pkg/git"
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/helm/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // indexCmd represents the index command
