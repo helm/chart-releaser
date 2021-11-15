@@ -47,10 +47,11 @@ Usage:
   cr [command]
 
 Available Commands:
+  completion  generate the autocompletion script for the specified shell
   help        Help about any command
   index       Update Helm repo index.yaml for the given GitHub repo
-  upload      Upload Helm chart packages to GitHub Releases
   package     Package Helm charts
+  upload      Upload Helm chart packages to GitHub Releases
   version     Print version information
 
 Flags:
@@ -101,7 +102,6 @@ Usage:
   cr index [flags]
 
 Flags:
-  -c, --charts-repo string             The URL to the charts repository
   -b, --git-base-url string            GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
   -r, --git-repo string                GitHub repository
   -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
@@ -109,7 +109,11 @@ Flags:
   -i, --index-path string              Path to index file (default ".cr-index/index.yaml")
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
+      --pages-branch string            The GitHub pages branch (default "gh-pages")
+      --pr                             Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)
+      --push                           Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
+      --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
   -t, --token string                   GitHub Auth Token (only needed for private repos)
 
 Global Flags:

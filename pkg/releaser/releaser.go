@@ -78,18 +78,16 @@ func (c *DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
 }
 
 type Releaser struct {
-	config     *config.Options
-	github     GitHub
-	httpClient HttpClient
-	git        Git
+	config *config.Options
+	github GitHub
+	git    Git
 }
 
 func NewReleaser(config *config.Options, github GitHub, git Git) *Releaser {
 	return &Releaser{
-		config:     config,
-		github:     github,
-		httpClient: &DefaultHttpClient{},
-		git:        git,
+		config: config,
+		github: github,
+		git:    git,
 	}
 }
 
@@ -107,35 +105,25 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		}
 	}
 
-	var indexFile *repo.IndexFile
-
-	resp, err := r.httpClient.Get(fmt.Sprintf("%s/index.yaml", r.config.ChartsRepo))
+	fmt.Printf("Loading index file from git repository %s\n", r.config.IndexPath)
+	worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
 	if err != nil {
 		return false, err
 	}
+	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
+	indexYamlPath := filepath.Join(worktree, "index.yaml")
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		out, err := os.Create(r.config.IndexPath)
+	var indexFile *repo.IndexFile
+	_, err = os.Stat(indexYamlPath)
+	if err == nil {
+		indexFile, err = repo.LoadIndexFile(indexYamlPath)
 		if err != nil {
 			return false, err
 		}
-		defer out.Close()
-
-		_, err = io.Copy(out, resp.Body)
-		if err != nil {
-			return false, err
-		}
-
-		fmt.Printf("Using existing index at %s\n", r.config.IndexPath)
-		indexFile, err = repo.LoadIndexFile(r.config.IndexPath)
-		if err != nil {
-			return false, err
-		}
-	} else {
-		fmt.Printf("UpdateIndexFile new index at %s\n", r.config.IndexPath)
+	} else if errors.Is(err, os.ErrNotExist) {
 		indexFile = repo.NewIndexFile()
+	} else {
+		return false, err
 	}
 
 	// We have to explicitly glob for *.tgz files only. If GPG signing is enabled,
@@ -203,13 +191,6 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return true, nil
 	}
 
-	worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
-	if err != nil {
-		return false, err
-	}
-	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
-
-	indexYamlPath := filepath.Join(worktree, "index.yaml")
 	if err := copyFile(r.config.IndexPath, indexYamlPath); err != nil {
 		return false, err
 	}

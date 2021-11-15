@@ -15,6 +15,9 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/helm/chart-releaser/pkg/git"
 	"github.com/helm/chart-releaser/pkg/github"
@@ -35,6 +38,15 @@ given GitHub repository's releases.
 		if err != nil {
 			return err
 		}
+
+		if len(config.ChartsRepo) > 0 {
+			fmt.Fprintf(os.Stderr, "ATTENTION: Flag --charts-repo is deprecated. It does not have any effect.\n"+
+				"The index.yaml is read from the '%s' branch instead.\n"+
+				"Loading index.yaml directly from the charts repository lead to problems as there is a delay between\n"+
+				"pushing to the GitHub pages branch until things appear online.\n"+
+				"The flag will be removed with the next major release.", config.PagesBranch)
+		}
+
 		ghc := github.NewClient(config.Owner, config.GitRepo, config.Token, config.GitBaseURL, config.GitUploadURL)
 		releaser := releaser.NewReleaser(config, ghc, &git.Git{})
 		_, err = releaser.UpdateIndexFile()
@@ -43,7 +55,7 @@ given GitHub repository's releases.
 }
 
 func getRequiredIndexArgs() []string {
-	return []string{"owner", "git-repo", "charts-repo"}
+	return []string{"owner", "git-repo"}
 }
 
 func init() {
@@ -52,6 +64,7 @@ func init() {
 	flags.StringP("owner", "o", "", "GitHub username or organization")
 	flags.StringP("git-repo", "r", "", "GitHub repository")
 	flags.StringP("charts-repo", "c", "", "The URL to the charts repository")
+	_ = flags.MarkHidden("charts-repo")
 	flags.StringP("index-path", "i", ".cr-index/index.yaml", "Path to index file")
 	flags.StringP("package-path", "p", ".cr-release-packages", "Path to directory with chart packages")
 	flags.StringP("token", "t", "", "GitHub Auth Token (only needed for private repos)")
