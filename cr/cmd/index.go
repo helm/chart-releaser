@@ -42,7 +42,7 @@ given GitHub repository's releases.
 			fmt.Fprintf(os.Stderr, "ATTENTION: Flag --charts-repo is deprecated. It does not have any effect.\n"+
 				"The index.yaml is read from the '%s' branch instead.\n"+
 				"Loading index.yaml directly from the charts repository lead to problems as there is a delay between\n"+
-				"pushing to the github pages branch until things apear online.\n"+
+				"pushing to the GitHub pages branch until things appear online.\n"+
 				"The flag will be removed with the next major release.", config.PagesBranch)
 		}
 
