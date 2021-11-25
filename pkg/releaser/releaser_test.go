@@ -252,6 +252,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		chart       string
 		version     string
 		commit      string
+		preRelease  bool
 		error       bool
 	}{
 		{
@@ -260,6 +261,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"test-chart",
 			"0.1.0",
 			"",
+			false,
 			true,
 		},
 		{
@@ -269,6 +271,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"0.1.0",
 			"",
 			false,
+			false,
 		},
 		{
 			"valid-package-path-with-commit",
@@ -276,6 +279,16 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"test-chart",
 			"0.1.0",
 			"5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+			false,
+			false,
+		},
+		{
+			"valid-package-pre-release",
+			"testdata/release-packages",
+			"test-chart",
+			"0.1.0",
+			"",
+			true,
 			false,
 		},
 	}
@@ -291,7 +304,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				github: fakeGitHub,
 			}
 			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
-			err := r.CreateReleases(false)
+			err := r.CreateReleases(tt.preRelease)
 			if tt.error {
 				assert.Error(t, err)
 				assert.Nil(t, fakeGitHub.release)
@@ -306,6 +319,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Len(t, fakeGitHub.release.Assets, 1)
 				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
 				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
+				assert.Equal(t, tt.preRelease, fakeGitHub.release.PreRelease)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
 		})
