@@ -110,6 +110,7 @@ Flags:
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --pages-branch string            The GitHub pages branch (default "gh-pages")
+      --pages-index-path string        The GitHub pages index path (default "index.yaml")
       --pr                             Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)
       --push                           Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")

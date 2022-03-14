@@ -52,6 +52,7 @@ type Options struct {
 	GitUploadURL        string `mapstructure:"git-upload-url"`
 	Commit              string `mapstructure:"commit"`
 	PagesBranch         string `mapstructure:"pages-branch"`
+	PagesIndexPath      string `mapstructure:"pages-index-path"`
 	Push                bool   `mapstructure:"push"`
 	PR                  bool   `mapstructure:"pr"`
 	Remote              string `mapstructure:"remote"`

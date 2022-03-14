@@ -93,14 +93,14 @@ func NewReleaser(config *config.Options, github GitHub, git Git) *Releaser {
 
 // UpdateIndexFile updates the index.yaml file for a given Git repo
 func (r *Releaser) UpdateIndexFile() (bool, error) {
-	// if path doesn't end with index.yaml we can try and fix it
+	// if index-path doesn't end with index.yaml we can try and fix it
 	if filepath.Base(r.config.IndexPath) != "index.yaml" {
 		// if path is a directory then add index.yaml
 		if stat, err := os.Stat(r.config.IndexPath); err == nil && stat.IsDir() {
 			r.config.IndexPath = filepath.Join(r.config.IndexPath, "index.yaml")
 			// otherwise error out
 		} else {
-			fmt.Printf("path (%s) should be a directory or a file called index.yaml\n", r.config.IndexPath)
+			fmt.Printf("index-path (%s) should be a directory or a file called index.yaml\n", r.config.IndexPath)
 			os.Exit(1)
 		}
 	}
@@ -111,7 +111,19 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return false, err
 	}
 	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
-	indexYamlPath := filepath.Join(worktree, "index.yaml")
+
+	// if pages-index-path doesn't end with index.yaml we can try and fix it
+	if filepath.Base(r.config.PagesIndexPath) != "index.yaml" {
+		// if path is a directory then add index.yaml
+		if stat, err := os.Stat(filepath.Join(worktree, r.config.PagesIndexPath)); err == nil && stat.IsDir() {
+			r.config.PagesIndexPath = filepath.Join(r.config.PagesIndexPath, "index.yaml")
+			// otherwise error out
+		} else {
+			fmt.Printf("pages-index-path (%s) should be a directory or a file called index.yaml\n", r.config.PagesIndexPath)
+			os.Exit(1)
+		}
+	}
+	indexYamlPath := filepath.Join(worktree, r.config.PagesIndexPath)
 
 	var indexFile *repo.IndexFile
 	_, err = os.Stat(indexYamlPath)
@@ -197,7 +209,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	if err := r.git.Add(worktree, indexYamlPath); err != nil {
 		return false, err
 	}
-	if err := r.git.Commit(worktree, "Update index.yaml"); err != nil {
+	if err := r.git.Commit(worktree, fmt.Sprintf("Update %s", r.config.PagesIndexPath)); err != nil {
 		return false, err
 	}
 

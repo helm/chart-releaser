@@ -121,12 +121,38 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 			},
 		},
 		{
+			"index-file-exists-pages-index-path",
+			true,
+			&Releaser{
+				config: &config.Options{
+					IndexPath:      "testdata/index/index.yaml",
+					PackagePath:    "testdata/release-packages",
+					PagesIndexPath: "./",
+				},
+				github: fakeGitHub,
+				git:    &FakeGit{"testdata/repo/index.yaml"},
+			},
+		},
+		{
 			"index-file-does-not-exist",
 			false,
 			&Releaser{
 				config: &config.Options{
 					IndexPath:   filepath.Join(indexDir, "index.yaml"),
 					PackagePath: "testdata/release-packages",
+				},
+				github: fakeGitHub,
+				git:    &FakeGit{""},
+			},
+		},
+		{
+			"index-file-does-not-exist-pages-index-path",
+			false,
+			&Releaser{
+				config: &config.Options{
+					IndexPath:      filepath.Join(indexDir, "index.yaml"),
+					PackagePath:    "testdata/release-packages",
+					PagesIndexPath: "./",
 				},
 				github: fakeGitHub,
 				git:    &FakeGit{""},
