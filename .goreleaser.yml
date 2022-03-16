@@ -1,5 +1,12 @@
 project_name: chart-releaser
 
+before:
+  hooks:
+    - go mod download
+
+sboms:
+- artifacts: archive
+
 builds:
   - main: cr/main.go
     binary: cr
@@ -143,6 +150,20 @@ docker_manifests:
       - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-armv7
       - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-s390x
       - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-ppc64le
+
+signs:
+  - id: all
+    signature: "${artifact}.sig"
+    certificate: "${artifact}.pem"
+    cmd: cosign
+    args: ["sign-blob", "--output-signature", "${artifact}.sig", "--output-certificate", "${artifact}.pem", "${artifact}"]
+    artifacts: all
+
+docker_signs:
+  - id: images
+    cmd: cosign
+    args: ["sign", "${artifact}"]
+    artifacts: manifests
 
 brews:
   - tap:
