@@ -1,5 +1,8 @@
 project_name: chart-releaser
 
+env:
+  - COSIGN_EXPERIMENTAL=true
+
 before:
   hooks:
     - go mod download
