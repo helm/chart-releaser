@@ -108,7 +108,7 @@ func Test() error {
 }
 
 func Build() error {
-	return sh.RunV("goreleaser", "release", "--rm-dist", "--snapshot")
+	return sh.RunV("goreleaser", "release", "--rm-dist", "--snapshot", "--skip-sign")
 }
 
 func Release() error {
