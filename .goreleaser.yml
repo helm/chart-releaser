@@ -90,6 +90,7 @@ dockers:
 
   - goos: linux
     goarch: arm
+    goarm: 7
     skip_push: false
     dockerfile: Dockerfile
     use: buildx
