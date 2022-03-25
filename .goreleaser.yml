@@ -52,6 +52,7 @@ checksum:
   name_template: 'checksums.txt'
 snapshot:
   name_template: "{{ .Tag }}-next"
+
 dockers:
   - goos: linux
     goarch: amd64
@@ -76,10 +77,10 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64v8
-      - quay.io/helmpack/chart-releaser:latest-arm64v8
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
+      - quay.io/helmpack/chart-releaser:latest-arm64
     build_flag_templates:
-      - "--platform=linux/arm64/v8"
+      - "--platform=linux/arm64"
       - --label=org.label-schema.schema-version=1.0
       - --label=org.label-schema.version={{ .Version }}
       - --label=org.label-schema.name={{ .ProjectName }}
@@ -88,15 +89,15 @@ dockers:
       - --label=org.label-schema.vendor=Helm
 
   - goos: linux
-    goarch: s390x
+    goarch: arm
     skip_push: false
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:latest-s390x
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
+      - quay.io/helmpack/chart-releaser:latest-armv7
     build_flag_templates:
-      - "--platform=linux/s390x"
+      - "--platform=linux/arm/v7"
       - --label=org.label-schema.schema-version=1.0
       - --label=org.label-schema.version={{ .Version }}
       - --label=org.label-schema.name={{ .ProjectName }}
@@ -141,18 +142,18 @@ dockers:
 docker_manifests:
   - name_template: quay.io/helmpack/chart-releaser:{{ .Tag }}
     image_templates:
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:{{ .Tag }}-amd64
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:{{ .Tag }}-arm64v8
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:{{ .Tag }}-armv7
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:{{ .Tag }}-s390x
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:{{ .Tag }}-ppc64le
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64:{{ .Tag }}-amd64
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64v8:{{ .Tag }}-arm64
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7:{{ .Tag }}-armv7
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x:{{ .Tag }}-s390x
+      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le:{{ .Tag }}-ppc64le
   - name_template: quay.io/helmpack/chart-releaser:latest
     image_templates:
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-amd64
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-arm64v8
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-armv7
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-s390x
-      - gcr.io/{{ .Env.PROJECT_ID }}/cosign:latest-ppc64le
+      - quay.io/helmpack/chart-releaser:latest-amd64
+      - quay.io/helmpack/chart-releaser:latest-arm64
+      - quay.io/helmpack/chart-releaser:latest-armv7
+      - quay.io/helmpack/chart-releaser:latest-s390x
+      - quay.io/helmpack/chart-releaser:latest-ppc64le
 
 signs:
   - id: all
