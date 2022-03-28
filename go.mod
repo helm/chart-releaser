@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/Songmu/retry v0.1.0
-	github.com/anchore/syft v0.41.5
+	github.com/anchore/syft v0.42.4
 	github.com/golangci/golangci-lint v1.45.0
 	github.com/google/go-github/v36 v36.0.0
 	github.com/goreleaser/goreleaser v1.6.3
@@ -78,10 +78,11 @@ require (
 	github.com/alecthomas/jsonschema v0.0.0-20211209230136-e2b41affa5c1 // indirect
 	github.com/alexkohler/prealloc v1.0.0 // indirect
 	github.com/anchore/client-go v0.0.0-20210222170800-9c70f9b80bcf // indirect
+	github.com/anchore/go-macholibre v0.0.0-20220308212642-53e6d0aaf6fb // indirect
 	github.com/anchore/go-rpmdb v0.0.0-20210914181456-a9c52348da63 // indirect
 	github.com/anchore/go-version v1.2.2-0.20200701162849-18adb9c92b9b // indirect
 	github.com/anchore/packageurl-go v0.1.1-0.20220314153042-1bcd40e5206b // indirect
-	github.com/anchore/stereoscope v0.0.0-20220307154759-8a5a70c227d3 // indirect
+	github.com/anchore/stereoscope v0.0.0-20220323180633-4bdc70599cde // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/antihax/optional v1.0.0 // indirect
 	github.com/apex/log v1.9.0 // indirect
@@ -393,7 +394,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.0.6 // indirect
 	github.com/sassoftware/relic v0.0.0-20210427151427-dfb082b79b74 // indirect
-	github.com/scylladb/go-set v1.0.2 // indirect
+	github.com/scylladb/go-set v1.0.3-0.20200225121959-cc7b2070d91e // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.3.1 // indirect
 	github.com/securego/gosec/v2 v2.10.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
