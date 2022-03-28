@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/Songmu/retry v0.1.0
 	github.com/anchore/syft v0.41.5
-	github.com/golangci/golangci-lint v1.45.0
+	github.com/golangci/golangci-lint v1.45.2
 	github.com/google/go-github/v36 v36.0.0
 	github.com/goreleaser/goreleaser v1.6.3
 	github.com/magefile/mage v1.13.0
@@ -118,7 +118,7 @@ require (
 	github.com/bkielbasa/cyclop v1.2.0 // indirect
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/blizzy78/varnamelen v0.6.0 // indirect
+	github.com/blizzy78/varnamelen v0.6.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.0.2 // indirect
 	github.com/bombsimon/wsl/v3 v3.3.0 // indirect
 	github.com/breml/bidichk v0.2.2 // indirect
