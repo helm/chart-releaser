@@ -42,7 +42,7 @@ func Lint() error {
 	if err := sh.RunV("goimports", "-w", "-l", "."); err != nil {
 		return err
 	}
-	if err := sh.RunV("go", "mod", "tidy"); err != nil {
+	if err := sh.RunV("go", "mod", "tidy", "-compat=1.17"); err != nil {
 		return err
 	}
 	return sh.RunV("git", "diff", "--exit-code")
