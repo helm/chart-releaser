@@ -14,9 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-go install github.com/golangci/golangci-lint/cmd/golangci-lint
-go install github.com/goreleaser/goreleaser
-go install github.com/magefile/mage
-go install golang.org/x/tools/cmd/goimports
-go install github.com/anchore/syft
-go install github.com/sigstore/cosign/cmd/cosign
+set -o errexit
+
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.45.2
+go install github.com/goreleaser/goreleaser@v1.8.2
+go install github.com/magefile/mage@v1.13.0
+go install golang.org/x/tools/cmd/goimports@latest
+go install github.com/sigstore/cosign/cmd/cosign@v1.7.2
+go install github.com/anchore/syft@v0.44.1
