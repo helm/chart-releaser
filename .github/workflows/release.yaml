@@ -58,9 +58,6 @@ jobs:
       - name: Check License Headers
         run: mage -v checkLicenseHeaders
 
-      - name: Test
-        run: mage -v test
-
       - name: Tag
         run: |
           git config user.name "$GITHUB_ACTOR"

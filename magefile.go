@@ -33,9 +33,14 @@ func Lint() error {
 	if err := sh.RunV("bash", "-c", "shopt -s globstar; shellcheck **/*.sh"); err != nil {
 		return err
 	}
-	if err := sh.RunV("golangci-lint", "run", "--timeout", "3m"); err != nil {
-		return err
+
+	// if running on CI we have a gh action to run it
+	if os.Getenv("CI") == "" {
+		if err := sh.RunV("golangci-lint", "run", "--timeout", "3m"); err != nil {
+			return err
+		}
 	}
+
 	if err := sh.RunV("go", "vet", "-v", "./..."); err != nil {
 		return err
 	}
@@ -45,6 +50,7 @@ func Lint() error {
 	if err := sh.RunV("go", "mod", "tidy"); err != nil {
 		return err
 	}
+
 	return sh.RunV("git", "diff", "--exit-code")
 }
 
