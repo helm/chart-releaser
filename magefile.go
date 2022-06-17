@@ -117,7 +117,29 @@ func Build() error {
 	return sh.RunV("goreleaser", "release", "--rm-dist", "--snapshot", "--skip-sign")
 }
 
+func CI() error {
+	if err := CheckLicenseHeaders(); err != nil {
+		return err
+	}
+	if err := Lint(); err != nil {
+		return err
+	}
+	if err := Test(); err != nil {
+		return err
+	}
+	if err := Build(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Release() error {
 	mg.Deps(Test)
+
+	if err := CheckLicenseHeaders(); err != nil {
+		return err
+	}
+
 	return sh.RunV("goreleaser", "release", "--rm-dist")
 }

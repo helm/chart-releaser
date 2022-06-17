@@ -44,20 +44,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Install tools
-        run: ./setup.sh
+      - uses: chainguard-dev/actions/goimports@main
 
-      - name: Check License Headers
-        run: mage -v checkLicenseHeaders
-
-      - name: Lint
-        run: mage -v lint
-
-      - name: Test
-        run: mage -v test
-
-      - name: Build
-        run: mage -v build
+      - name: Run Mage
+        uses: magefile/mage-action@v2
+        with:
+          version: v1.13.0
+          args: -v ci
 
   golangci:
     name: lint

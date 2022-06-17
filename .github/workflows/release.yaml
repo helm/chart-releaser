@@ -52,11 +52,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Install tools
-        run: ./setup.sh
-
-      - name: Check License Headers
-        run: mage -v checkLicenseHeaders
+      - uses: chainguard-dev/actions/goimports@main
 
       - name: Tag
         run: |
@@ -74,7 +70,10 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Release
-        run: mage -v release
+      - name: Run Mage
+        uses: magefile/mage-action@v2
+        with:
+          version: v1.13.0
+          args: -v release
         env:
           GITHUB_TOKEN: "${{ secrets.CI_TOKEN }}"
