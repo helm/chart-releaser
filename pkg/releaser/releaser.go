@@ -52,7 +52,7 @@ type GitHub interface {
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 }
 
-type HttpClient interface {
+type HTTPClient interface {
 	Get(url string) (*http.Response, error)
 }
 
@@ -65,7 +65,7 @@ type Git interface {
 	GetPushURL(remote string, token string) (string, error)
 }
 
-type DefaultHttpClient struct{}
+type DefaultHTTPClient struct{}
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 
@@ -73,8 +73,8 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-func (c *DefaultHttpClient) Get(url string) (resp *http.Response, err error) {
-	return http.Get(url)
+func (c *DefaultHTTPClient) Get(url string) (resp *http.Response, err error) {
+	return http.Get(url) // nolint: gosec
 }
 
 type Releaser struct {
@@ -120,14 +120,14 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			// otherwise error out
 		} else {
 			fmt.Printf("pages-index-path (%s) should be a directory or a file called index.yaml\n", r.config.PagesIndexPath)
-			os.Exit(1)
+			os.Exit(1) // nolint: gocritic
 		}
 	}
 	indexYamlPath := filepath.Join(worktree, r.config.PagesIndexPath)
 
 	var indexFile *repo.IndexFile
 	_, err = os.Stat(indexYamlPath)
-	if err == nil {
+	if err == nil { // nolint: gocritic
 		indexFile, err = repo.LoadIndexFile(indexYamlPath)
 		if err != nil {
 			return false, err
@@ -169,14 +169,14 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		}
 
 		for _, asset := range release.Assets {
-			downloadUrl, _ := url.Parse(asset.URL)
-			name := filepath.Base(downloadUrl.Path)
+			downloadURL, _ := url.Parse(asset.URL)
+			name := filepath.Base(downloadURL.Path)
 			baseName := strings.TrimSuffix(name, filepath.Ext(name))
 			tagParts := r.splitPackageNameAndVersion(baseName)
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				if err := r.addToIndexFile(indexFile, downloadUrl.String()); err != nil {
+				if err := r.addToIndexFile(indexFile, downloadURL.String()); err != nil {
 					return false, err
 				}
 				update = true
@@ -309,7 +309,7 @@ func (r *Releaser) CreateReleases() error {
 	}
 
 	if len(packages) == 0 {
-		return errors.Errorf("No charts found at %s.\n", r.config.PackagePath)
+		return errors.Errorf("no charts found at %s", r.config.PackagePath)
 	}
 
 	for _, p := range packages {
@@ -373,7 +373,7 @@ func copyFile(srcFile string, dstFile string) error {
 func randomString(n int) string {
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[rand.Intn(len(letters))] // nolint: gosec
 	}
 	return string(b)
 }

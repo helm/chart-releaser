@@ -14,9 +14,7 @@ linters:
   - revive
   - misspell
   - stylecheck
-  - tparallel
   - unconvert
-  - unparam
   - whitespace
 output:
   uniq-by-line: false

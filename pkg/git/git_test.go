@@ -48,7 +48,7 @@ func TestGit_GetPushURL(t *testing.T) {
 		remote  string
 		url     string
 		token   string
-		pushUrl string
+		pushURL string
 	}{
 		{
 			name:    "Public GitHub",
@@ -56,7 +56,7 @@ func TestGit_GetPushURL(t *testing.T) {
 			remote:  "public",
 			url:     "https://github.com/org/publicrepo",
 			token:   "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",
-			pushUrl: "https://x-access-token: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@github.com/org/publicrepo",
+			pushURL: "https://x-access-token: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@github.com/org/publicrepo",
 		},
 		{
 			name:    "GitHub Enterprise",
@@ -64,7 +64,7 @@ func TestGit_GetPushURL(t *testing.T) {
 			remote:  "enterprise",
 			url:     "https://github.example.com/org/privaterepo",
 			token:   "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",
-			pushUrl: "https://x-access-token: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@github.example.com/org/privaterepo",
+			pushURL: "https://x-access-token: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@github.example.com/org/privaterepo",
 		},
 	}
 
@@ -76,10 +76,10 @@ func TestGit_GetPushURL(t *testing.T) {
 			}
 
 			g := Git{}
-			pushUrl, pushErr := g.GetPushURL(tt.remote, tt.token)
+			pushURL, pushErr := g.GetPushURL(tt.remote, tt.token)
 
 			require.Empty(t, pushErr)
-			require.EqualValues(t, pushUrl, tt.pushUrl)
+			require.EqualValues(t, pushURL, tt.pushURL)
 		})
 	}
 }

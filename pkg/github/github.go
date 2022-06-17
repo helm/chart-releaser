@@ -147,7 +147,6 @@ func (c *Client) CreatePullRequest(owner string, repo string, message string, he
 
 // UploadAsset uploads specified assets to a given release object
 func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filename string) error {
-
 	filename, err := filepath.Abs(filename)
 	if err != nil {
 		return errors.Wrap(err, "failed to get abs path")
@@ -165,7 +164,7 @@ func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filena
 		}
 		defer f.Close()
 		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.owner, c.repo, releaseID, opts, f); err != nil {
-			return errors.Wrapf(err, "failed to upload release asset: %s\n", filename)
+			return errors.Wrapf(err, "failed to upload release asset: %s", filename)
 		}
 		return nil
 	}); err != nil {
