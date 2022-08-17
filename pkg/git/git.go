@@ -16,7 +16,6 @@ package git
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -26,7 +25,7 @@ type Git struct{}
 
 // AddWorktree creates a new Git worktree with a detached HEAD for the given committish and returns its path.
 func (g *Git) AddWorktree(workingDir string, committish string) (string, error) {
-	dir, err := ioutil.TempDir("", "chart-releaser-")
+	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {
 		return "", err
 	}

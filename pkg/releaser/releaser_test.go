@@ -17,7 +17,6 @@ package releaser
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -41,7 +40,7 @@ type FakeGit struct {
 }
 
 func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) {
-	dir, err := ioutil.TempDir("", "chart-releaser-")
+	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +97,7 @@ func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string
 }
 
 func TestReleaser_UpdateIndexFile(t *testing.T) {
-	indexDir, _ := ioutil.TempDir(".", "index")
+	indexDir, _ := os.MkdirTemp(".", "index")
 	defer os.RemoveAll(indexDir)
 
 	fakeGitHub := new(FakeGitHub)
@@ -180,7 +179,7 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 }
 
 func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
-	indexDir, _ := ioutil.TempDir(".", "index")
+	indexDir, _ := os.MkdirTemp(".", "index")
 	defer os.RemoveAll(indexDir)
 
 	fakeGitHub := new(FakeGitHub)

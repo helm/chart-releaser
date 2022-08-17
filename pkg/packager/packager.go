@@ -16,7 +16,7 @@ package packager
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -67,7 +67,7 @@ func (p *Packager) CreatePackages() error {
 		}
 
 		downloadManager := &downloader.Manager{
-			Out:              ioutil.Discard,
+			Out:              io.Discard,
 			ChartPath:        path,
 			Keyring:          helmClient.Keyring,
 			Getters:          getters,
