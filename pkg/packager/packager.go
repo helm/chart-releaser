@@ -19,12 +19,14 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
 
 	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/mitchellh/go-homedir"
 	"helm.sh/helm/v3/pkg/action"
 )
 
@@ -48,6 +50,16 @@ func (p *Packager) CreatePackages() error {
 	helmClient.DependencyUpdate = true
 	helmClient.Destination = p.config.PackagePath
 	if p.config.Sign {
+		// expand the ~ to the full home dir
+		if strings.HasPrefix(p.config.KeyRing, "~") {
+			dir, err := homedir.Dir()
+			if err != nil {
+				panic(err)
+			}
+
+			p.config.KeyRing = strings.ReplaceAll(p.config.KeyRing, "~", dir)
+		}
+
 		helmClient.Sign = true
 		helmClient.Key = p.config.Key
 		helmClient.Keyring = p.config.KeyRing
