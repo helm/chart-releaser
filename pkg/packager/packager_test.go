@@ -15,7 +15,6 @@
 package packager
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,7 +26,7 @@ import (
 )
 
 func TestPackager_CreatePackages(t *testing.T) {
-	packagePath, _ := ioutil.TempDir(".", "packages")
+	packagePath, _ := os.MkdirTemp(".", "packages")
 	invalidPackagePath := filepath.Join(packagePath, "bad")
 	file, _ := os.Create(invalidPackagePath)
 	t.Cleanup(func() {
