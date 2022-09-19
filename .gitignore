@@ -3,3 +3,4 @@ chart-releaser
 /dist
 /vendor
 .vscode
+/cr-bin
