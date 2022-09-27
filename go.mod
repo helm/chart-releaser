@@ -158,7 +158,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace (
-	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker => github.com/moby/moby v20.10.17+incompatible
-)
+replace github.com/docker/docker => github.com/moby/moby v20.10.17+incompatible
