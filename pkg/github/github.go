@@ -25,15 +25,16 @@ import (
 	"github.com/Songmu/retry"
 	"github.com/pkg/errors"
 
-	"github.com/google/go-github/v36/github"
+	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 )
 
 type Release struct {
-	Name        string
-	Description string
-	Assets      []*Asset
-	Commit      string
+	Name                 string
+	Description          string
+	Assets               []*Asset
+	Commit               string
+	GenerateReleaseNotes bool
 }
 
 type Asset struct {
@@ -103,10 +104,11 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 // CreateRelease creates a new release object in the GitHub API
 func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 	req := &github.RepositoryRelease{
-		Name:            &input.Name,
-		Body:            &input.Description,
-		TagName:         &input.Name,
-		TargetCommitish: &input.Commit,
+		Name:                 &input.Name,
+		Body:                 &input.Description,
+		TagName:              &input.Name,
+		TargetCommitish:      &input.Commit,
+		GenerateReleaseNotes: &input.GenerateReleaseNotes,
 	}
 
 	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)

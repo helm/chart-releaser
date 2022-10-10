@@ -38,27 +38,28 @@ var (
 )
 
 type Options struct {
-	Owner               string `mapstructure:"owner"`
-	GitRepo             string `mapstructure:"git-repo"`
-	ChartsRepo          string `mapstructure:"charts-repo"`
-	IndexPath           string `mapstructure:"index-path"`
-	PackagePath         string `mapstructure:"package-path"`
-	Sign                bool   `mapstructure:"sign"`
-	Key                 string `mapstructure:"key"`
-	KeyRing             string `mapstructure:"keyring"`
-	PassphraseFile      string `mapstructure:"passphrase-file"`
-	Token               string `mapstructure:"token"`
-	GitBaseURL          string `mapstructure:"git-base-url"`
-	GitUploadURL        string `mapstructure:"git-upload-url"`
-	Commit              string `mapstructure:"commit"`
-	PagesBranch         string `mapstructure:"pages-branch"`
-	PagesIndexPath      string `mapstructure:"pages-index-path"`
-	Push                bool   `mapstructure:"push"`
-	PR                  bool   `mapstructure:"pr"`
-	Remote              string `mapstructure:"remote"`
-	ReleaseNameTemplate string `mapstructure:"release-name-template"`
-	SkipExisting        bool   `mapstructure:"skip-existing"`
-	ReleaseNotesFile    string `mapstructure:"release-notes-file"`
+	Owner                string `mapstructure:"owner"`
+	GitRepo              string `mapstructure:"git-repo"`
+	ChartsRepo           string `mapstructure:"charts-repo"`
+	IndexPath            string `mapstructure:"index-path"`
+	PackagePath          string `mapstructure:"package-path"`
+	Sign                 bool   `mapstructure:"sign"`
+	Key                  string `mapstructure:"key"`
+	KeyRing              string `mapstructure:"keyring"`
+	PassphraseFile       string `mapstructure:"passphrase-file"`
+	Token                string `mapstructure:"token"`
+	GitBaseURL           string `mapstructure:"git-base-url"`
+	GitUploadURL         string `mapstructure:"git-upload-url"`
+	Commit               string `mapstructure:"commit"`
+	PagesBranch          string `mapstructure:"pages-branch"`
+	PagesIndexPath       string `mapstructure:"pages-index-path"`
+	Push                 bool   `mapstructure:"push"`
+	PR                   bool   `mapstructure:"pr"`
+	Remote               string `mapstructure:"remote"`
+	ReleaseNameTemplate  string `mapstructure:"release-name-template"`
+	SkipExisting         bool   `mapstructure:"skip-existing"`
+	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
+	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
