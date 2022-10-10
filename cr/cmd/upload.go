@@ -54,5 +54,5 @@ func init() {
 	uploadCmd.Flags().Bool("skip-existing", false, "Skip upload if release exists")
 	uploadCmd.Flags().String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 	uploadCmd.Flags().String("release-notes-file", "", "Markdown file with chart release notes. "+
-		"If it is set to empty string, or the file is not found, the chart description will be used instead")
+		"If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package")
 }
