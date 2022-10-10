@@ -40,7 +40,7 @@ jobs:
           install-only: true
 
       - name: Install cosign
-        uses: sigstore/cosign-installer@v2.7.0
+        uses: sigstore/cosign-installer@v2.8.0
 
       - name: Install syft
         uses: anchore/sbom-action/download-syft@v0.12.0
