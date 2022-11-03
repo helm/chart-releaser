@@ -263,7 +263,6 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 				return string(f.Data)
 			}
 		}
-		fmt.Printf("The release note file %q, is not present in the chart package\n", r.config.ReleaseNotesFile)
 	}
 	return chart.Metadata.Description
 }
