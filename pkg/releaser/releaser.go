@@ -329,7 +329,8 @@ func (r *Releaser) CreateReleases() error {
 			Assets: []*github.Asset{
 				{Path: p},
 			},
-			Commit: r.config.Commit,
+			Commit:               r.config.Commit,
+			GenerateReleaseNotes: r.config.GenerateReleaseNotes,
 		}
 		provFile := fmt.Sprintf("%s.prov", p)
 		if _, err := os.Stat(provFile); err == nil {

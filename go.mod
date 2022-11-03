@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Songmu/retry v0.1.0
-	github.com/google/go-github/v36 v36.0.0
+	github.com/google/go-github/v39 v39.2.0
 	github.com/magefile/mage v1.14.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/pkg/errors v0.9.1

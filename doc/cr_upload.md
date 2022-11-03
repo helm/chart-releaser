@@ -14,6 +14,7 @@ cr upload [flags]
 
 ```
   -c, --commit string                  Target commit for release
+      --generate-release-notes         Whether to automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases
   -b, --git-base-url string            GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
   -r, --git-repo string                GitHub repository
   -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
