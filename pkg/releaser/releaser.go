@@ -68,7 +68,7 @@ type Git interface {
 type DefaultHTTPClient struct{}
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
-var chartAssetFileExtension = ".tgz"
+const chartAssetFileExtension = ".tgz"
 
 func init() {
 	rand.Seed(time.Now().UnixNano())
