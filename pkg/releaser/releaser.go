@@ -68,6 +68,7 @@ type Git interface {
 type DefaultHTTPClient struct{}
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
+
 const chartAssetFileExtension = ".tgz"
 
 func init() {
