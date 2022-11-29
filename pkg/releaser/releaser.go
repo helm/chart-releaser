@@ -69,6 +69,8 @@ type DefaultHTTPClient struct{}
 
 var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 
+const chartAssetFileExtension = ".tgz"
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -171,6 +173,10 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		for _, asset := range release.Assets {
 			downloadURL, _ := url.Parse(asset.URL)
 			name := filepath.Base(downloadURL.Path)
+			// Ignore any other files added in the release by the users.
+			if filepath.Ext(name) != chartAssetFileExtension {
+				continue
+			}
 			baseName := strings.TrimSuffix(name, filepath.Ext(name))
 			tagParts := r.splitPackageNameAndVersion(baseName)
 			packageName, packageVersion := tagParts[0], tagParts[1]
