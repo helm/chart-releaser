@@ -85,6 +85,7 @@ Flags:
       --release-notes-file string      Markdown file with chart release notes. If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package
       --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
+      --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)

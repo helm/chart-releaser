@@ -19,6 +19,7 @@ cr upload [flags]
   -r, --git-repo string                GitHub repository
   -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
   -h, --help                           help for upload
+      --make-release-latest            Mark the created GitHub release as 'latest' (default true)
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")

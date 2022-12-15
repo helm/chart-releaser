@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -337,6 +338,7 @@ func (r *Releaser) CreateReleases() error {
 			},
 			Commit:               r.config.Commit,
 			GenerateReleaseNotes: r.config.GenerateReleaseNotes,
+			MakeLatest:           strconv.FormatBool(r.config.MakeReleaseLatest),
 		}
 		provFile := fmt.Sprintf("%s.prov", p)
 		if _, err := os.Stat(provFile); err == nil {
