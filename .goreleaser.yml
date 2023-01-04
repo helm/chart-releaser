@@ -8,7 +8,7 @@ before:
     - go mod download
 
 sboms:
-- artifacts: archive
+  - artifacts: archive
 
 builds:
   - main: cr/main.go
@@ -41,7 +41,8 @@ builds:
         -X github.com/helm/chart-releaser/cr/cmd.BuildDate={{ .Date }}
 
 archives:
-  - format_overrides:
+  - rlcp: true
+    format_overrides:
       - goos: windows
         format: zip
     files:

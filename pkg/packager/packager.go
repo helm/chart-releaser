@@ -28,6 +28,7 @@ import (
 	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/mitchellh/go-homedir"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/registry"
 )
 
 // Packager exposes the packager object
@@ -68,6 +69,10 @@ func (p *Packager) CreatePackages() error {
 
 	settings := cli.New()
 	getters := getter.All(settings)
+	registryClient, err := registry.NewClient()
+	if err != nil {
+		return err
+	}
 
 	for i := 0; i < len(p.paths); i++ {
 		path, err := filepath.Abs(p.paths[i])
@@ -86,6 +91,7 @@ func (p *Packager) CreatePackages() error {
 			Debug:            settings.Debug,
 			RepositoryConfig: settings.RepositoryConfig,
 			RepositoryCache:  settings.RepositoryCache,
+			RegistryClient:   registryClient,
 		}
 		if err := downloadManager.Build(); err != nil {
 			return err

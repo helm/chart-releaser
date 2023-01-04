@@ -86,6 +86,10 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 				Path: "testdata/release-packages/test-chart-0.1.0.tgz",
 				URL:  "https://myrepo/charts/test-chart-0.1.0.tgz",
 			},
+			{
+				Path: "testdata/release-packages/third-party-file-0.1.0.txt",
+				URL:  "https://myrepo/charts/third-party-file-0.1.0.txt",
+			},
 		},
 	}
 	return release, nil
