@@ -8,7 +8,7 @@ before:
     - go mod download
 
 sboms:
-- artifacts: archive
+  - artifacts: archive
 
 builds:
   - main: cr/main.go
