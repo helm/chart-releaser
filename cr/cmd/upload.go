@@ -56,4 +56,5 @@ func init() {
 	uploadCmd.Flags().String("release-notes-file", "", "Markdown file with chart release notes. "+
 		"If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package")
 	uploadCmd.Flags().Bool("generate-release-notes", false, "Whether to automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases")
+	uploadCmd.Flags().Bool("make-release-latest", true, "Mark the created GitHub release as 'latest'")
 }

@@ -301,6 +301,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		chart       string
 		version     string
 		commit      string
+		latest      string
 		error       bool
 	}{
 		{
@@ -309,6 +310,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"test-chart",
 			"0.1.0",
 			"",
+			"true",
 			true,
 		},
 		{
@@ -317,6 +319,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"test-chart",
 			"0.1.0",
 			"",
+			"true",
 			false,
 		},
 		{
@@ -325,6 +328,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			"test-chart",
 			"0.1.0",
 			"5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+			"true",
 			false,
 		},
 	}
@@ -336,6 +340,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					PackagePath:         tt.packagePath,
 					Commit:              tt.commit,
 					ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}",
+					MakeReleaseLatest:   true,
 				},
 				github: fakeGitHub,
 			}
@@ -355,6 +360,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Len(t, fakeGitHub.release.Assets, 1)
 				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
 				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
+				assert.Equal(t, tt.latest, fakeGitHub.release.MakeLatest)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
 		})

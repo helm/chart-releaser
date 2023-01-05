@@ -60,6 +60,7 @@ type Options struct {
 	SkipExisting         bool   `mapstructure:"skip-existing"`
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
+	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
