@@ -73,7 +73,7 @@ var letters = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 const chartAssetFileExtension = ".tgz"
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
+	rand.New(rand.NewSource(time.Now().UnixNano())) // nolint: gosec
 }
 
 func (c *DefaultHTTPClient) Get(url string) (resp *http.Response, err error) {
