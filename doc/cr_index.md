@@ -23,6 +23,7 @@ cr index [flags]
   -i, --index-path string              Path to index file (default ".cr-index/index.yaml")
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
+      --packages-with-index            Host the package files in the GitHub Pages branch
       --pages-branch string            The GitHub pages branch (default "gh-pages")
       --pages-index-path string        The GitHub pages index path (default "index.yaml")
       --pr                             Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)
