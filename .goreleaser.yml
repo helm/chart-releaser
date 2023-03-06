@@ -1,7 +1,7 @@
 project_name: chart-releaser
 
 env:
-  - COSIGN_EXPERIMENTAL=true
+  - COSIGN_YES=true
 
 before:
   hooks:
