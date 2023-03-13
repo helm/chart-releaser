@@ -40,11 +40,6 @@ type FakeGit struct {
 	mock.Mock
 }
 
-type MockClient struct {
-	statusCode int
-	file       string
-}
-
 func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) {
 	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {

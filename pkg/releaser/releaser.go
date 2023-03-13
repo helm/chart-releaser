@@ -81,13 +81,6 @@ func (c *DefaultHTTPClient) Get(url string) (resp *http.Response, err error) {
 	return http.Get(url) // nolint: gosec
 }
 
-// func (c *DefaultHttpClient) GetWithToken(url string, token string) (resp *http.Response, err error) {
-// 	req, _ := http.NewRequest("GET", url, nil)
-// 	req.Header.Add("Authorization", fmt.Sprintf("token %s", token))
-// 	client := &http.Client{}
-// 	return client.Do(req)
-// }
-
 type Releaser struct {
 	config *config.Options
 	github GitHub
@@ -353,7 +346,7 @@ func (r *Releaser) CreateReleases() error {
 			if err != nil {
 				return err
 			}
-			defer r.git.RemoveWorktree("", worktree) // nolint, errcheck
+			defer r.git.RemoveWorktree("", worktree) //nolint: errcheck
 
 			pkgTargetPath := filepath.Join(worktree, filepath.Base(p))
 			if err := copyFile(p, pkgTargetPath); err != nil {
