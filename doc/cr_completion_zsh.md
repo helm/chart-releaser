@@ -13,7 +13,7 @@ to enable it.  You can execute the following once:
 
 To load completions in your current shell session:
 
-	source <(cr completion zsh); compdef _cr cr
+	source <(cr completion zsh)
 
 To load completions for every new session, execute once:
 
