@@ -64,6 +64,7 @@ type Git interface {
 	Add(workingDir string, args ...string) error
 	Commit(workingDir string, message string) error
 	Push(workingDir string, args ...string) error
+	Pull(workingDir string, args ...string) error
 	GetPushURL(remote string, token string) (string, error)
 }
 
@@ -214,9 +215,15 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	if err := copyFile(r.config.IndexPath, indexYamlPath); err != nil {
 		return false, err
 	}
+
+	if err := r.git.Pull(worktree, r.config.Remote, r.config.PagesBranch); err != nil {
+		return false, err
+	}
+
 	if err := r.git.Add(worktree, indexYamlPath); err != nil {
 		return false, err
 	}
+
 	if err := r.git.Commit(worktree, fmt.Sprintf("Update %s", r.config.PagesIndexPath)); err != nil {
 		return false, err
 	}
