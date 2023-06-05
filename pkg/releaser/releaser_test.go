@@ -70,6 +70,11 @@ func (f *FakeGit) Commit(workingDir string, message string) error {
 	return nil
 }
 
+func (f *FakeGit) Pull(workingDir string, args ...string) error {
+	f.Called(workingDir, args)
+	return nil
+}
+
 func (f *FakeGit) Push(workingDir string, args ...string) error {
 	f.Called(workingDir, args)
 	return nil

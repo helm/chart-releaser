@@ -59,7 +59,7 @@ func init() {
 	uploadCmd.Flags().Bool("make-release-latest", true, "Mark the created GitHub release as 'latest'")
 	uploadCmd.Flags().String("pages-branch", "gh-pages", "The GitHub pages branch")
 	uploadCmd.Flags().String("remote", "origin", "The Git remote used when creating a local worktree for the GitHub Pages branch")
-	uploadCmd.Flags().Bool("push", false, "Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)")
-	uploadCmd.Flags().Bool("pr", false, "Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)")
+	uploadCmd.Flags().Bool("push", false, "Push the chart package to the GitHub Pages branch (must not be set if --pr is set)")
+	uploadCmd.Flags().Bool("pr", false, "Create a pull request for the chart package against the GitHub Pages branch (must not be set if --push is set)")
 	uploadCmd.Flags().Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
 }

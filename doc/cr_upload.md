@@ -24,8 +24,8 @@ cr upload [flags]
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --packages-with-index            Host the package files in the GitHub Pages branch
       --pages-branch string            The GitHub pages branch (default "gh-pages")
-      --pr                             Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)
-      --push                           Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)
+      --pr                             Create a pull request for the chart package against the GitHub Pages branch (must not be set if --push is set)
+      --push                           Push the chart package to the GitHub Pages branch (must not be set if --pr is set)
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --release-notes-file string      Markdown file with chart release notes. If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
