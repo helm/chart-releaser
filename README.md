@@ -23,7 +23,8 @@ $ brew install chart-releaser
 ### Go get (for contributing)
 
 ```console
-$ # clone repo to some directory outside GOPATH
+// clone repo to some directory outside GOPATH
+
 $ git clone https://github.com/helm/chart-releaser
 $ cd chart-releaser
 $ go mod download
@@ -34,7 +35,7 @@ $ go install ./...
 
 Docker images are pushed to the [helmpack/chart-releaser](https://quay.io/repository/helmpack/chart-releaser?tab=tags) Quay container registry. The Docker image is built on top of Alpine and its default entry-point is `cr`. See the [Dockerfile](./Dockerfile) for more details.
 
-## Usage
+## Common Usage
 
 Currently, `cr` can create GitHub Releases from a set of charts packaged up into a directory and create an `index.yaml` file for the chart repository from GitHub Releases.
 
@@ -86,6 +87,7 @@ Flags:
       --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
+      --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
@@ -118,10 +120,67 @@ Flags:
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
   -t, --token string                   GitHub Auth Token (only needed for private repos)
+      --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
 ```
+
+## Usage with a private repository
+
+When using this tool on a private repository, helm is unable to download the chart package files. When you give Helm your username and password it uses it to authenticate to the repository (the index file). The index file then tells Helm where to get the tarball. If the tarball is hosted in some other location (Github Releases in this case) then it would require a second authentication (which Helm does not support). The solution is to host the files in the same place as your index file and make the links relative paths so there is no need for the second authentication.
+
+[#123](https://github.com/helm/chart-releaser/pull/123) solve this by adding a `--packages-with-index` flag to the upload and index commands.
+
+### Prerequisites
+
+Have a Github token with the right permissions (SSO enabled for entreprise) and Github Pages configured.
+
+### Usage
+
+Here are the three commands you must run for a chart to end-up hosted in the root directory of your Github page and be accessible :
+
+```bash
+cr package <chart>
+```
+
+```bash
+cr upload --owner <owner> --git-repo <repo_name> --packages-with-index --token <token> --push --skip-existing
+```
+
+Don't forget the `--skip-existing` flag in the upload command to avoid getting a `422 Validation Failed` error.
+
+```bash
+cr index --owner <owner> --git-repo <repo_name>  --packages-with-index --index-path . --token <token> --push
+```
+
+### Example
+
+With a **testChart** helm chart in the root of your repository :
+
+```bash
+cr package testChart/
+```
+
+You will obtain the .tgz in the **./cr-release-pacakges**
+
+![repository](https://user-images.githubusercontent.com/116822264/227932604-50bf08d9-44bc-4170-b830-a2dccf1afdde.PNG)
+
+Do the two followng commands :
+
+```bash
+cr upload --owner <owner> --git-repo <repo_name> --packages-with-index --token <token> --push --skip-existing
+
+cr index --owner <owner> --git-repo <repo_name>  --packages-with-index --index-path . --token <token> --push
+```
+
+You should obtain a release of your **chart** as well as the .tgz in the root of your **github-pages** branch.
+
+![github pages](https://user-images.githubusercontent.com/116822264/230021850-8d713d5d-426b-41ac-9ff4-c7e19de40e32.PNG)
+
+With the `index.yaml` that references each chart and every different versions of those charts :
+
+![index](https://user-images.githubusercontent.com/116822264/230022176-ec57a8e7-ddb7-4318-a03d-032548421e21.PNG)
 
 ## Configuration
 
@@ -143,19 +202,23 @@ The following example show various ways of configuring the same thing:
 
 #### CLI
 
-    cr upload --owner myaccount --git-repo helm-charts --package-path .deploy --token 123456789
+```bash
+cr upload --owner myaccount --git-repo helm-charts --package-path .deploy --token 123456789
+```
 
 #### Environment Variables
 
-    export CR_OWNER=myaccount
-    export CR_GIT_REPO=helm-charts
-    export CR_PACKAGE_PATH=.deploy
-    export CR_TOKEN="123456789"
-    export CR_GIT_BASE_URL="https://api.github.com/"
-    export CR_GIT_UPLOAD_URL="https://uploads.github.com/"
-    export CR_SKIP_EXISTING=true
+```bash
+export CR_OWNER=myaccount
+export CR_GIT_REPO=helm-charts
+export CR_PACKAGE_PATH=.deploy
+export CR_TOKEN="123456789"
+export CR_GIT_BASE_URL="https://api.github.com/"
+export CR_GIT_UPLOAD_URL="https://uploads.github.com/"
+export CR_SKIP_EXISTING=true
 
-    cr upload
+cr upload
+```
 
 #### Config File
 
@@ -172,8 +235,9 @@ git-upload-url: https://uploads.github.com/
 
 #### Config Usage
 
-    cr upload --config config.yaml
-
+```bash
+cr upload --config config.yaml
+```
 
 `cr` supports any format [Viper](https://github.com/spf13/viper) can read, i. e. JSON, TOML, YAML, HCL, and Java properties files.
 
@@ -185,7 +249,7 @@ For Github Enterprise, `chart-releaser` users need to set `git-base-url` and `gi
 
 By default they are often along these lines:
 
-```
+```console
 https://ghe.example.com/api/v3/
 https://ghe.example.com/api/uploads/
 ```
@@ -194,7 +258,17 @@ If you are trying to figure out what your `upload_url` is try to use a curl comm
 `curl -u username:token https://example.com/api/v3/repos/org/repo/releases`
 and then look for `upload_url`. You need the part of the URL that appears before `repos/` in the path.
 
-##### Known Bug
+## Common Error Messages
+
+During the upload, you can get the follwing error :
+
+```bash
+422 Validation Failed [{Resource:Release Field:tag_name Code:already_exists Message:}]
+```
+
+You can solve it by adding the `--skip-existing` flag to your command. More details can be found in [#101](https://github.com/helm/chart-releaser/issues/101#issuecomment-766410614) and in [#111](https://github.com/helm/chart-releaser/pull/111) that solved this.
+
+## Known Bug
 
 Currently, if you set the upload URL incorrectly, let's say to something like `https://example.com/uploads/`, then `cr upload` will appear to work, but the release will not be complete. When everything is working there should be 3 assets in each release, but instead there will only be the 2 source code assets. The third asset, which is what helm actually uses, is missing. This issue will become apparent when you run `cr index` and it always claims that nothing has changed, because it can't find the asset it expects for the release.
 
