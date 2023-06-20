@@ -60,6 +60,14 @@ func (g *Git) Commit(workingDir string, message string) error {
 	return runCommand(workingDir, command)
 }
 
+// UpdateBranch runs 'git pull' with the given args.
+func (g *Git) Pull(workingDir string, args ...string) error {
+	pullArgs := []string{"pull"}
+	pullArgs = append(pullArgs, args...)
+	command := exec.Command("git", pullArgs...)
+	return runCommand(workingDir, command)
+}
+
 // Push runs 'git push' with the given args.
 func (g *Git) Push(workingDir string, args ...string) error {
 	pushArgs := []string{"push"}
