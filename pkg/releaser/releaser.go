@@ -296,10 +296,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	}
 
 	// Add to index
-	if err := indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash); err != nil {
-		return err
-	}
-	return nil
+	return indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub

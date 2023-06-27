@@ -85,7 +85,7 @@ func NewClient(owner, repo, token, baseURL, uploadURL string) *Client {
 }
 
 // GetRelease queries the GitHub API for a specified release object
-func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
+func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 	// Check Release whether already exists or not
 	release, _, err := c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, tag)
 	if err != nil {
@@ -103,7 +103,7 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 }
 
 // CreateRelease creates a new release object in the GitHub API
-func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
+func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 	req := &github.RepositoryRelease{
 		Name:                 &input.Name,
 		Body:                 &input.Description,
@@ -150,7 +150,7 @@ func (c *Client) CreatePullRequest(owner string, repo string, message string, he
 }
 
 // UploadAsset uploads specified assets to a given release object
-func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filename string) error {
+func (c *Client) uploadReleaseAsset(_ context.Context, releaseID int64, filename string) error {
 	filename, err := filepath.Abs(filename)
 	if err != nil {
 		return errors.Wrap(err, "failed to get abs path")
@@ -161,7 +161,7 @@ func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filena
 		Name: filepath.Base(filename),
 	}
 
-	if err := retry.Retry(3, 3*time.Second, func() error {
+	if err := retry.Retry(3, 3*time.Second, func() error { //nolint: revive
 		f, err := os.Open(filename)
 		if err != nil {
 			return errors.Wrap(err, "failed to open file")
