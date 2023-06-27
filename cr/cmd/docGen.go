@@ -32,7 +32,7 @@ var generateDocsCmd = &cobra.Command{
 	RunE:   generateDocs,
 }
 
-func generateDocs(cmd *cobra.Command, args []string) error {
+func generateDocs(_ *cobra.Command, _ []string) error {
 	fmt.Println("Generating docs...")
 
 	err := doc.GenMarkdownTree(rootCmd.Root(), "doc")

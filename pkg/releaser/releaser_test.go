@@ -40,7 +40,7 @@ type FakeGit struct {
 	mock.Mock
 }
 
-func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) {
+func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) { //nolint: revive
 	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {
 		return "", err
@@ -92,7 +92,7 @@ func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) e
 	return nil
 }
 
-func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) {
+func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) { //nolint: revive
 	release := &github.Release{
 		Name:        "testdata/release-packages/test-chart-0.1.0",
 		Description: "A Helm chart for Kubernetes",
