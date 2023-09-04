@@ -39,7 +39,7 @@ jobs:
       - uses: chainguard-dev/actions/goimports@main
 
       - name: Run Mage
-        uses: magefile/mage-action@3b833fb24c0d19eed3aa760b9eb285b4b84f420f # v2.3.0
+        uses: magefile/mage-action@bed74f487871c92ba8e9aa957bbf3e05bf9c9aea # v2.4.0
         with:
           args: -v ci
 
