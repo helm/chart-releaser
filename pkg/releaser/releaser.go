@@ -309,6 +309,12 @@ func (r *Releaser) CreateReleases() error {
 		return errors.Errorf("no charts found at %s", r.config.PackagePath)
 	}
 
+	worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
+	if err != nil {
+		return err
+	}
+	defer r.git.RemoveWorktree("", worktree) //nolint: errcheck
+
 	for _, p := range packages {
 		ch, err := loader.LoadFile(p)
 		if err != nil {
