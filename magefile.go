@@ -32,7 +32,7 @@ import (
 func Lint() error {
 	// if running on CI we have a gh action to run it
 	if os.Getenv("CI") == "" {
-		if err := sh.RunV("golangci-lint", "run", "--timeout", "3m"); err != nil {
+		if err := sh.RunV("golangci-lint", "run", "--timeout", "5m"); err != nil {
 			return err
 		}
 	}
@@ -110,7 +110,7 @@ func Test() error {
 }
 
 func Build() error {
-	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip-sign")
+	return sh.RunV("goreleaser", "release", "--clean", "--snapshot", "--skip=sign")
 }
 
 func CI() error {

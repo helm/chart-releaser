@@ -41,8 +41,7 @@ builds:
         -X github.com/helm/chart-releaser/cr/cmd.BuildDate={{ .Date }}
 
 archives:
-  - rlcp: true
-    format_overrides:
+  - format_overrides:
       - goos: windows
         format: zip
     files:
@@ -172,7 +171,7 @@ docker_signs:
     artifacts: manifests
 
 brews:
-  - tap:
+  - repository:
       owner: helm
       name: homebrew-tap
     commit_author:
