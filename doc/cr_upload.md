@@ -31,6 +31,7 @@ cr upload [flags]
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
       --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
+      --use-existing-release           Add packages to existing release instead of creating new release
 ```
 
 ### Options inherited from parent commands
