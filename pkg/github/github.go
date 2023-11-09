@@ -118,12 +118,20 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		return err
 	}
 
-	for _, asset := range input.Assets {
-		if err := c.uploadReleaseAsset(context.TODO(), *release.ID, asset.Path); err != nil {
-			return err
-		}
+	return c.uploadReleaseAssets(context.TODO(), *release.ID, input.Assets)
+}
+
+// AddAssetsToRelease Adds assets to an existing release
+func (c *Client) AddAssetsToRelease(_ context.Context, releaseName string, assets []*Asset) error {
+	release, _, err := c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, releaseName)
+	if err != nil {
+		return err
 	}
-	return nil
+	if release == nil {
+		return errors.Wrapf(err, "could not find GitHub release to add assets  %s", releaseName)
+	}
+
+	return c.uploadReleaseAssets(context.TODO(), *release.ID, assets)
 }
 
 // CreatePullRequest creates a pull request in the repository specified by repoURL.
@@ -149,7 +157,17 @@ func (c *Client) CreatePullRequest(owner string, repo string, message string, he
 	return *pullRequest.HTMLURL, nil
 }
 
-// UploadAsset uploads specified assets to a given release object
+// uploadReleaseAssets uploads specified assets to a given release object
+func (c *Client) uploadReleaseAssets(_ context.Context, releaseID int64, assets []*Asset) error {
+	for _, asset := range assets {
+		if err := c.uploadReleaseAsset(context.TODO(), releaseID, asset.Path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// uploadReleaseAsset uploads specified an asset to a given release object
 func (c *Client) uploadReleaseAsset(_ context.Context, releaseID int64, filename string) error {
 	filename, err := filepath.Abs(filename)
 	if err != nil {
