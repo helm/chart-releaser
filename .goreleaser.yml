@@ -60,8 +60,8 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
-      - quay.io/helmpack/chart-releaser:latest-amd64
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-amd64
+      - ghcr.io/osgp/chart-releaser:latest-amd64
     build_flag_templates:
       - "--platform=linux/amd64"
       - --label=org.label-schema.schema-version=1.0
@@ -77,8 +77,8 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
-      - quay.io/helmpack/chart-releaser:latest-arm64
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-arm64
+      - ghcr.io/osgp/chart-releaser:latest-arm64
     build_flag_templates:
       - "--platform=linux/arm64"
       - --label=org.label-schema.schema-version=1.0
@@ -95,8 +95,8 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
-      - quay.io/helmpack/chart-releaser:latest-armv7
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-armv7
+      - ghcr.io/osgp/chart-releaser:latest-armv7
     build_flag_templates:
       - "--platform=linux/arm/v7"
       - --label=org.label-schema.schema-version=1.0
@@ -112,8 +112,8 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:latest-s390x
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-s390x
+      - ghcr.io/osgp/chart-releaser:latest-s390x
     build_flag_templates:
       - "--platform=linux/s390x"
       - --label=org.label-schema.schema-version=1.0
@@ -129,8 +129,8 @@ dockers:
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
-      - quay.io/helmpack/chart-releaser:latest-ppc64le
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-ppc64le
+      - ghcr.io/osgp/chart-releaser:latest-ppc64le
     build_flag_templates:
       - "--platform=linux/ppc64le"
       - --label=org.label-schema.schema-version=1.0
@@ -141,20 +141,20 @@ dockers:
       - --label=org.label-schema.vendor=Helm
 
 docker_manifests:
-  - name_template: quay.io/helmpack/chart-releaser:{{ .Tag }}
+  - name_template: ghcr.io/osgp/chart-releaser:{{ .Tag }}
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
-  - name_template: quay.io/helmpack/chart-releaser:latest
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-amd64
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-arm64
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-armv7
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-s390x
+      - ghcr.io/osgp/chart-releaser:{{ .Tag }}-ppc64le
+  - name_template: ghcr.io/osgp/chart-releaser:latest
     image_templates:
-      - quay.io/helmpack/chart-releaser:latest-amd64
-      - quay.io/helmpack/chart-releaser:latest-arm64
-      - quay.io/helmpack/chart-releaser:latest-armv7
-      - quay.io/helmpack/chart-releaser:latest-s390x
-      - quay.io/helmpack/chart-releaser:latest-ppc64le
+      - ghcr.io/osgp/chart-releaser:latest-amd64
+      - ghcr.io/osgp/chart-releaser:latest-arm64
+      - ghcr.io/osgp/chart-releaser:latest-armv7
+      - ghcr.io/osgp/chart-releaser:latest-s390x
+      - ghcr.io/osgp/chart-releaser:latest-ppc64le
 
 signs:
   - id: all
