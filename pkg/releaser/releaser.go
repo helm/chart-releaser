@@ -308,6 +308,9 @@ func (r *Releaser) CreateReleases() error {
 	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
 
 	packages, err := r.getListOfPackages(r.config.PackagePath)
+	if err != nil {
+		return err
+	}
 
 	if len(packages) == 0 {
 		return errors.Errorf("no charts found at %s", r.config.PackagePath)
