@@ -14,7 +14,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/oauth2 v0.17.0
-	helm.sh/helm/v3 v3.14.1
+	helm.sh/helm/v3 v3.14.2
 )
 
 require (
