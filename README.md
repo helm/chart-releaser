@@ -62,6 +62,25 @@ Flags:
 Use "cr [command] --help" for more information about a command.
 ```
 
+### Dealing with charts that have dependencies
+
+Unfortuntely the releaser-tool won't automatically add repositories for dependencies, and this needs to be added to your pipeline ([example](https://github.com/davidkarlsen/flyway-operator/blob/main/.github/workflows/chart-release.yaml#L31)), prior to running the releaser, like this:
+
+```yaml
+    - name: add repos
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add bitnami-pre2022 https://raw.githubusercontent.com/bitnami/charts/eb5f9a9513d987b519f0ecd732e7031241c50328/bitnami
+
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: config/helm-chart
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+```
+
+
 ### Create GitHub Releases from Helm Chart Packages
 
 Scans a path for Helm chart packages and creates releases in the specified GitHub repo uploading the packages.
