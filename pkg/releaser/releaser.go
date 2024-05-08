@@ -185,7 +185,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				if err := r.addToIndexFile(indexFile, downloadURL.String()); err != nil {
+				if err := r.addToIndexFile(indexFile, downloadURL.String(), name); err != nil {
 					return false, err
 				}
 				update = true
@@ -267,8 +267,8 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
-	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
+func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, downloadUrl, fileName string) error {
+	arch := filepath.Join(r.config.PackagePath, filepath.Base(fileName))
 
 	// extract chart metadata
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
@@ -286,7 +286,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	// remove url name from url as helm's index library
 	// adds it in during .Add
 	// there should be a better way to handle this :(
-	s := strings.Split(url, "/")
+	s := strings.Split(downloadUrl, "/")
 	s = s[:len(s)-1]
 
 	if r.config.PackagesWithIndex {
