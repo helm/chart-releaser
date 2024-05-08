@@ -288,6 +288,7 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 		name              string
 		chart             string
 		version           string
+		filename          string
 		releaser          *Releaser
 		packagesWithIndex bool
 		error             bool
@@ -296,6 +297,7 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 			"invalid-package",
 			"does-not-exist",
 			"0.1.0",
+			"missing-test-chart-0.1.0.tgz",
 			&Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/release-packages",
@@ -309,6 +311,21 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 			"valid-package",
 			"test-chart",
 			"0.1.0",
+			"test-chart-0.1.0.tgz",
+			&Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					PackagesWithIndex: false,
+				},
+			},
+			false,
+			false,
+		},
+		{
+			"valid-package-extra-sem-ver",
+			"test-chart",
+			"0.1.0+Chart1",
+			"test-chart-0.1.0+Chart1.tgz",
 			&Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/release-packages",
@@ -322,6 +339,7 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 			"valid-package-with-index",
 			"test-chart",
 			"0.1.0",
+			"test-chart-0.1.0.tgz",
 			&Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/release-packages",
@@ -336,7 +354,7 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			err := tt.releaser.addToIndexFile(indexFile, url)
+			err := tt.releaser.addToIndexFile(indexFile, url, tt.filename)
 			if tt.error {
 				assert.Error(t, err)
 				assert.False(t, indexFile.Has(tt.chart, tt.version))
@@ -467,7 +485,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
 				assert.Equal(t, tt.latest, fakeGitHub.release.MakeLatest)
 				assert.Equal(t, tt.Releaser.config.Commit, fakeGitHub.release.Commit)
-				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
+				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 2)
 			}
 		})
 	}
