@@ -1,11 +1,9 @@
 name: Release
 
 on:
-  workflow_dispatch:
-    inputs:
-      version:
-        description: Version
-        required: true
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   release:
@@ -14,6 +12,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
+      packages: write
 
     steps:
       - name: Checkout
@@ -24,7 +23,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # v5.0.1
         with:
-          go-version-file: './go.mod'
+          go-version: '1.22'
           check-latest: true
 
       - name: Set up QEMU
@@ -54,15 +53,6 @@ jobs:
 
       - uses: chainguard-dev/actions/goimports@main
 
-      - name: Tag
-        run: |
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-
-          tag='${{ github.event.inputs.version }}'
-          git tag --annotate --message "Tag for release $tag" "$tag"
-          git push origin "refs/tags/$tag"
-
       - name: Login to registry
         uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
         with:
@@ -75,4 +65,4 @@ jobs:
         with:
           args: -v release
         env:
-          GITHUB_TOKEN: "${{ secrets.CI_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
