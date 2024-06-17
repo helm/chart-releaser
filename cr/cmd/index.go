@@ -33,7 +33,7 @@ var indexCmd = &cobra.Command{
 Update a Helm chart repository index.yaml file based on a the
 given GitHub repository's releases.
 	`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		config, err := config.LoadConfiguration(cfgFile, cmd, getRequiredIndexArgs())
 		if err != nil {
 			return err

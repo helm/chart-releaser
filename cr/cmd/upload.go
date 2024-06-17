@@ -27,7 +27,7 @@ var uploadCmd = &cobra.Command{
 	Use:   "upload",
 	Short: "Upload Helm chart packages to GitHub Releases",
 	Long:  `Upload Helm chart packages to GitHub Releases`,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		config, err := config.LoadConfiguration(cfgFile, cmd, getRequiredUploadArgs())
 		if err != nil {
 			return err
