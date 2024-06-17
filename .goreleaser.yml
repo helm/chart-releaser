@@ -1,3 +1,5 @@
+---
+version: 2
 project_name: chart-releaser
 
 env:
@@ -201,7 +203,7 @@ brews:
     commit_author:
       name: helm-bot
       email: helm-bot@users.noreply.github.com
-    folder: Formula
+    directory: Formula
     homepage: https://github.com/helm/chart-releaser/
     description: Hosting Helm Charts via GitHub Pages and Releases
     install: |
