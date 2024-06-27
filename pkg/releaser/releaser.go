@@ -53,7 +53,7 @@ type GitHub interface {
 }
 
 type Git interface {
-	AddWorktree(workingDir string, committish string) (string, error)
+	AddWorktree(workingDir string, commitIsh string) (string, error)
 	RemoveWorktree(workingDir string, path string) error
 	Add(workingDir string, args ...string) error
 	Commit(workingDir string, message string) error
