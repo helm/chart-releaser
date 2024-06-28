@@ -4,10 +4,8 @@ Update Helm repo index.yaml for the given GitHub repo
 
 ### Synopsis
 
-
 Update a Helm chart repository index.yaml file based on a the
 given GitHub repository's releases.
-	
 
 ```
 cr index [flags]
@@ -41,5 +39,5 @@ cr index [flags]
 
 ### SEE ALSO
 
-* [cr](cr.md)	 - Helm Chart Repos on Github Pages
+* [cr](cr.md) - Helm Chart Repos on Github Pages
 

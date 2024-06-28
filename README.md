@@ -29,6 +29,7 @@ $ git clone https://github.com/helm/chart-releaser
 $ cd chart-releaser
 $ go mod download
 $ go install ./...
+$ go build -o cr-bin ./cr/main.go
 ```
 
 ### Docker (for Continuous Integration)
