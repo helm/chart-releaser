@@ -29,6 +29,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type Repository struct {
+	*github.Repository
+}
+
 type Release struct {
 	Name                 string
 	Description          string
@@ -39,8 +43,9 @@ type Release struct {
 }
 
 type Asset struct {
-	Path string
-	URL  string
+	Path               string
+	BrowserDownloadURL string
+	URL                string
 }
 
 // Client is the client for interacting with the GitHub API
@@ -95,8 +100,13 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 	result := &Release{
 		Assets: []*Asset{},
 	}
-	for _, ass := range release.Assets {
-		asset := &Asset{*ass.Name, *ass.BrowserDownloadURL}
+
+	for _, releaseAsset := range release.Assets {
+		asset := &Asset{
+			*releaseAsset.Name,
+			*releaseAsset.BrowserDownloadURL,
+			*releaseAsset.URL,
+		}
 		result.Assets = append(result.Assets, asset)
 	}
 	return result, nil
@@ -124,6 +134,16 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		}
 	}
 	return nil
+}
+
+func (c *Client) GetRepository() (*Repository, error) {
+	repository, _, err := c.Repositories.Get(context.TODO(), c.owner, c.repo)
+	if err != nil {
+		return nil, err
+	}
+	return &Repository{
+		Repository: repository,
+	}, nil
 }
 
 // CreatePullRequest creates a pull request in the repository specified by repoURL.
