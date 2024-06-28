@@ -23,13 +23,13 @@ import (
 
 type Git struct{}
 
-// AddWorktree creates a new Git worktree with a detached HEAD for the given committish and returns its path.
-func (g *Git) AddWorktree(workingDir string, committish string) (string, error) {
+// AddWorktree creates a new Git worktree with a detached HEAD for the given commit-ish and returns its path.
+func (g *Git) AddWorktree(workingDir string, commitIsh string) (string, error) {
 	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {
 		return "", err
 	}
-	command := exec.Command("git", "worktree", "add", "--detach", dir, committish)
+	command := exec.Command("git", "worktree", "add", "--detach", dir, commitIsh)
 
 	if err := runCommand(workingDir, command); err != nil {
 		return "", err
