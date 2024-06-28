@@ -63,6 +63,7 @@ type Options struct {
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
 	PreRelease           bool   `mapstructure:"pre-release"`
 	PackagesWithIndex    bool   `mapstructure:"packages-with-index"`
+	UseAPIAssetURL       bool   `mapstructure:"use-api-asset-url"`
 	IndexCommitMessage   string `mapstructure:"index-commit-message"`
 	PackageCommitMessage string `mapstructure:"package-commit-message"`
 
