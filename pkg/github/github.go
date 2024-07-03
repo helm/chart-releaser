@@ -29,8 +29,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Repository represents a GitHub repository.
 type Repository struct {
-	*github.Repository
+	Private *bool `json:"private,omitempty"`
 }
 
 type Release struct {
@@ -137,12 +138,12 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 }
 
 func (c *Client) GetRepository() (*Repository, error) {
-	repository, _, err := c.Repositories.Get(context.TODO(), c.owner, c.repo)
+	r, _, err := c.Repositories.Get(context.TODO(), c.owner, c.repo)
 	if err != nil {
 		return nil, err
 	}
 	return &Repository{
-		Repository: repository,
+		Private: r.Private,
 	}, nil
 }
 
