@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/blang/semver"
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -28,6 +29,7 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 
 	"github.com/helm/chart-releaser/pkg/config"
+	"helm.sh/helm/v3/pkg/chart"
 )
 
 type FakeGitHub struct {
@@ -113,6 +115,31 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
 	f.Called(owner, repo, message, head, base)
 	return "https://github.com/owner/repo/pull/42", nil
+}
+
+// GetLatestChartRelease queries the GitHub API for the previous release of a chart
+func (f *FakeGitHub) GetLatestChartRelease(_ context.Context, prefix string) (*github.Release, error) {
+	f.Called(prefix)
+
+	result := &github.Release{
+		Name:   prefix + "-1.2.3",
+		Commit: "c11eea26f51782a8063ded1085384acb2928fd91",
+		SemVer: semver.Version{
+			Major: 1,
+			Minor: 2,
+			Patch: 3,
+		},
+	}
+	return result, nil
+}
+
+// GenerateReleaseNotes generates the release notes for a release
+func (f *FakeGitHub) GenerateReleaseNotes(_ context.Context, latestRelease *github.Release, chart *chart.Chart) (string, error) {
+	f.Called(latestRelease, chart)
+
+	notes := "# Noted."
+
+	return notes, nil
 }
 
 func TestReleaser_UpdateIndexFile(t *testing.T) {
