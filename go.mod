@@ -7,6 +7,7 @@ toolchain go1.22.4
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Songmu/retry v0.1.0
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/google/go-github/v56 v56.0.0
 	github.com/magefile/mage v1.15.0
 	github.com/mitchellh/go-homedir v1.1.0
