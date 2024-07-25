@@ -54,11 +54,12 @@ jobs:
       - uses: chainguard-dev/actions/goimports@main
 
       - name: Login to registry
+        if: github.repository_owner == 'helm'
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
-          registry: ${{ vars.OCI_REGISTRY || 'quay.io' }}
-          username: ${{ secrets.DOCKER_USERNAME || secrets.DOCKER_HUB_API_USER }}
-          password: ${{ secrets.DOCKER_PASSWORD || secrets.DOCKER_HUB_API_TOKEN }}
+          registry: 'quay.io'
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Run Mage
         uses: magefile/mage-action@6a5dcb5fe61f43d7c08a98bc3cf9bc63c308c08e # v3.0.0
