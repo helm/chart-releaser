@@ -258,7 +258,7 @@ git-upload-url: https://uploads.github.com/
 cr upload --config config.yaml
 ```
 
-`cr` supports any format [Viper](https://github.com/spf13/viper) can read, i. e. JSON, TOML, YAML, HCL, and Java properties files.
+`cr` supports any format [Viper](https://github.com/spf13/viper) can read, i.e. JSON, TOML, YAML, HCL, and Java properties files.
 
 Notice that if no config file is specified, `cr.yaml` (or any of the supported formats) is loaded from the current directory, `$HOME/.cr`, or `/etc/cr`, in that order, if found.
 
@@ -279,7 +279,7 @@ and then look for `upload_url`. You need the part of the URL that appears before
 
 ## Common Error Messages
 
-During the upload, you can get the follwing error :
+During the upload, you can get the following error :
 
 ```bash
 422 Validation Failed [{Resource:Release Field:tag_name Code:already_exists Message:}]
@@ -289,8 +289,8 @@ You can solve it by adding the `--skip-existing` flag to your command. More deta
 
 ## Known Bug
 
-Currently, if you set the upload URL incorrectly, let's say to something like `https://example.com/uploads/`, then `cr upload` will appear to work, but the release will not be complete. When everything is working there should be 3 assets in each release, but instead there will only be the 2 source code assets. The third asset, which is what helm actually uses, is missing. This issue will become apparent when you run `cr index` and it always claims that nothing has changed, because it can't find the asset it expects for the release.
+Currently, if you set the upload URL incorrectly, let's say to something like `https://example.com/uploads/`, then `cr upload` will appear to work, but the release will not be complete. When everything is working there should be three assets in each release, but instead, there will only be two source code assets. The third asset is missing and is needed by Helm. This issue will become apparent when you run `cr index` and it always claims that nothing has changed, because it can't find the asset it expects for the release.
 
-It appears like the [go-github Do call](https://github.com/google/go-github/blob/master/github/github.go#L520) does not catch the fact that the upload URL is incorrect and pass back the expected error. If the asset upload fails, it would be better if the release was rolled back (deleted) and an appropriate log message is be displayed to the user.
+It appears like the [go-github Do call](https://github.com/google/go-github/blob/master/github/github.go#L520) does not catch the fact that the upload URL is incorrect and passes back the expected error. If the asset upload fails, it would be better if the release was rolled back (deleted) and an appropriate log message is displayed to the user.
 
 The `cr index` command should also generate a warning when a release has no assets attached to it, to help people detect and troubleshoot this type of problem.
