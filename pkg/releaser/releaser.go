@@ -50,6 +50,7 @@ type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
+	GetRepository() (*github.Repository, error)
 }
 
 type Git interface {
@@ -138,6 +139,12 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return false, err
 	}
 
+	// GetRepository to confirm if it's Private
+	repository, err := r.github.GetRepository()
+	if err != nil {
+		return false, err
+	}
+
 	var update bool
 	for _, chartPackage := range chartPackages {
 		ch, err := loader.LoadFile(chartPackage)
@@ -162,8 +169,9 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		}
 
 		for _, asset := range release.Assets {
-			downloadURL, _ := url.Parse(asset.URL)
+			downloadURL, _ := url.Parse(asset.BrowserDownloadURL)
 			name := filepath.Base(downloadURL.Path)
+
 			// Ignore any other files added in the release by the users.
 			if filepath.Ext(name) != chartAssetFileExtension {
 				continue
@@ -173,7 +181,11 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			packageName, packageVersion := tagParts[0], tagParts[1]
 			fmt.Printf("Found %s-%s.tgz\n", packageName, packageVersion)
 			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				if err := r.addToIndexFile(indexFile, downloadURL.String()); err != nil {
+				overrideURL := ""
+				if *repository.Private {
+					overrideURL = asset.URL
+				}
+				if err := r.addToIndexFile(indexFile, downloadURL.String(), overrideURL); err != nil {
 					return false, err
 				}
 				update = true
@@ -255,7 +267,7 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
+func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string, overrideURL string) error {
 	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
 
 	// extract chart metadata
@@ -284,7 +296,18 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	}
 
 	// Add to index
-	return indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	addToIndex := indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+
+	// replace the URL for Private GitHub repos
+	if overrideURL != "" {
+		for _, entry := range indexFile.Entries[c.Metadata.Name] {
+			if entry.Digest == hash {
+				entry.URLs = []string{overrideURL}
+			}
+		}
+	}
+
+	return addToIndex
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
