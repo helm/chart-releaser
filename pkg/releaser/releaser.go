@@ -249,7 +249,8 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) (string, error) {
 			}
 		}
 		fmt.Printf("The release note file %q, is not present in the chart package\n", r.config.ReleaseNotesFile)
-	} else if r.config.GenerateReleaseNotes {
+	}
+	if r.config.GenerateReleaseNotes {
 		latestRelease, err := r.github.GetLatestChartRelease(context.TODO(), chart.Metadata.Name)
 		if err != nil {
 			return "", errors.Wrapf(err, "failed to get latest release for chart %s", chart.Metadata.Name)
