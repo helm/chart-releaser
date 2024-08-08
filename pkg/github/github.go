@@ -24,6 +24,7 @@ import (
 
 	"github.com/Songmu/retry"
 	"github.com/pkg/errors"
+	"helm.sh/helm/v3/pkg/chart"
 
 	"github.com/blang/semver"
 	"github.com/google/go-github/v56/github"
@@ -151,9 +152,9 @@ func (c *Client) GetLatestChartRelease(_ context.Context, prefix string) (*Relea
 }
 
 // GenerateReleaseNotes generates the release notes for a release
-func (c *Client) GenerateReleaseNotes(_ context.Context, latestRelease *Release, nextRelease string) (string, error) {
+func (c *Client) GenerateReleaseNotes(_ context.Context, latestRelease *Release, chart *chart.Chart) (string, error) {
 	notes, _, err := c.Repositories.GenerateReleaseNotes(context.TODO(), c.owner, c.repo, &github.GenerateNotesOptions{
-		TagName:         nextRelease,
+		TagName:         chart.Metadata.Name + "-" + chart.Metadata.Version,
 		PreviousTagName: &latestRelease.Name,
 	})
 	if err != nil {

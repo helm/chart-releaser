@@ -29,6 +29,7 @@ import (
 	"helm.sh/helm/v3/pkg/repo"
 
 	"github.com/helm/chart-releaser/pkg/config"
+	"helm.sh/helm/v3/pkg/chart"
 )
 
 type FakeGitHub struct {
@@ -133,8 +134,8 @@ func (f *FakeGitHub) GetLatestChartRelease(_ context.Context, prefix string) (*g
 }
 
 // GenerateReleaseNotes generates the release notes for a release
-func (f *FakeGitHub) GenerateReleaseNotes(_ context.Context, latestRelease *github.Release, nextRelease string) (string, error) {
-	f.Called(latestRelease, nextRelease)
+func (f *FakeGitHub) GenerateReleaseNotes(_ context.Context, latestRelease *github.Release, chart *chart.Chart) (string, error) {
+	f.Called(latestRelease, chart)
 
 	notes := "# Noted."
 

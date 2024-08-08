@@ -52,7 +52,7 @@ type GitHub interface {
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 	GetLatestChartRelease(ctx context.Context, prefix string) (*github.Release, error)
-	GenerateReleaseNotes(ctx context.Context, latestRelease *github.Release, nextRelease string) (string, error)
+	GenerateReleaseNotes(ctx context.Context, latestRelease *github.Release, chart *chart.Chart) (string, error)
 }
 
 type Git interface {
@@ -260,7 +260,7 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) (string, error) {
 		highest := versions[len(versions)-1]
 		// skip generating notes if there's already a higher version in GitHub
 		if nextVersion.String() == highest.String() {
-			notes, err := r.github.GenerateReleaseNotes(context.TODO(), latestRelease, chart.Metadata.Version)
+			notes, err := r.github.GenerateReleaseNotes(context.TODO(), latestRelease, chart)
 			if err != nil {
 				return "", errors.Wrapf(err, "failed to generate release notes for chart %s", chart.Metadata.Name)
 			}
