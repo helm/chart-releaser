@@ -107,6 +107,7 @@ Flags:
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
       --packages-with-index            Host the package files in the GitHub Pages branch
+      --prerelease                     Mark this as 'Pre-release'
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
