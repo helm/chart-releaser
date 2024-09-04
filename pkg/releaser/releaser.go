@@ -317,6 +317,7 @@ func (r *Releaser) CreateReleases() error {
 			Commit:               r.config.Commit,
 			GenerateReleaseNotes: r.config.GenerateReleaseNotes,
 			MakeLatest:           strconv.FormatBool(r.config.MakeReleaseLatest),
+			Prerelease:           r.config.Prerelease,
 		}
 		provFile := fmt.Sprintf("%s.prov", p)
 		if _, err := os.Stat(provFile); err == nil {
