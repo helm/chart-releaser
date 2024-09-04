@@ -62,6 +62,7 @@ type Options struct {
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
 	PackagesWithIndex    bool   `mapstructure:"packages-with-index"`
+	Prerelease           bool   `mapstructure:"prerelease"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {

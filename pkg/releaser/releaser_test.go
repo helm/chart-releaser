@@ -106,6 +106,7 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 				URL:  "https://myrepo/charts/third-party-file-0.1.0.txt",
 			},
 		},
+		Prerelease: false,
 	}
 	return release, nil
 }
