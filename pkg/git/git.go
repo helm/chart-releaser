@@ -83,8 +83,16 @@ func (g *Git) GetPushURL(remote string, token string) (string, error) {
 		return "", err
 	}
 
-	pushURLArray := strings.SplitAfter(strings.TrimSpace(string(pushURL)), "https://")
-	pushURLWithToken := fmt.Sprintf("https://x-access-token:%s@%s", token, pushURLArray[1])
+	pushURLStr := string(pushURL)
+	found := false
+
+	if pushURLStr, found = strings.CutPrefix(pushURLStr, "git@"); found {
+		pushURLStr = strings.ReplaceAll(pushURLStr, ":", "/")
+		pushURLStr = strings.TrimSuffix(pushURLStr, ".git\n")
+	} else {
+		pushURLStr = strings.TrimPrefix(pushURLStr, "https://")
+	}
+	pushURLWithToken := fmt.Sprintf("https://x-access-token:%s@%s", token, strings.Trim(pushURLStr, "\n"))
 	return pushURLWithToken, nil
 }
 
