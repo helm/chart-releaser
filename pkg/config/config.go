@@ -58,6 +58,7 @@ type Options struct {
 	Remote               string `mapstructure:"remote"`
 	ReleaseNameTemplate  string `mapstructure:"release-name-template"`
 	SkipExisting         bool   `mapstructure:"skip-existing"`
+	UseExistingRelease   bool   `mapstructure:"use-existing-release"`
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
