@@ -21,13 +21,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/helm/chart-releaser/pkg/github"
+	"github.com/incontact/chart-releaser/pkg/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"helm.sh/helm/v3/pkg/provenance"
 	"helm.sh/helm/v3/pkg/repo"
 
-	"github.com/helm/chart-releaser/pkg/config"
+	"github.com/incontact/chart-releaser/pkg/config"
 )
 
 type FakeGitHub struct {

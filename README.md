@@ -1,7 +1,10 @@
+# Notice
+This fork is intended to only exist until this issue gets solved in the upstream repo: [Multiple helm charts are not supported](https://github.com/helm/chart-releaser/issues/411)
+
 # Chart Releaser
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![CI](https://github.com/helm/chart-releaser/workflows/CI/badge.svg?branch=main&event=push)
+![CI](https://github.com/incontact/chart-releaser/workflows/CI/badge.svg?branch=main&event=push)
 
 **Helps Turn GitHub Repositories into Helm Chart Repositories**
 
@@ -11,7 +14,7 @@
 
 ### Binaries (recommended)
 
-Download your preferred asset from the [releases page](https://github.com/helm/chart-releaser/releases) and install manually.
+Download your preferred asset from the [releases page](https://github.com/incontact/chart-releaser/releases) and install manually.
 
 ### Homebrew
 
@@ -25,7 +28,7 @@ $ brew install chart-releaser
 ```console
 // clone repo to some directory outside GOPATH
 
-$ git clone https://github.com/helm/chart-releaser
+$ git clone https://github.com/incontact/chart-releaser
 $ cd chart-releaser
 $ go mod download
 $ go install ./...
@@ -73,7 +76,7 @@ Unfortuntely the releaser-tool won't automatically add repositories for dependen
           helm repo add bitnami-pre2022 https://raw.githubusercontent.com/bitnami/charts/eb5f9a9513d987b519f0ecd732e7031241c50328/bitnami
 
       - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.6.0
+        uses: incontact/chart-releaser-action@v1.6.0
         with:
           charts_dir: config/helm-chart
         env:
@@ -149,7 +152,7 @@ Global Flags:
 
 When using this tool on a private repository, helm is unable to download the chart package files. When you give Helm your username and password it uses it to authenticate to the repository (the index file). The index file then tells Helm where to get the tarball. If the tarball is hosted in some other location (Github Releases in this case) then it would require a second authentication (which Helm does not support). The solution is to host the files in the same place as your index file and make the links relative paths so there is no need for the second authentication.
 
-[#123](https://github.com/helm/chart-releaser/pull/123) solve this by adding a `--packages-with-index` flag to the upload and index commands.
+[#123](https://github.com/incontact/chart-releaser/pull/123) solve this by adding a `--packages-with-index` flag to the upload and index commands.
 
 ### Prerequisites
 
@@ -285,7 +288,7 @@ During the upload, you can get the following error :
 422 Validation Failed [{Resource:Release Field:tag_name Code:already_exists Message:}]
 ```
 
-You can solve it by adding the `--skip-existing` flag to your command. More details can be found in [#101](https://github.com/helm/chart-releaser/issues/101#issuecomment-766410614) and in [#111](https://github.com/helm/chart-releaser/pull/111) that solved this.
+You can solve it by adding the `--skip-existing` flag to your command. More details can be found in [#101](https://github.com/incontact/chart-releaser/issues/101#issuecomment-766410614) and in [#111](https://github.com/incontact/chart-releaser/pull/111) that solved this.
 
 ## Known Bug
 

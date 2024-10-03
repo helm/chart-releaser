@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/helm/chart-releaser/pkg/config"
-	"github.com/helm/chart-releaser/pkg/git"
-	"github.com/helm/chart-releaser/pkg/github"
-	"github.com/helm/chart-releaser/pkg/releaser"
+	"github.com/incontact/chart-releaser/pkg/config"
+	"github.com/incontact/chart-releaser/pkg/git"
+	"github.com/incontact/chart-releaser/pkg/github"
+	"github.com/incontact/chart-releaser/pkg/releaser"
 	"github.com/spf13/cobra"
 )
 

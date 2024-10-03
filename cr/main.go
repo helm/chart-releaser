@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/helm/chart-releaser/cr/cmd"
+import "github.com/incontact/chart-releaser/cr/cmd"
 
 func main() {
 	cmd.Execute()

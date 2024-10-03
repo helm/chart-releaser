@@ -38,9 +38,9 @@ builds:
         goarch: ppc64le
     ldflags:
       - >-
-        -X github.com/helm/chart-releaser/cr/cmd.Version={{ .Tag }}
-        -X github.com/helm/chart-releaser/cr/cmd.GitCommit={{ .Commit }}
-        -X github.com/helm/chart-releaser/cr/cmd.BuildDate={{ .Date }}
+        -X github.com/incontact/chart-releaser/cr/cmd.Version={{ .Tag }}
+        -X github.com/incontact/chart-releaser/cr/cmd.GitCommit={{ .Commit }}
+        -X github.com/incontact/chart-releaser/cr/cmd.BuildDate={{ .Date }}
 
 archives:
   - format_overrides:
@@ -58,14 +58,14 @@ snapshot:
 dockers:
   - goos: linux
     goarch: amd64
-    skip_push: "{{ ne .GitURL 'https://github.com/helm/chart-releaser' | toYaml }}"
+    skip_push: "{{ ne .GitURL 'https://github.com/incontact/chart-releaser' | toYaml }}"
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
-      - quay.io/helmpack/chart-releaser:latest-amd64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-amd64
-      - ghcr.io/helm/chart-releaser:latest-amd64
+      # - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
+      # - quay.io/helmpack/chart-releaser:latest-amd64
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-amd64
+      - ghcr.io/incontact/chart-releaser:latest-amd64
     build_flag_templates:
       - "--platform=linux/amd64"
       - --label=org.label-schema.schema-version=1.0
@@ -77,14 +77,14 @@ dockers:
 
   - goos: linux
     goarch: arm64
-    skip_push: "{{ ne .GitURL 'https://github.com/helm/chart-releaser' | toYaml }}"
+    skip_push: "{{ ne .GitURL 'https://github.com/incontact/chart-releaser' | toYaml }}"
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
-      - quay.io/helmpack/chart-releaser:latest-arm64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-arm64
-      - ghcr.io/helm/chart-releaser:latest-arm64
+      # - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
+      # - quay.io/helmpack/chart-releaser:latest-arm64
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-arm64
+      - ghcr.io/incontact/chart-releaser:latest-arm64
     build_flag_templates:
       - "--platform=linux/arm64"
       - --label=org.label-schema.schema-version=1.0
@@ -97,14 +97,14 @@ dockers:
   - goos: linux
     goarch: arm
     goarm: 7
-    skip_push: "{{ ne .GitURL 'https://github.com/helm/chart-releaser' | toYaml }}"
+    skip_push: "{{ ne .GitURL 'https://github.com/incontact/chart-releaser' | toYaml }}"
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
-      - quay.io/helmpack/chart-releaser:latest-armv7
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-armv7
-      - ghcr.io/helm/chart-releaser:latest-armv7
+      # - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
+      # - quay.io/helmpack/chart-releaser:latest-armv7
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-armv7
+      - ghcr.io/incontact/chart-releaser:latest-armv7
     build_flag_templates:
       - "--platform=linux/arm/v7"
       - --label=org.label-schema.schema-version=1.0
@@ -116,14 +116,14 @@ dockers:
 
   - goos: linux
     goarch: s390x
-    skip_push: "{{ ne .GitURL 'https://github.com/helm/chart-releaser' | toYaml }}"
+    skip_push: "{{ ne .GitURL 'https://github.com/incontact/chart-releaser' | toYaml }}"
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:latest-s390x
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-s390x
-      - ghcr.io/helm/chart-releaser:latest-s390x
+      # - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
+      # - quay.io/helmpack/chart-releaser:latest-s390x
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-s390x
+      - ghcr.io/incontact/chart-releaser:latest-s390x
     build_flag_templates:
       - "--platform=linux/s390x"
       - --label=org.label-schema.schema-version=1.0
@@ -135,14 +135,14 @@ dockers:
 
   - goos: linux
     goarch: ppc64le
-    skip_push: "{{ ne .GitURL 'https://github.com/helm/chart-releaser' | toYaml }}"
+    skip_push: "{{ ne .GitURL 'https://github.com/incontact/chart-releaser' | toYaml }}"
     dockerfile: Dockerfile
     use: buildx
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
-      - quay.io/helmpack/chart-releaser:latest-ppc64le
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-ppc64le
-      - ghcr.io/helm/chart-releaser:latest-ppc64le
+      # - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
+      # - quay.io/helmpack/chart-releaser:latest-ppc64le
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-ppc64le
+      - ghcr.io/incontact/chart-releaser:latest-ppc64le
     build_flag_templates:
       - "--platform=linux/ppc64le"
       - --label=org.label-schema.schema-version=1.0
@@ -153,34 +153,34 @@ dockers:
       - --label=org.label-schema.vendor=Helm
 
 docker_manifests:
-  - name_template: quay.io/helmpack/chart-releaser:{{ .Tag }}
+  # - name_template: quay.io/helmpack/chart-releaser:{{ .Tag }}
+  #   image_templates:
+  #     - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
+  #     - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
+  #     - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
+  #     - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
+  #     - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
+  - name_template: ghcr.io/incontact/chart-releaser:{{ .Tag }}
     image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
-  - name_template: ghcr.io/helm/chart-releaser:{{ .Tag }}
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-amd64
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-arm64
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-armv7
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-s390x
+      - ghcr.io/incontact/chart-releaser:{{ .Tag }}-ppc64le
+  # - name_template: quay.io/helmpack/chart-releaser:latest
+  #   image_templates:
+  #     - quay.io/helmpack/chart-releaser:latest-amd64
+  #     - quay.io/helmpack/chart-releaser:latest-arm64
+  #     - quay.io/helmpack/chart-releaser:latest-armv7
+  #     - quay.io/helmpack/chart-releaser:latest-s390x
+  #     - quay.io/helmpack/chart-releaser:latest-ppc64le
+  - name_template: ghcr.io/incontact/chart-releaser:latest
     image_templates:
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-amd64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-arm64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-armv7
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-s390x
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-ppc64le
-  - name_template: quay.io/helmpack/chart-releaser:latest
-    image_templates:
-      - quay.io/helmpack/chart-releaser:latest-amd64
-      - quay.io/helmpack/chart-releaser:latest-arm64
-      - quay.io/helmpack/chart-releaser:latest-armv7
-      - quay.io/helmpack/chart-releaser:latest-s390x
-      - quay.io/helmpack/chart-releaser:latest-ppc64le
-  - name_template: ghcr.io/helm/chart-releaser:latest
-    image_templates:
-      - ghcr.io/helm/chart-releaser:latest-amd64
-      - ghcr.io/helm/chart-releaser:latest-arm64
-      - ghcr.io/helm/chart-releaser:latest-armv7
-      - ghcr.io/helm/chart-releaser:latest-s390x
-      - ghcr.io/helm/chart-releaser:latest-ppc64le
+      - ghcr.io/incontact/chart-releaser:latest-amd64
+      - ghcr.io/incontact/chart-releaser:latest-arm64
+      - ghcr.io/incontact/chart-releaser:latest-armv7
+      - ghcr.io/incontact/chart-releaser:latest-s390x
+      - ghcr.io/incontact/chart-releaser:latest-ppc64le
 
 signs:
   - id: all
@@ -196,17 +196,17 @@ docker_signs:
     args: ["sign", "${artifact}"]
     artifacts: manifests
 
-brews:
-  - repository:
-      owner: helm
-      name: homebrew-tap
-    commit_author:
-      name: helm-bot
-      email: helm-bot@users.noreply.github.com
-    directory: Formula
-    homepage: "{{ .GitURL }}"
-    description: Hosting Helm Charts via GitHub Pages and Releases
-    install: |
-      bin.install "cr"
-    test: |
-      system "#{bin}/cr version"
+# brews:
+#   - repository:
+#       owner: helm
+#       name: homebrew-tap
+#     commit_author:
+#       name: helm-bot
+#       email: helm-bot@users.noreply.github.com
+#     directory: Formula
+#     homepage: "{{ .GitURL }}"
+#     description: Hosting Helm Charts via GitHub Pages and Releases
+#     install: |
+#       bin.install "cr"
+#     test: |
+#       system "#{bin}/cr version"

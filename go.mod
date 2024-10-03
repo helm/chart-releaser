@@ -1,4 +1,4 @@
-module github.com/helm/chart-releaser
+module github.com/incontact/chart-releaser
 
 go 1.22.0
 
