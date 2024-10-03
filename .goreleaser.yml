@@ -190,6 +190,11 @@ signs:
     args: ["sign-blob", "--output-signature", "${artifact}.sig", "--output-certificate", "${artifact}.pem", "${artifact}"]
     artifacts: all
 
+release:
+  github:
+    owner: incontact
+    name: chart-releaser
+
 # docker_signs:
 #   - id: images
 #     cmd: cosign
