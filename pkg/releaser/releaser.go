@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/Songmu/retry"
+	"github.com/blang/semver"
 
 	"text/template"
 
@@ -50,6 +51,8 @@ type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
+	GetLatestChartRelease(ctx context.Context, prefix string) (*github.Release, error)
+	GenerateReleaseNotes(ctx context.Context, latestRelease *github.Release, chart *chart.Chart) (string, error)
 }
 
 type Git interface {
@@ -238,16 +241,52 @@ func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
 	return releaseName, nil
 }
 
-func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
+func (r *Releaser) getReleaseNotes(chart *chart.Chart) (string, error) {
 	if r.config.ReleaseNotesFile != "" {
 		for _, f := range chart.Files {
 			if f.Name == r.config.ReleaseNotesFile {
-				return string(f.Data)
+				return string(f.Data), nil
 			}
 		}
 		fmt.Printf("The release note file %q, is not present in the chart package\n", r.config.ReleaseNotesFile)
 	}
-	return chart.Metadata.Description
+	if r.config.GenerateReleaseNotes {
+		latestRelease, err := r.github.GetLatestChartRelease(context.TODO(), chart.Metadata.Name)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to get latest release for chart %s", chart.Metadata.Name)
+		}
+		nextVersion := semver.MustParse(chart.Metadata.Version)
+		versions := []semver.Version{nextVersion, latestRelease.SemVer}
+		semver.Sort(versions)
+		highest := versions[len(versions)-1]
+		// skip generating notes if there's already a higher version in GitHub
+		if nextVersion.String() == highest.String() {
+			notes, err := r.github.GenerateReleaseNotes(context.TODO(), latestRelease, chart)
+			if err != nil {
+				return "", errors.Wrapf(err, "failed to generate release notes for chart %s", chart.Metadata.Name)
+			}
+			return notes, nil
+		}
+	}
+	if r.config.GenerateReleaseNotes {
+		latestRelease, err := r.github.GetLatestChartRelease(context.TODO(), chart.Metadata.Name)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to get latest release for chart %s", chart.Metadata.Name)
+		}
+		nextVersion := semver.MustParse(chart.Metadata.Version)
+		versions := []semver.Version{nextVersion, latestRelease.SemVer}
+		semver.Sort(versions)
+		highest := versions[len(versions)-1]
+		// skip generating notes if there's already a higher version in GitHub
+		if nextVersion.String() == highest.String() {
+			notes, err := r.github.GenerateReleaseNotes(context.TODO(), latestRelease, chart)
+			if err != nil {
+				return "", errors.Wrapf(err, "failed to generate release notes for chart %s", chart.Metadata.Name)
+			}
+			return notes, nil
+		}
+	}
+	return chart.Metadata.Description, nil
 }
 
 func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
@@ -307,16 +346,19 @@ func (r *Releaser) CreateReleases() error {
 		if err != nil {
 			return err
 		}
+		notes, err := r.getReleaseNotes(ch)
+		if err != nil {
+			return err
+		}
 
 		release := &github.Release{
 			Name:        releaseName,
-			Description: r.getReleaseNotes(ch),
+			Description: notes,
 			Assets: []*github.Asset{
 				{Path: p},
 			},
-			Commit:               r.config.Commit,
-			GenerateReleaseNotes: r.config.GenerateReleaseNotes,
-			MakeLatest:           strconv.FormatBool(r.config.MakeReleaseLatest),
+			Commit:     r.config.Commit,
+			MakeLatest: strconv.FormatBool(r.config.MakeReleaseLatest),
 		}
 		provFile := fmt.Sprintf("%s.prov", p)
 		if _, err := os.Stat(provFile); err == nil {
