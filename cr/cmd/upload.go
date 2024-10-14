@@ -62,4 +62,5 @@ func init() {
 	uploadCmd.Flags().Bool("push", false, "Push the chart package to the GitHub Pages branch (must not be set if --pr is set)")
 	uploadCmd.Flags().Bool("pr", false, "Create a pull request for the chart package against the GitHub Pages branch (must not be set if --push is set)")
 	uploadCmd.Flags().Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
+	uploadCmd.Flags().Bool("prerelease", false, "Mark this as 'Pre-release' (default: false)")
 }

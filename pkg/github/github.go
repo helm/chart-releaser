@@ -36,6 +36,7 @@ type Release struct {
 	Commit               string
 	GenerateReleaseNotes bool
 	MakeLatest           string
+	Prerelease           bool
 }
 
 type Asset struct {
@@ -111,6 +112,7 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		TargetCommitish:      &input.Commit,
 		GenerateReleaseNotes: &input.GenerateReleaseNotes,
 		MakeLatest:           &input.MakeLatest,
+		Prerelease:           &input.Prerelease,
 	}
 
 	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
