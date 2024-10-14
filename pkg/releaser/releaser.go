@@ -289,6 +289,12 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
 func (r *Releaser) CreateReleases() error {
+	worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
+	if err != nil {
+		return err
+	}
+	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
+
 	packages, err := r.getListOfPackages(r.config.PackagePath)
 	if err != nil {
 		return err
@@ -334,12 +340,6 @@ func (r *Releaser) CreateReleases() error {
 		}
 
 		if r.config.PackagesWithIndex {
-			worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
-			if err != nil {
-				return err
-			}
-			defer r.git.RemoveWorktree("", worktree) //nolint: errcheck
-
 			pkgTargetPath := filepath.Join(worktree, filepath.Base(p))
 			if err := copyFile(p, pkgTargetPath); err != nil {
 				return err
@@ -352,10 +352,11 @@ func (r *Releaser) CreateReleases() error {
 			if err := r.git.Commit(worktree, fmt.Sprintf("Publishing chart package for %s", releaseName)); err != nil {
 				return err
 			}
-
-			if err := r.pushToPagesBranch(worktree); err != nil {
-				return err
-			}
+		}
+	}
+	if r.config.Push {
+		if err := r.pushToPagesBranch(worktree); err != nil {
+			return err
 		}
 	}
 
