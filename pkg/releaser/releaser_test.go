@@ -98,16 +98,23 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 		Description: "A Helm chart for Kubernetes",
 		Assets: []*github.Asset{
 			{
-				Path: "testdata/release-packages/test-chart-0.1.0.tgz",
-				URL:  "https://myrepo/charts/test-chart-0.1.0.tgz",
+				Path:               "testdata/release-packages/test-chart-0.1.0.tgz",
+				BrowserDownloadURL: "https://myrepo/charts/test-chart-0.1.0.tgz",
 			},
 			{
-				Path: "testdata/release-packages/third-party-file-0.1.0.txt",
-				URL:  "https://myrepo/charts/third-party-file-0.1.0.txt",
+				Path:               "testdata/release-packages/third-party-file-0.1.0.txt",
+				BrowserDownloadURL: "https://myrepo/charts/third-party-file-0.1.0.txt",
 			},
 		},
 	}
 	return release, nil
+}
+
+func (f *FakeGitHub) GetRepository() (*github.Repository, error) {
+	b := false
+	return &github.Repository{
+		Private: &b,
+	}, nil
 }
 
 func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
@@ -336,7 +343,7 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			err := tt.releaser.addToIndexFile(indexFile, url)
+			err := tt.releaser.addToIndexFile(indexFile, url, "")
 			if tt.error {
 				assert.Error(t, err)
 				assert.False(t, indexFile.Has(tt.chart, tt.version))
