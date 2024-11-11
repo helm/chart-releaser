@@ -25,6 +25,7 @@ cr upload [flags]
       --packages-with-index            Host the package files in the GitHub Pages branch
       --pages-branch string            The GitHub pages branch (default "gh-pages")
       --pr                             Create a pull request for the chart package against the GitHub Pages branch (must not be set if --push is set)
+      --prerelease                     Mark this as 'Pre-release' (default: false)
       --push                           Push the chart package to the GitHub Pages branch (must not be set if --pr is set)
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --release-notes-file string      Markdown file with chart release notes. If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package
