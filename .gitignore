@@ -1,0 +1,6 @@
+chart-releaser
+.idea
+/dist
+/vendor
+.vscode
+/cr-bin
