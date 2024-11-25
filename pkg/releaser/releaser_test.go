@@ -92,6 +92,11 @@ func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) e
 	return nil
 }
 
+func (f *FakeGitHub) AddAssetsToRelease(ctx context.Context, releaseName string, assets []*github.Asset) error {
+	f.Called(ctx, releaseName, assets)
+	return nil
+}
+
 func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) { //nolint: revive
 	release := &github.Release{
 		Name:        "testdata/release-packages/test-chart-0.1.0",
