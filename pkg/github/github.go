@@ -24,18 +24,20 @@ import (
 
 	"github.com/Songmu/retry"
 	"github.com/pkg/errors"
+	"helm.sh/helm/v3/pkg/chart"
 
+	"github.com/blang/semver"
 	"github.com/google/go-github/v56/github"
 	"golang.org/x/oauth2"
 )
 
 type Release struct {
-	Name                 string
-	Description          string
-	Assets               []*Asset
-	Commit               string
-	GenerateReleaseNotes bool
-	MakeLatest           string
+	Name        string
+	Description string
+	Assets      []*Asset
+	Commit      string
+	MakeLatest  string
+	SemVer      semver.Version
 }
 
 type Asset struct {
@@ -102,15 +104,73 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 	return result, nil
 }
 
+// GetLatestChartRelease queries the GitHub API for the previous release of a chart
+func (c *Client) GetLatestChartRelease(_ context.Context, prefix string) (*Release, error) {
+	// Append hyphen to prefix unless already present
+	prefix = strings.TrimSuffix(prefix, "-") + "-"
+
+	// Find all versions with tags matching prefix
+	opt := &github.ListOptions{
+		PerPage: 100,
+	}
+	var versions []semver.Version
+	for {
+		rels, resp, err := c.Repositories.ListReleases(context.TODO(), c.owner, c.repo, opt)
+		if err != nil {
+			return nil, err
+		} else if len(rels) == 0 {
+			return nil, errors.New("no releases found")
+		}
+		for _, rel := range rels {
+			if strings.HasPrefix(*rel.TagName, prefix) {
+				version := semver.MustParse(strings.TrimPrefix(*rel.TagName, prefix))
+				versions = append(versions, version)
+			}
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+
+	// Sort versions ascending
+	semver.Sort(versions)
+
+	// Find highest version
+	latestVersion := versions[len(versions)-1]
+	var release *github.RepositoryRelease
+	if rel, _, err := c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, prefix+latestVersion.String()); err == nil {
+		release = rel
+	}
+
+	result := &Release{
+		Name:   *release.TagName,
+		Commit: *release.TargetCommitish,
+		SemVer: latestVersion,
+	}
+	return result, nil
+}
+
+// GenerateReleaseNotes generates the release notes for a release
+func (c *Client) GenerateReleaseNotes(_ context.Context, latestRelease *Release, chart *chart.Chart) (string, error) {
+	notes, _, err := c.Repositories.GenerateReleaseNotes(context.TODO(), c.owner, c.repo, &github.GenerateNotesOptions{
+		TagName:         chart.Metadata.Name + "-" + chart.Metadata.Version,
+		PreviousTagName: &latestRelease.Name,
+	})
+	if err != nil {
+		return "", err
+	}
+	return notes.Body, err
+}
+
 // CreateRelease creates a new release object in the GitHub API
 func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 	req := &github.RepositoryRelease{
-		Name:                 &input.Name,
-		Body:                 &input.Description,
-		TagName:              &input.Name,
-		TargetCommitish:      &input.Commit,
-		GenerateReleaseNotes: &input.GenerateReleaseNotes,
-		MakeLatest:           &input.MakeLatest,
+		Name:            &input.Name,
+		Body:            &input.Description,
+		TagName:         &input.Name,
+		TargetCommitish: &input.Commit,
+		MakeLatest:      &input.MakeLatest,
 	}
 
 	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
