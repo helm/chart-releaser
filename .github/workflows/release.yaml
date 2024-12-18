@@ -75,3 +75,4 @@ jobs:
           args: -v release
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          CI_HOMEBREW_TOKEN: "${{ secrets.CI_TOKEN }}"
