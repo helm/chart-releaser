@@ -200,6 +200,7 @@ brews:
   - repository:
       owner: helm
       name: homebrew-tap
+      token: "{{ .Env.CI_HOMEBREW_TOKEN }}"
     commit_author:
       name: helm-bot
       email: helm-bot@users.noreply.github.com
