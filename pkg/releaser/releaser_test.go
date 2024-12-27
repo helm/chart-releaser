@@ -374,6 +374,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			version:     "0.1.0",
 			commit:      "",
 			latest:      "true",
+			prerelease:  false,
 			Releaser: &Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/does-not-exist",
@@ -399,6 +400,25 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					PackagesWithIndex: false,
 					MakeReleaseLatest: true,
 					PreRelease:        false,
+				},
+			},
+			error: false,
+		},
+		{
+			name:        "valid-package-path",
+			packagePath: "testdata/release-packages",
+			chart:       "test-chart",
+			version:     "0.1.0",
+			commit:      "",
+			latest:      "false",
+			prerelease:  true,
+			Releaser: &Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					Commit:            "",
+					PackagesWithIndex: false,
+					MakeReleaseLatest: false,
+					PreRelease:        true,
 				},
 			},
 			error: false,
