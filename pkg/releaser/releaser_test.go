@@ -106,6 +106,7 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 				URL:  "https://myrepo/charts/third-party-file-0.1.0.txt",
 			},
 		},
+		Prerelease: false,
 	}
 	return release, nil
 }
@@ -362,6 +363,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		version     string
 		commit      string
 		latest      string
+		prerelease  bool
 		Releaser    *Releaser
 		error       bool
 	}{
@@ -372,12 +374,14 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			version:     "0.1.0",
 			commit:      "",
 			latest:      "true",
+			prerelease:  false,
 			Releaser: &Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/does-not-exist",
 					Commit:            "",
 					PackagesWithIndex: false,
 					MakeReleaseLatest: true,
+					PreRelease:        false,
 				},
 			},
 			error: true,
@@ -395,6 +399,26 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					Commit:            "",
 					PackagesWithIndex: false,
 					MakeReleaseLatest: true,
+					PreRelease:        false,
+				},
+			},
+			error: false,
+		},
+		{
+			name:        "valid-package-path",
+			packagePath: "testdata/release-packages",
+			chart:       "test-chart",
+			version:     "0.1.0",
+			commit:      "",
+			latest:      "false",
+			prerelease:  true,
+			Releaser: &Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					Commit:            "",
+					PackagesWithIndex: false,
+					MakeReleaseLatest: false,
+					PreRelease:        true,
 				},
 			},
 			error: false,
@@ -412,6 +436,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					Commit:            "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
 					PackagesWithIndex: false,
 					MakeReleaseLatest: true,
+					PreRelease:        false,
 				},
 			},
 			error: false,
@@ -430,6 +455,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					PackagesWithIndex: true,
 					Push:              true,
 					MakeReleaseLatest: true,
+					PreRelease:        false,
 				},
 			},
 			error: false,
@@ -466,6 +492,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
 				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
 				assert.Equal(t, tt.latest, fakeGitHub.release.MakeLatest)
+				assert.Equal(t, tt.prerelease, fakeGitHub.release.Prerelease)
 				assert.Equal(t, tt.Releaser.config.Commit, fakeGitHub.release.Commit)
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
