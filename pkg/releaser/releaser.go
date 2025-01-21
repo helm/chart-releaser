@@ -289,11 +289,15 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
 func (r *Releaser) CreateReleases() error {
-	worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
-	if err != nil {
-		return err
+	worktree := ""
+	if r.config.PackagesWithIndex {
+		worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
+		if err != nil {
+			return err
+		}
+
+		defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
 	}
-	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
 
 	packages, err := r.getListOfPackages(r.config.PackagePath)
 	if err != nil {
