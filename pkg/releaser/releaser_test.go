@@ -467,6 +467,13 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
 				assert.Equal(t, tt.latest, fakeGitHub.release.MakeLatest)
 				assert.Equal(t, tt.Releaser.config.Commit, fakeGitHub.release.Commit)
+				if !tt.Releaser.config.PackagesWithIndex {
+					fakeGit.AssertNumberOfCalls(t, "AddWorktree", 0)
+					fakeGit.AssertNumberOfCalls(t, "RemoveWorktree", 0)
+					fakeGit.AssertNumberOfCalls(t, "Add", 0)
+					fakeGit.AssertNumberOfCalls(t, "Commit", 0)
+					fakeGit.AssertNumberOfCalls(t, "Push", 0)
+				}
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
 		})
