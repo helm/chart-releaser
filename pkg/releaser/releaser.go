@@ -253,24 +253,10 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) (string, error) {
 	if r.config.GenerateReleaseNotes {
 		latestRelease, err := r.github.GetLatestChartRelease(context.TODO(), chart.Metadata.Name)
 		if err != nil {
-			return "", errors.Wrapf(err, "failed to get latest release for chart %s", chart.Metadata.Name)
-		}
-		nextVersion := semver.MustParse(chart.Metadata.Version)
-		versions := []semver.Version{nextVersion, latestRelease.SemVer}
-		semver.Sort(versions)
-		highest := versions[len(versions)-1]
-		// skip generating notes if there's already a higher version in GitHub
-		if nextVersion.String() == highest.String() {
-			notes, err := r.github.GenerateReleaseNotes(context.TODO(), latestRelease, chart)
-			if err != nil {
-				return "", errors.Wrapf(err, "failed to generate release notes for chart %s", chart.Metadata.Name)
+			if errors.Is(err, github.ErrNoReleasesFound) {
+				// Handle the case where there are no releases found
+				return chart.Metadata.Description, nil
 			}
-			return notes, nil
-		}
-	}
-	if r.config.GenerateReleaseNotes {
-		latestRelease, err := r.github.GetLatestChartRelease(context.TODO(), chart.Metadata.Name)
-		if err != nil {
 			return "", errors.Wrapf(err, "failed to get latest release for chart %s", chart.Metadata.Name)
 		}
 		nextVersion := semver.MustParse(chart.Metadata.Version)

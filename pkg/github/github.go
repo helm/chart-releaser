@@ -31,6 +31,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// Define a custom error for no releases found
+var ErrNoReleasesFound = errors.New("no releases found")
+
 type Release struct {
 	Name        string
 	Description string
@@ -118,8 +121,6 @@ func (c *Client) GetLatestChartRelease(_ context.Context, prefix string) (*Relea
 		rels, resp, err := c.Repositories.ListReleases(context.TODO(), c.owner, c.repo, opt)
 		if err != nil {
 			return nil, err
-		} else if len(rels) == 0 {
-			return nil, errors.New("no releases found")
 		}
 		for _, rel := range rels {
 			if strings.HasPrefix(*rel.TagName, prefix) {
@@ -131,6 +132,10 @@ func (c *Client) GetLatestChartRelease(_ context.Context, prefix string) (*Relea
 			break
 		}
 		opt.Page = resp.NextPage
+	}
+
+	if len(versions) == 0 {
+		return nil, ErrNoReleasesFound
 	}
 
 	// Sort versions ascending
