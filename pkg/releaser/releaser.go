@@ -291,7 +291,8 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 func (r *Releaser) CreateReleases() error {
 	worktree := ""
 	if r.config.PackagesWithIndex {
-		worktree, err := r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
+		var err error
+		worktree, err = r.git.AddWorktree("", r.config.Remote+"/"+r.config.PagesBranch)
 		if err != nil {
 			return err
 		}
