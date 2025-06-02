@@ -141,7 +141,7 @@ func Release() error {
 	args = append(args, "release", "--clean")
 
 	if os.Getenv("GITHUB_REPOSITORY") != "helm/chart-releaser" {
-		args = append(args, "--skip=docker,homebrew")
+		args = append(args, "--skip=docker")
 	}
 
 	return sh.RunV("goreleaser", args...)
