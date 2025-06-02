@@ -1,8 +1,6 @@
 module github.com/helm/chart-releaser
 
-go 1.23.0
-
-toolchain go1.23.5
+go 1.24.0
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
