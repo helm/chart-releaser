@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - uses: chainguard-dev/actions/goimports@1df2b5598adffbfe72a3abe9243d73e338bbb006 # v1.4.10
+      - uses: chainguard-dev/actions/goimports@be7b31a01af8ce7228fe901326f1d223fb788e14 # v1.4.12
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
