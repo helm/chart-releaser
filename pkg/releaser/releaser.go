@@ -48,6 +48,7 @@ import (
 // objects
 type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
+	AddAssetsToRelease(ctx context.Context, tag string, assets []*github.Asset) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 }
@@ -340,8 +341,15 @@ func (r *Releaser) CreateReleases() error {
 				continue
 			}
 		}
-		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
-			return errors.Wrapf(err, "error creating GitHub release %s", releaseName)
+
+		if r.config.UseExistingRelease {
+			if err := r.github.AddAssetsToRelease(context.TODO(), releaseName, release.Assets); err != nil {
+				return errors.Wrapf(err, "error adding assets to GitHub release %s", releaseName)
+			}
+		} else {
+			if err := r.github.CreateRelease(context.TODO(), release); err != nil {
+				return errors.Wrapf(err, "error creating GitHub release %s", releaseName)
+			}
 		}
 
 		if r.config.PackagesWithIndex {
