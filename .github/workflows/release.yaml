@@ -41,7 +41,7 @@ jobs:
         uses: sigstore/cosign-installer@d7543c93d881b35a8faa02e8e3605f69b7a1ce62 # v3.10.0
 
       - name: Install syft
-        uses: anchore/sbom-action/download-syft@da167eac915b4e86f08b264dbdbc867b61be6f0c # v0.20.5
+        uses: anchore/sbom-action/download-syft@f8bdd1d8ac5e901a77a92f111440fdb1b593736b # v0.20.6
 
       - name: Cache
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - uses: chainguard-dev/actions/goimports@cd899cc96227b82170571cad1c3d6378d8cba678 # v1.4.15
+      - uses: chainguard-dev/actions/goimports@de56c2728beb0a0f371bff2ce2ee4b8afee4b5e8 # v1.5.1
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
