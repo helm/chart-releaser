@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
         with:
           go-version: '1.24'
           check-latest: true
@@ -41,7 +41,7 @@ jobs:
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
       - name: Install syft
-        uses: anchore/sbom-action/download-syft@8e94d75ddd33f69f691467e42275782e4bfefe84 # v0.20.9
+        uses: anchore/sbom-action/download-syft@fbfd9c6c189226748411491745178e0c2017392d # v0.20.10
 
       - name: Cache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -51,7 +51,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - uses: chainguard-dev/actions/goimports@b479012116eacde7f895586c17b598f7ba0ee700 # v1.5.9
+      - uses: chainguard-dev/actions/goimports@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
