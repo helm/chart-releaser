@@ -61,6 +61,7 @@ type Options struct {
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
+	PreRelease           bool   `mapstructure:"pre-release"`
 	PackagesWithIndex    bool   `mapstructure:"packages-with-index"`
 }
 
