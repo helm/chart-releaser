@@ -20,6 +20,14 @@ $ brew tap helm/tap
 $ brew install chart-releaser
 ```
 
+### Mise-en-place
+
+If you are using [mise](https://mise.jdx.dev), the polyglot tool version manager, you can install `chart releaser` by using this command:
+
+```shell
+mise use -g helm-cr@latest
+```
+
 ### Go get (for contributing)
 
 ```console
