@@ -61,6 +61,7 @@ type Options struct {
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
+	PreRelease           bool   `mapstructure:"pre-release"`
 	PackagesWithIndex    bool   `mapstructure:"packages-with-index"`
 }
 
@@ -106,6 +107,16 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	if opts.Push && opts.PR {
 		return nil, errors.New("specify either --push or --pr, but not both")
+	}
+
+	if opts.PreRelease {
+		if cmd.Flags().Changed("make-release-latest") && opts.MakeReleaseLatest {
+			return nil, errors.New("specify either --pre-release or --make-release-latest, but not both")
+		}
+		if opts.MakeReleaseLatest {
+			fmt.Println("Pre-release is set, disabling make-release-latest")
+			opts.MakeReleaseLatest = false
+		}
 	}
 
 	elem := reflect.ValueOf(opts).Elem()
