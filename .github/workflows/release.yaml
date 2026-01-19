@@ -21,7 +21,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Go
-        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
         with:
           go-version: '1.24'
           check-latest: true
@@ -44,14 +44,14 @@ jobs:
         uses: anchore/sbom-action/download-syft@0b82b0b1a22399a1c542d4d656f70cd903571b5c # v0.21.1
 
       - name: Cache
-        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
+        uses: actions/cache@8b402f58fbc84540c8b491a91e594a4576fec3d7 # v5.0.2
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - uses: chainguard-dev/actions/goimports@7d647f470c4d3692286221bd17ca78206976a61c # v1.5.11
+      - uses: chainguard-dev/actions/goimports@f77a7c3431f961556be5a41e2602c450a590f3e5 # v1.5.12
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
