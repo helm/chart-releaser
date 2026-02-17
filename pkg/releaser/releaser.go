@@ -168,14 +168,13 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			if filepath.Ext(name) != chartAssetFileExtension {
 				continue
 			}
-			baseName := strings.TrimSuffix(name, filepath.Ext(name))
-			tagParts := r.splitPackageNameAndVersion(baseName)
-			packageName, packageVersion := tagParts[0], tagParts[1]
-			fmt.Printf("Found %s-%s.tgz\n", packageName, packageVersion)
-			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				if err := r.addToIndexFile(indexFile, downloadURL.String()); err != nil {
-					return false, err
-				}
+			fmt.Printf("Found %s\n", name)
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String())
+			if err != nil {
+				return false, err
+			}
+
+			if updated {
 				update = true
 				break
 			}
@@ -255,20 +254,26 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
+func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, url string) (bool, error) {
 	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
 
 	// extract chart metadata
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
 	c, err := loader.LoadFile(arch)
 	if err != nil {
-		return errors.Wrapf(err, "%s is not a helm chart package", arch)
+		return false, errors.Wrapf(err, "%s is not a helm chart package", arch)
 	}
+
+	if _, err := indexFile.Get(c.Name(), c.Metadata.Version); err == nil {
+		fmt.Printf("version %s of %s already present in index file", c.Metadata.Version, c.Name())
+		return false, nil
+	}
+
 	// calculate hash
 	fmt.Printf("Calculating Hash for %s\n", arch)
 	hash, err := provenance.DigestFile(arch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// remove url name from url as helm's index library
@@ -284,7 +289,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	}
 
 	// Add to index
-	return indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	return true, indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub

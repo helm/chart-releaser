@@ -246,44 +246,7 @@ func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 	}
 }
 
-func TestReleaser_splitPackageNameAndVersion(t *testing.T) {
-	tests := []struct {
-		name     string
-		pkg      string
-		expected []string
-	}{
-		{
-			"no-hyphen",
-			"foo",
-			nil,
-		},
-		{
-			"one-hyphen",
-			"foo-1.2.3",
-			[]string{"foo", "1.2.3"},
-		},
-		{
-			"two-hyphens",
-			"foo-bar-1.2.3",
-			[]string{"foo-bar", "1.2.3"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &Releaser{}
-			if tt.expected == nil {
-				assert.Panics(t, func() {
-					r.splitPackageNameAndVersion(tt.pkg)
-				}, "slice bounds out of range")
-			} else {
-				actual := r.splitPackageNameAndVersion(tt.pkg)
-				assert.Equal(t, tt.expected, actual)
-			}
-		})
-	}
-}
-
-func TestReleaser_addToIndexFile(t *testing.T) {
+func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 	tests := []struct {
 		name              string
 		chart             string
@@ -336,20 +299,28 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			err := tt.releaser.addToIndexFile(indexFile, url)
+			updated, err := tt.releaser.maybeAddToIndexFile(indexFile, url)
 			if tt.error {
 				assert.Error(t, err)
+				assert.False(t, updated)
 				assert.False(t, indexFile.Has(tt.chart, tt.version))
-			} else {
-				assert.True(t, indexFile.Has(tt.chart, tt.version))
-
-				indexEntry, _ := indexFile.Get(tt.chart, tt.version)
-				if tt.packagesWithIndex {
-					assert.Equal(t, filepath.Base(url), indexEntry.URLs[0])
-				} else {
-					assert.Equal(t, url, indexEntry.URLs[0])
-				}
+				return
 			}
+
+			assert.True(t, updated)
+			assert.True(t, indexFile.Has(tt.chart, tt.version))
+
+			indexEntry, _ := indexFile.Get(tt.chart, tt.version)
+			if tt.packagesWithIndex {
+				assert.Equal(t, filepath.Base(url), indexEntry.URLs[0])
+			} else {
+				assert.Equal(t, url, indexEntry.URLs[0])
+			}
+
+			// Second time around is a no-op.
+			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url)
+			assert.NoError(t, err)
+			assert.False(t, updated)
 		})
 	}
 }
