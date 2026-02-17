@@ -134,7 +134,8 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 	// Publish the release by setting draft to false
 	draft = false
 	req = &github.RepositoryRelease{
-		Draft: &draft,
+		MakeLatest: &input.MakeLatest,
+		Draft:      &draft,
 	}
 	_, _, err = c.Repositories.EditRelease(context.TODO(), c.owner, c.repo, *release.ID, req)
 	if err != nil {
