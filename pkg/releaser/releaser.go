@@ -164,6 +164,11 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		for _, asset := range release.Assets {
 			downloadURL, _ := url.Parse(asset.URL)
 			name := filepath.Base(downloadURL.Path)
+			// Decode URL-encoded characters in the filename (e.g., %2B -> +)
+			name, err = url.PathUnescape(name)
+			if err != nil {
+				return false, errors.Wrapf(err, "error decoding filename from URL: %s", asset.URL)
+			}
 			// Ignore any other files added in the release by the users.
 			if filepath.Ext(name) != chartAssetFileExtension {
 				continue
@@ -255,8 +260,14 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
-	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
+func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, urlStr string) error {
+	// Decode URL-encoded characters in the filename (e.g., %2B -> +)
+	filename := filepath.Base(urlStr)
+	decodedFilename, err := url.PathUnescape(filename)
+	if err != nil {
+		return errors.Wrapf(err, "error decoding filename from URL: %s", urlStr)
+	}
+	arch := filepath.Join(r.config.PackagePath, decodedFilename)
 
 	// extract chart metadata
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
@@ -274,7 +285,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	// remove url name from url as helm's index library
 	// adds it in during .Add
 	// there should be a better way to handle this :(
-	s := strings.Split(url, "/")
+	s := strings.Split(urlStr, "/")
 	s = s[:len(s)-1]
 
 	if r.config.PackagesWithIndex {
@@ -283,8 +294,8 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 		s = s[:0]
 	}
 
-	// Add to index
-	return indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	// Add to index (using the decoded filename)
+	return indexFile.MustAdd(c.Metadata, decodedFilename, strings.Join(s, "/"), hash)
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
