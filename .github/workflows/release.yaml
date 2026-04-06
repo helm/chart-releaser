@@ -51,11 +51,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - uses: chainguard-dev/actions/goimports@8bb24c24be6871bee44f19be55ea11e3b2aea3dd # v1.6.11
+      - uses: chainguard-dev/actions/goimports@f45211d3e8f9d2676c6b8cdd6a765435e06c819d # v1.6.13
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: quay.io
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -63,7 +63,7 @@ jobs:
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
