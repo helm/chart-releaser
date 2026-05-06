@@ -116,8 +116,32 @@ func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string
 }
 
 func TestReleaser_UpdateIndexFile(t *testing.T) {
-	indexDir, _ := os.MkdirTemp(".", "index")
+	indexDir, err := os.MkdirTemp(".", "index")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
 	defer os.RemoveAll(indexDir)
+
+	// Create a separate index directory for the URL encoding test
+	indexDirWithPlus, err := os.MkdirTemp(".", "index-plus")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(indexDirWithPlus)
+
+	// FakeGitHub that returns URL-encoded asset URLs (e.g., + encoded as %2B)
+	fakeGitHubURLEncoded := &FakeGitHubWithURLEncoding{
+		release: &github.Release{
+			Name:        "test-chart-0.1.0+build.1",
+			Description: "A Helm chart with build metadata",
+			Assets: []*github.Asset{
+				{
+					Path: "testdata/release-packages-plus/test-chart-0.1.0+build.1.tgz",
+					URL:  "https://myrepo/charts/test-chart-0.1.0%2Bbuild.1.tgz",
+				},
+			},
+		},
+	}
 
 	fakeGitHub := new(FakeGitHub)
 
@@ -177,6 +201,18 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 			},
 			indexFile: "",
 		},
+		{
+			name:   "index-file-with-url-encoded-plus-sign",
+			exists: false,
+			releaser: &Releaser{
+				config: &config.Options{
+					IndexPath:   filepath.Join(indexDirWithPlus, "index.yaml"),
+					PackagePath: "testdata/release-packages-plus",
+				},
+				github: fakeGitHubURLEncoded,
+			},
+			indexFile: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -198,6 +234,20 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 			} else {
 				_, err := os.Stat(tt.releaser.config.IndexPath)
 				assert.NoError(t, err)
+
+				// Additional verification for URL-encoded case
+				if tt.name == "index-file-with-url-encoded-plus-sign" {
+					indexFile, err := repo.LoadIndexFile(tt.releaser.config.IndexPath)
+					assert.NoError(t, err, "should load index file")
+					assert.True(t, indexFile.Has("test-chart", "0.1.0+build.1"),
+						"index should contain chart version with + sign (decoded from %2B)")
+
+					// Verify the chart entry has the correct version with build metadata
+					chartVersion, err := indexFile.Get("test-chart", "0.1.0+build.1")
+					assert.NoError(t, err, "should retrieve chart version")
+					assert.NotNil(t, chartVersion, "chart version should not be nil")
+					assert.Equal(t, "0.1.0+build.1", chartVersion.Version, "version should preserve + sign")
+				}
 			}
 		})
 	}
@@ -534,4 +584,20 @@ func TestReleaser_ReleaseNotes(t *testing.T) {
 			assert.Equal(t, tt.expectedReleaseNotes, fakeGitHub.release.Description)
 		})
 	}
+}
+
+type FakeGitHubWithURLEncoding struct {
+	release *github.Release
+}
+
+func (f *FakeGitHubWithURLEncoding) CreateRelease(ctx context.Context, input *github.Release) error {
+	return nil
+}
+
+func (f *FakeGitHubWithURLEncoding) GetRelease(ctx context.Context, tag string) (*github.Release, error) {
+	return f.release, nil
+}
+
+func (f *FakeGitHubWithURLEncoding) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
+	return "https://github.com/owner/repo/pull/42", nil
 }
