@@ -24,6 +24,7 @@ import (
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"helm.sh/helm/v3/pkg/provenance"
 	"helm.sh/helm/v3/pkg/repo"
 
@@ -116,8 +117,7 @@ func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string
 }
 
 func TestReleaser_UpdateIndexFile(t *testing.T) {
-	indexDir, _ := os.MkdirTemp(".", "index")
-	defer os.RemoveAll(indexDir)
+	indexDir := t.TempDir()
 
 	fakeGitHub := new(FakeGitHub)
 
@@ -190,7 +190,7 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
 			tt.releaser.git = fakeGit
 			update, err := tt.releaser.UpdateIndexFile()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, update, !tt.exists)
 			if tt.exists {
 				newSha256, _ := provenance.DigestFile(tt.releaser.config.IndexPath)
@@ -204,8 +204,7 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 }
 
 func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
-	indexDir, _ := os.MkdirTemp(".", "index")
-	defer os.RemoveAll(indexDir)
+	indexDir := t.TempDir()
 
 	fakeGitHub := new(FakeGitHub)
 
@@ -236,7 +235,7 @@ func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 			indexFile, _ := repo.LoadIndexFile("testdata/empty-repo/index.yaml")
 			generated := indexFile.Generated
 			update, err := tt.releaser.UpdateIndexFile()
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.True(t, update)
 			newIndexFile, _ := repo.LoadIndexFile(tt.releaser.config.IndexPath)
 			newGenerated := newIndexFile.Generated

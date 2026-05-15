@@ -15,6 +15,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -22,7 +23,6 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -72,7 +72,7 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		if flagName != "config" && flagName != "help" {
 			if err := v.BindPFlag(flagName, flag); err != nil {
 				// can't really happen
-				panic(fmt.Sprintln(errors.Wrapf(err, "Error binding flag '%s'", flagName)))
+				panic(fmt.Sprintln(fmt.Errorf("error binding flag '%s': %w", flagName, err)))
 			}
 		}
 	})
@@ -93,7 +93,7 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 	if err := v.ReadInConfig(); err != nil {
 		if cfgFile != "" {
 			// Only error out for specified config file. Ignore for default locations.
-			return nil, errors.Wrap(err, "Error loading config file")
+			return nil, fmt.Errorf("error loading config file: %w", err)
 		}
 	} else {
 		fmt.Println("Using config file: ", v.ConfigFileUsed())
@@ -101,7 +101,7 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	opts := &Options{}
 	if err := v.Unmarshal(opts); err != nil {
-		return nil, errors.Wrap(err, "Error unmarshaling configuration")
+		return nil, fmt.Errorf("error unmarshaling configuration: %w", err)
 	}
 
 	if opts.Push && opts.PR {
@@ -114,7 +114,7 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		f := elem.FieldByName(fieldName)
 		value := fmt.Sprintf("%v", f.Interface())
 		if value == "" {
-			return nil, errors.Errorf("'--%s' is required", requiredFlag)
+			return nil, fmt.Errorf("'--%s' is required", requiredFlag)
 		}
 	}
 

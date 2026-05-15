@@ -16,6 +16,7 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -23,7 +24,6 @@ import (
 	"time"
 
 	"github.com/Songmu/retry"
-	"github.com/pkg/errors"
 
 	"github.com/google/go-github/v56/github"
 	"golang.org/x/oauth2"
@@ -129,16 +129,15 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 // CreatePullRequest creates a pull request in the repository specified by repoURL.
 // The return value is the pull request URL.
 func (c *Client) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
-	split := strings.SplitN(message, "\n", 2)
-	title := split[0]
+	title, rest, hasBody := strings.Cut(message, "\n")
 
 	pr := &github.NewPullRequest{
 		Title: &title,
 		Head:  &head,
 		Base:  &base,
 	}
-	if len(split) == 2 {
-		body := strings.TrimSpace(split[1])
+	if hasBody {
+		body := strings.TrimSpace(rest)
 		pr.Body = &body
 	}
 
@@ -153,7 +152,7 @@ func (c *Client) CreatePullRequest(owner string, repo string, message string, he
 func (c *Client) uploadReleaseAsset(_ context.Context, releaseID int64, filename string) error {
 	filename, err := filepath.Abs(filename)
 	if err != nil {
-		return errors.Wrap(err, "failed to get abs path")
+		return fmt.Errorf("failed to get abs path: %w", err)
 	}
 
 	opts := &github.UploadOptions{
@@ -164,11 +163,11 @@ func (c *Client) uploadReleaseAsset(_ context.Context, releaseID int64, filename
 	if err := retry.Retry(3, 3*time.Second, func() error { //nolint: revive
 		f, err := os.Open(filename)
 		if err != nil {
-			return errors.Wrap(err, "failed to open file")
+			return fmt.Errorf("failed to open file: %w", err)
 		}
 		defer f.Close()
 		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.owner, c.repo, releaseID, opts, f); err != nil {
-			return errors.Wrapf(err, "failed to upload release asset: %s", filename)
+			return fmt.Errorf("failed to upload release asset: %s: %w", filename, err)
 		}
 		return nil
 	}); err != nil {

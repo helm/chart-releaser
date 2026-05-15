@@ -21,7 +21,6 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -55,7 +54,7 @@ var versionCmd = &cobra.Command{
 		if outputJSON {
 			j, err := v.JSONString()
 			if err != nil {
-				return errors.Wrap(err, "unable to generate JSON from version info")
+				return fmt.Errorf("unable to generate JSON from version info: %w", err)
 			}
 			res = j
 		}

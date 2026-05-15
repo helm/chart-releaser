@@ -48,7 +48,8 @@ func (g *Git) Add(workingDir string, args ...string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("no args specified")
 	}
-	addArgs := []string{"add"}
+	addArgs := make([]string, 0, 1+len(args))
+	addArgs = append(addArgs, "add")
 	addArgs = append(addArgs, args...)
 	command := exec.Command("git", addArgs...)
 	return runCommand(workingDir, command)
@@ -62,7 +63,8 @@ func (g *Git) Commit(workingDir string, message string) error {
 
 // UpdateBranch runs 'git pull' with the given args.
 func (g *Git) Pull(workingDir string, args ...string) error {
-	pullArgs := []string{"pull"}
+	pullArgs := make([]string, 0, 1+len(args))
+	pullArgs = append(pullArgs, "pull")
 	pullArgs = append(pullArgs, args...)
 	command := exec.Command("git", pullArgs...)
 	return runCommand(workingDir, command)
@@ -70,7 +72,8 @@ func (g *Git) Pull(workingDir string, args ...string) error {
 
 // Push runs 'git push' with the given args.
 func (g *Git) Push(workingDir string, args ...string) error {
-	pushArgs := []string{"push"}
+	pushArgs := make([]string, 0, 1+len(args))
+	pushArgs = append(pushArgs, "push")
 	pushArgs = append(pushArgs, args...)
 	command := exec.Command("git", pushArgs...)
 	return runCommand(workingDir, command)
