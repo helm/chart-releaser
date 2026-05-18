@@ -74,12 +74,12 @@ func (p *Packager) CreatePackages() error {
 		return err
 	}
 
-	for i := 0; i < len(p.paths); i++ {
-		path, err := filepath.Abs(p.paths[i])
+	for _, chartPath := range p.paths {
+		path, err := filepath.Abs(chartPath)
 		if err != nil {
 			return err
 		}
-		if _, err := os.Stat(p.paths[i]); err != nil {
+		if _, err := os.Stat(chartPath); err != nil {
 			return err
 		}
 

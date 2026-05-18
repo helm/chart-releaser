@@ -26,12 +26,11 @@ import (
 )
 
 func TestPackager_CreatePackages(t *testing.T) {
-	packagePath, _ := os.MkdirTemp(".", "packages")
+	packagePath := t.TempDir()
 	invalidPackagePath := filepath.Join(packagePath, "bad")
 	file, _ := os.Create(invalidPackagePath)
 	t.Cleanup(func() {
 		file.Close()
-		os.RemoveAll(packagePath)
 	})
 
 	tests := []struct {

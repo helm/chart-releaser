@@ -17,6 +17,7 @@ package releaser
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -33,7 +34,6 @@ import (
 
 	"helm.sh/helm/v3/pkg/chart"
 
-	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/chart/loader"
 
 	"github.com/helm/chart-releaser/pkg/config"
@@ -262,7 +262,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
 	c, err := loader.LoadFile(arch)
 	if err != nil {
-		return errors.Wrapf(err, "%s is not a helm chart package", arch)
+		return fmt.Errorf("%s is not a helm chart package: %w", arch, err)
 	}
 	// calculate hash
 	fmt.Printf("Calculating Hash for %s\n", arch)
@@ -306,7 +306,7 @@ func (r *Releaser) CreateReleases() error {
 	}
 
 	if len(packages) == 0 {
-		return errors.Errorf("no charts found at %s", r.config.PackagePath)
+		return fmt.Errorf("no charts found at %s", r.config.PackagePath)
 	}
 
 	for _, p := range packages {
@@ -341,7 +341,7 @@ func (r *Releaser) CreateReleases() error {
 			}
 		}
 		if err := r.github.CreateRelease(context.TODO(), release); err != nil {
-			return errors.Wrapf(err, "error creating GitHub release %s", releaseName)
+			return fmt.Errorf("error creating GitHub release %s: %w", releaseName, err)
 		}
 
 		if r.config.PackagesWithIndex {

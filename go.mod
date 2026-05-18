@@ -1,6 +1,6 @@
 module github.com/helm/chart-releaser
 
-go 1.24.0
+go 1.26
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
@@ -8,7 +8,6 @@ require (
 	github.com/google/go-github/v56 v56.0.0
 	github.com/magefile/mage v1.17.2
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
@@ -89,6 +88,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rubenv/sql-migrate v1.8.0 // indirect
