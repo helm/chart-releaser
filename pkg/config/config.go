@@ -62,6 +62,15 @@ type Options struct {
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
 	PackagesWithIndex    bool   `mapstructure:"packages-with-index"`
+
+	RegistryURL           string `mapstructure:"registry-url"`
+	Username              string `mapstructure:"username"`
+	Password              string `mapstructure:"password"`
+	PlainHTTP             bool   `mapstructure:"plain-http"`
+	InsecureSkipTLSVerify bool   `mapstructure:"insecure-skip-tls-verify"`
+	CAFile                string `mapstructure:"ca-file"`
+	CertFile              string `mapstructure:"cert-file"`
+	KeyFile               string `mapstructure:"key-file"`
 }
 
 func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []string) (*Options, error) {
