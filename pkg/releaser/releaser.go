@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/Songmu/retry"
 
 	"text/template"
@@ -50,6 +51,8 @@ type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
+	GenerateReleaseNotes(ctx context.Context, tag string, previousTag string, commit string) (string, error)
+	ListTagsWithPrefix(ctx context.Context, prefix string) ([]string, error)
 }
 
 type Git interface {
@@ -238,6 +241,68 @@ func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
 	return releaseName, nil
 }
 
+// versionPlaceholder is rendered into the release name template in place of the
+// chart version so the surrounding literal parts of the release name can be
+// determined. The NUL bytes cannot occur in chart names or template output.
+const versionPlaceholder = "\x00version\x00"
+
+// computePreviousReleaseName returns the name of the newest existing release of
+// the same chart with a version lower than the version currently being
+// released, or an empty string if no such release can be determined (e.g. on
+// the first release of a chart or when the release name template does not
+// contain the chart version).
+func (r *Releaser) computePreviousReleaseName(ctx context.Context, chart *chart.Chart) (string, error) {
+	tmpl, err := template.New("gotpl").Parse(r.config.ReleaseNameTemplate)
+	if err != nil {
+		return "", err
+	}
+
+	metadata := *chart.Metadata
+	metadata.Version = versionPlaceholder
+
+	var buffer bytes.Buffer
+	if err := tmpl.Execute(&buffer, &metadata); err != nil {
+		return "", err
+	}
+
+	prefix, suffix, found := strings.Cut(buffer.String(), versionPlaceholder)
+	if !found {
+		return "", nil
+	}
+
+	currentVersion, err := semver.NewVersion(chart.Metadata.Version)
+	if err != nil {
+		return "", nil
+	}
+
+	tags, err := r.github.ListTagsWithPrefix(ctx, prefix)
+	if err != nil {
+		return "", err
+	}
+
+	var previousVersion *semver.Version
+	previousReleaseName := ""
+	for _, tag := range tags {
+		if !strings.HasPrefix(tag, prefix) || !strings.HasSuffix(tag, suffix) || len(tag) < len(prefix)+len(suffix) {
+			continue
+		}
+		version, err := semver.NewVersion(tag[len(prefix) : len(tag)-len(suffix)])
+		if err != nil {
+			// Not a version of this chart, e.g. the tag of another chart
+			// whose name shares this chart's name as a prefix.
+			continue
+		}
+		if !version.LessThan(currentVersion) {
+			continue
+		}
+		if previousVersion == nil || version.GreaterThan(previousVersion) {
+			previousVersion = version
+			previousReleaseName = tag
+		}
+	}
+	return previousReleaseName, nil
+}
+
 func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 	if r.config.ReleaseNotesFile != "" {
 		for _, f := range chart.Files {
@@ -338,6 +403,29 @@ func (r *Releaser) CreateReleases() error {
 			existingRelease, _ := r.github.GetRelease(context.TODO(), releaseName)
 			if existingRelease != nil {
 				continue
+			}
+		}
+		if r.config.GenerateReleaseNotes {
+			// GitHub's built-in release notes generation compares against the
+			// chronologically previous tag of the whole repository, which in
+			// repositories with multiple charts is usually a tag of another
+			// chart. Generate the notes explicitly against the previous
+			// release of the same chart instead, falling back to the built-in
+			// behavior when no previous release exists.
+			previousReleaseName, err := r.computePreviousReleaseName(context.TODO(), ch)
+			if err != nil {
+				fmt.Printf("Could not determine the previous release of %s, using GitHub's default release notes: %v\n", releaseName, err)
+			} else if previousReleaseName != "" {
+				notes, err := r.github.GenerateReleaseNotes(context.TODO(), releaseName, previousReleaseName, r.config.Commit)
+				if err != nil {
+					fmt.Printf("Could not generate release notes for %s, using GitHub's default release notes: %v\n", releaseName, err)
+				} else {
+					if release.Description != "" {
+						release.Description += "\n\n"
+					}
+					release.Description += notes
+					release.GenerateReleaseNotes = false
+				}
 			}
 		}
 		if err := r.github.CreateRelease(context.TODO(), release); err != nil {

@@ -16,6 +16,7 @@ package releaser
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/provenance"
 	"helm.sh/helm/v3/pkg/repo"
 
@@ -109,6 +111,16 @@ func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Releas
 		},
 	}
 	return release, nil
+}
+
+func (f *FakeGitHub) GenerateReleaseNotes(ctx context.Context, tag string, previousTag string, commit string) (string, error) { //nolint: revive
+	args := f.Called(ctx, tag, previousTag, commit)
+	return args.String(0), args.Error(1)
+}
+
+func (f *FakeGitHub) ListTagsWithPrefix(ctx context.Context, prefix string) ([]string, error) { //nolint: revive
+	args := f.Called(ctx, prefix)
+	return args.Get(0).([]string), args.Error(1)
 }
 
 func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
@@ -533,4 +545,117 @@ func TestReleaser_ReleaseNotes(t *testing.T) {
 			assert.Equal(t, tt.expectedReleaseNotes, fakeGitHub.release.Description)
 		})
 	}
+}
+
+func TestReleaser_computePreviousReleaseName(t *testing.T) {
+	tests := []struct {
+		name         string
+		template     string
+		chartVersion string
+		tags         []string
+		expected     string
+		expectLookup bool
+	}{
+		{
+			name:         "picks-highest-lower-version",
+			template:     "{{ .Name }}-{{ .Version }}",
+			chartVersion: "2.0.0",
+			tags:         []string{"my-chart-1.0.0", "my-chart-1.9.9", "my-chart-2.0.0", "my-chart-2.1.0"},
+			expected:     "my-chart-1.9.9",
+			expectLookup: true,
+		},
+		{
+			name:         "ignores-sibling-chart-sharing-prefix",
+			template:     "{{ .Name }}-{{ .Version }}",
+			chartVersion: "2.0.0",
+			tags:         []string{"my-chart-extra-3.0.0", "my-chart-1.5.0"},
+			expected:     "my-chart-1.5.0",
+			expectLookup: true,
+		},
+		{
+			name:         "first-release-of-chart",
+			template:     "{{ .Name }}-{{ .Version }}",
+			chartVersion: "1.0.0",
+			tags:         []string{},
+			expected:     "",
+			expectLookup: true,
+		},
+		{
+			name:         "considers-prereleases",
+			template:     "{{ .Name }}-{{ .Version }}",
+			chartVersion: "1.0.0",
+			tags:         []string{"my-chart-1.0.0-rc.1"},
+			expected:     "my-chart-1.0.0-rc.1",
+			expectLookup: true,
+		},
+		{
+			name:         "template-without-version",
+			template:     "{{ .Name }}",
+			chartVersion: "2.0.0",
+			expected:     "",
+			expectLookup: false,
+		},
+		{
+			name:         "custom-template-with-prefix-and-suffix",
+			template:     "charts/{{ .Name }}/v{{ .Version }}",
+			chartVersion: "2.0.0",
+			tags:         []string{"charts/my-chart/v1.2.3", "charts/my-chart/vgarbage"},
+			expected:     "charts/my-chart/v1.2.3",
+			expectLookup: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGitHub := new(FakeGitHub)
+			fakeGitHub.On("ListTagsWithPrefix", mock.Anything, mock.Anything).Return(tt.tags, nil)
+			releaser := &Releaser{
+				config: &config.Options{ReleaseNameTemplate: tt.template},
+				github: fakeGitHub,
+			}
+			testChart := &chart.Chart{Metadata: &chart.Metadata{Name: "my-chart", Version: tt.chartVersion}}
+			previous, err := releaser.computePreviousReleaseName(context.Background(), testChart)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expected, previous)
+			if !tt.expectLookup {
+				fakeGitHub.AssertNumberOfCalls(t, "ListTagsWithPrefix", 0)
+			}
+		})
+	}
+}
+
+func TestReleaser_CreateReleases_generatedReleaseNotes(t *testing.T) {
+	t.Run("generates-notes-against-previous-chart-release", func(t *testing.T) {
+		fakeGitHub := new(FakeGitHub)
+		fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
+		fakeGitHub.On("ListTagsWithPrefix", mock.Anything, "test-chart-").Return([]string{"test-chart-0.0.9", "other-chart-0.1.0"}, nil)
+		fakeGitHub.On("GenerateReleaseNotes", mock.Anything, "test-chart-0.1.0", "test-chart-0.0.9", "").Return("## What's Changed\n* something", nil)
+		releaser := &Releaser{
+			config: &config.Options{
+				PackagePath:          "testdata/release-packages",
+				GenerateReleaseNotes: true,
+				ReleaseNameTemplate:  "{{ .Name }}-{{ .Version }}",
+			},
+			github: fakeGitHub,
+		}
+		assert.NoError(t, releaser.CreateReleases())
+		assert.Equal(t, "A Helm chart for Kubernetes\n\n## What's Changed\n* something", fakeGitHub.release.Description)
+		assert.False(t, fakeGitHub.release.GenerateReleaseNotes)
+	})
+	t.Run("falls-back-to-github-generation-when-lookup-fails", func(t *testing.T) {
+		fakeGitHub := new(FakeGitHub)
+		fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
+		fakeGitHub.On("ListTagsWithPrefix", mock.Anything, "test-chart-").Return([]string{}, errors.New("api error"))
+		releaser := &Releaser{
+			config: &config.Options{
+				PackagePath:          "testdata/release-packages",
+				GenerateReleaseNotes: true,
+				ReleaseNameTemplate:  "{{ .Name }}-{{ .Version }}",
+			},
+			github: fakeGitHub,
+		}
+		assert.NoError(t, releaser.CreateReleases())
+		assert.Equal(t, "A Helm chart for Kubernetes", fakeGitHub.release.Description)
+		assert.True(t, fakeGitHub.release.GenerateReleaseNotes)
+		fakeGitHub.AssertNumberOfCalls(t, "GenerateReleaseNotes", 0)
+	})
 }
