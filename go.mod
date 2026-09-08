@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
+	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/Songmu/retry v0.1.0
 	github.com/google/go-github/v56 v56.0.0
 	github.com/magefile/mage v1.17.2
@@ -21,7 +22,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/Masterminds/sprig/v3 v3.3.0 // indirect
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect

@@ -126,6 +126,49 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 	return nil
 }
 
+// GenerateReleaseNotes generates release notes for the given tag, comparing
+// against previousTag. Since the tag may not exist yet at generation time,
+// commit (falling back to the default branch when empty) determines the
+// target of the comparison.
+func (c *Client) GenerateReleaseNotes(_ context.Context, tag string, previousTag string, commit string) (string, error) {
+	opts := &github.GenerateNotesOptions{
+		TagName:         tag,
+		PreviousTagName: &previousTag,
+	}
+	if commit != "" {
+		opts.TargetCommitish = &commit
+	}
+
+	notes, _, err := c.Repositories.GenerateReleaseNotes(context.TODO(), c.owner, c.repo, opts)
+	if err != nil {
+		return "", err
+	}
+	return notes.Body, nil
+}
+
+// ListTagsWithPrefix returns the names of all tags starting with the given prefix
+func (c *Client) ListTagsWithPrefix(_ context.Context, prefix string) ([]string, error) {
+	var tags []string
+	opts := &github.ReferenceListOptions{
+		Ref:         "tags/" + prefix,
+		ListOptions: github.ListOptions{PerPage: 100},
+	}
+	for {
+		refs, resp, err := c.Git.ListMatchingRefs(context.TODO(), c.owner, c.repo, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, ref := range refs {
+			tags = append(tags, strings.TrimPrefix(ref.GetRef(), "refs/tags/"))
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return tags, nil
+}
+
 // CreatePullRequest creates a pull request in the repository specified by repoURL.
 // The return value is the pull request URL.
 func (c *Client) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
