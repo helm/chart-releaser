@@ -52,6 +52,7 @@ Available Commands:
   help        Help about any command
   index       Update Helm repo index.yaml for the given GitHub repo
   package     Package Helm charts
+  push        Push Helm chart packages to an OCI registry
   upload      Upload Helm chart packages to GitHub Releases
   version     Print version information
 
@@ -110,6 +111,54 @@ Flags:
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
+```
+
+### Push Chart Packages to an OCI Registry
+
+Pushes every chart package found under `--package-path` to an OCI registry as
+`<registry-url>/<chart-name>:<chart-version>`. Sibling `*.tgz.prov` provenance
+files (produced by `cr package --sign`) are pushed automatically.
+
+Credentials are read from the `--username`/`--password` flags (also
+`CR_USERNAME` / `CR_PASSWORD` env vars) when provided; otherwise the registry
+credentials store (`~/.docker/config.json`, populated by `helm registry login`
+or `docker login`) is used.
+
+```console
+$ cr push --help
+Push Helm chart packages to an OCI registry.
+
+For every *.tgz file found under --package-path, the command pushes the chart
+to <registry-url>/<chart-name>:<chart-version>. If a sibling *.tgz.prov
+provenance file is present, it is pushed automatically.
+
+Usage:
+  cr push [flags]
+
+Flags:
+      --ca-file string             Verify registry certificate using this CA bundle
+      --cert-file string           Identify registry client using this TLS certificate file
+  -h, --help                       help for push
+      --insecure-skip-tls-verify   Skip TLS certificate verification
+      --key-file string            Identify registry client using this TLS key file
+  -p, --package-path string        Path to directory with chart packages (default ".cr-release-packages")
+      --password string            Registry password (falls back to ~/.docker/config.json if unset)
+      --plain-http                 Use insecure HTTP connections
+  -r, --registry-url string        OCI registry URL (e.g. oci://ghcr.io/myorg/charts)
+      --skip-existing              Skip pushing chart versions that already exist in the registry
+  -u, --username string            Registry username (falls back to ~/.docker/config.json if unset)
+
+Global Flags:
+      --config string   Config file (default is $HOME/.cr.yaml)
+```
+
+Example:
+
+```bash
+cr push --registry-url oci://ghcr.io/myorg/charts \
+        --username "$GITHUB_ACTOR" \
+        --password "$GITHUB_TOKEN" \
+        --skip-existing
 ```
 
 ### Create the Repository Index from GitHub Releases
