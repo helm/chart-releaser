@@ -106,6 +106,7 @@ Flags:
       --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
+      --pre-release                    Mark the release as a pre-release
       --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
