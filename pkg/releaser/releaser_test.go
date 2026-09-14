@@ -373,6 +373,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 		version     string
 		commit      string
 		latest      string
+		preRelease  bool
 		Releaser    *Releaser
 		error       bool
 	}{
@@ -383,6 +384,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			version:     "0.1.0",
 			commit:      "",
 			latest:      "true",
+			preRelease:  false,
 			Releaser: &Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/does-not-exist",
@@ -400,6 +402,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			version:     "0.1.0",
 			commit:      "",
 			latest:      "true",
+			preRelease:  false,
 			Releaser: &Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/release-packages",
@@ -417,6 +420,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			version:     "0.1.0",
 			commit:      "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
 			latest:      "true",
+			preRelease:  false,
 			Releaser: &Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/release-packages",
@@ -434,6 +438,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			version:     "0.1.0",
 			commit:      "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
 			latest:      "true",
+			preRelease:  false,
 			Releaser: &Releaser{
 				config: &config.Options{
 					PackagePath:       "testdata/release-packages",
@@ -441,6 +446,25 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					PackagesWithIndex: true,
 					Push:              true,
 					MakeReleaseLatest: true,
+				},
+			},
+			error: false,
+		},
+		{
+			name:        "valid-package-with-pre-release",
+			packagePath: "testdata/release-packages",
+			chart:       "test-chart",
+			version:     "0.1.0",
+			commit:      "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+			latest:      "true",
+			preRelease:  true,
+			Releaser: &Releaser{
+				config: &config.Options{
+					PackagePath:       "testdata/release-packages",
+					Commit:            "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
+					PackagesWithIndex: false,
+					MakeReleaseLatest: true,
+					PreRelease:        true,
 				},
 			},
 			error: false,
@@ -477,6 +501,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				assert.Equal(t, assetPath, fakeGitHub.release.Assets[0].Path)
 				assert.Equal(t, tt.commit, fakeGitHub.release.Commit)
 				assert.Equal(t, tt.latest, fakeGitHub.release.MakeLatest)
+				assert.Equal(t, tt.preRelease, fakeGitHub.release.PreRelease)
 				assert.Equal(t, tt.Releaser.config.Commit, fakeGitHub.release.Commit)
 				if !tt.Releaser.config.PackagesWithIndex {
 					fakeGit.AssertNumberOfCalls(t, "AddWorktree", 0)
