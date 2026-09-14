@@ -131,6 +131,22 @@ func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string
 func TestReleaser_UpdateIndexFile(t *testing.T) {
 	indexDir := t.TempDir()
 
+	indexDirWithPlus := t.TempDir()
+
+	// FakeGitHub that returns URL-encoded asset URLs (e.g., + encoded as %2B)
+	fakeGitHubURLEncoded := &FakeGitHubWithURLEncoding{
+		release: &github.Release{
+			Name:        "test-chart-0.1.0+build.1",
+			Description: "A Helm chart with build metadata",
+			Assets: []*github.Asset{
+				{
+					Path: "testdata/release-packages-plus/test-chart-0.1.0+build.1.tgz",
+					URL:  "https://myrepo/charts/test-chart-0.1.0%2Bbuild.1.tgz",
+				},
+			},
+		},
+	}
+
 	fakeGitHub := new(FakeGitHub)
 
 	tests := []struct {
@@ -189,6 +205,18 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 			},
 			indexFile: "",
 		},
+		{
+			name:   "index-file-with-url-encoded-plus-sign",
+			exists: false,
+			releaser: &Releaser{
+				config: &config.Options{
+					IndexPath:   filepath.Join(indexDirWithPlus, "index.yaml"),
+					PackagePath: "testdata/release-packages-plus",
+				},
+				github: fakeGitHubURLEncoded,
+			},
+			indexFile: "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -210,6 +238,20 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 			} else {
 				_, err := os.Stat(tt.releaser.config.IndexPath)
 				assert.NoError(t, err)
+
+				// Additional verification for URL-encoded case
+				if tt.name == "index-file-with-url-encoded-plus-sign" {
+					indexFile, err := repo.LoadIndexFile(tt.releaser.config.IndexPath)
+					require.NoError(t, err, "should load index file")
+					assert.True(t, indexFile.Has("test-chart", "0.1.0+build.1"),
+						"index should contain chart version with + sign (decoded from %2B)")
+
+					// Verify the chart entry has the correct version with build metadata
+					chartVersion, err := indexFile.Get("test-chart", "0.1.0+build.1")
+					require.NoError(t, err, "should retrieve chart version")
+					require.NotNil(t, chartVersion, "chart version should not be nil")
+					assert.Equal(t, "0.1.0+build.1", chartVersion.Version, "version should preserve + sign")
+				}
 			}
 		})
 	}
@@ -658,4 +700,13 @@ func TestReleaser_CreateReleases_generatedReleaseNotes(t *testing.T) {
 		assert.True(t, fakeGitHub.release.GenerateReleaseNotes)
 		fakeGitHub.AssertNumberOfCalls(t, "GenerateReleaseNotes", 0)
 	})
+}
+
+type FakeGitHubWithURLEncoding struct {
+	FakeGitHub
+	release *github.Release
+}
+
+func (f *FakeGitHubWithURLEncoding) GetRelease(_ context.Context, _ string) (*github.Release, error) {
+	return f.release, nil
 }
