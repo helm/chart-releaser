@@ -21,6 +21,7 @@ and Chart metadata to GitHub Releases and creating a suitable index file
 * [cr completion](cr_completion.md)	 - Generate the autocompletion script for the specified shell
 * [cr index](cr_index.md)	 - Update Helm repo index.yaml for the given GitHub repo
 * [cr package](cr_package.md)	 - Package Helm charts
+* [cr push](cr_push.md)	 - Push Helm chart packages to an OCI registry
 * [cr upload](cr_upload.md)	 - Upload Helm chart packages to GitHub Releases
 * [cr version](cr_version.md)	 - Print version information
 
