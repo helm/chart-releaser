@@ -257,6 +257,26 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 	}
 }
 
+func TestReleaser_UpdateIndexFileCreatesIndexDir(t *testing.T) {
+	// the default index path (.cr-index/index.yaml) is in a directory that does not exist yet
+	indexPath := filepath.Join(t.TempDir(), ".cr-index", "index.yaml")
+	fakeGit := new(FakeGit)
+	fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+	r := &Releaser{
+		config: &config.Options{
+			IndexPath:   indexPath,
+			PackagePath: "testdata/release-packages",
+		},
+		github: new(FakeGitHub),
+		git:    fakeGit,
+	}
+
+	updated, err := r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.True(t, updated)
+	assert.FileExists(t, indexPath)
+}
+
 func TestReleaser_UpdateIndexFilePreRelease(t *testing.T) {
 	indexPath := filepath.Join(t.TempDir(), "index.yaml")
 	r := &Releaser{
