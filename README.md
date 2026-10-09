@@ -108,6 +108,7 @@ Flags:
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
       --pre-release                    Mark the release as a pre-release
+      --package-commit-message string  Go template for the commit message when the packages are hosted in the Pages branch (--packages-with-index) (default "Publishing chart package for {{ .ReleaseName }}")
       --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
@@ -189,6 +190,7 @@ Flags:
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
   -t, --token string                   GitHub Auth Token (only needed for private repos)
+      --index-commit-message string    Go template for the commit message of the index update (default "Update {{ .PagesIndexPath }}")
       --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
