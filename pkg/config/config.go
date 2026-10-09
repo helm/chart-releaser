@@ -63,6 +63,8 @@ type Options struct {
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
 	PreRelease           bool   `mapstructure:"pre-release"`
 	PackagesWithIndex    bool   `mapstructure:"packages-with-index"`
+	IndexCommitMessage   string `mapstructure:"index-commit-message"`
+	PackageCommitMessage string `mapstructure:"package-commit-message"`
 
 	RegistryURL           string `mapstructure:"registry-url"`
 	Username              string `mapstructure:"username"`
