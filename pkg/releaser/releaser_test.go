@@ -257,6 +257,46 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 	}
 }
 
+func TestReleaser_UpdateIndexFilePreRelease(t *testing.T) {
+	indexPath := filepath.Join(t.TempDir(), "index.yaml")
+	r := &Releaser{
+		config: &config.Options{
+			IndexPath:   indexPath,
+			PackagePath: "testdata/release-packages-prerelease",
+		},
+		github: &FakeGitHubWithURLEncoding{
+			release: &github.Release{
+				Name: "test-chart-0.2.0-beta2",
+				Assets: []*github.Asset{
+					{
+						Path: "testdata/release-packages-prerelease/test-chart-0.2.0-beta2.tgz",
+						URL:  "https://myrepo/charts/test-chart-0.2.0-beta2.tgz",
+					},
+				},
+			},
+		},
+	}
+
+	fakeGit := new(FakeGit)
+	fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+	r.git = fakeGit
+
+	updated, err := r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.True(t, updated)
+
+	// A pre-release version that is already indexed must not be added again.
+	fakeGit.indexFile = indexPath
+	updated, err = r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	indexFile, err := repo.LoadIndexFile(indexPath)
+	require.NoError(t, err)
+	assert.Len(t, indexFile.Entries["test-chart"], 1)
+	assert.True(t, indexFile.Has("test-chart", "0.2.0-beta2"))
+}
+
 func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 	indexDir := t.TempDir()
 
