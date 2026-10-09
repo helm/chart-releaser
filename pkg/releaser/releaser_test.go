@@ -257,6 +257,46 @@ func TestReleaser_UpdateIndexFile(t *testing.T) {
 	}
 }
 
+func TestReleaser_UpdateIndexFilePreRelease(t *testing.T) {
+	indexPath := filepath.Join(t.TempDir(), "index.yaml")
+	r := &Releaser{
+		config: &config.Options{
+			IndexPath:   indexPath,
+			PackagePath: "testdata/release-packages-prerelease",
+		},
+		github: &FakeGitHubWithURLEncoding{
+			release: &github.Release{
+				Name: "test-chart-0.2.0-beta2",
+				Assets: []*github.Asset{
+					{
+						Path: "testdata/release-packages-prerelease/test-chart-0.2.0-beta2.tgz",
+						URL:  "https://myrepo/charts/test-chart-0.2.0-beta2.tgz",
+					},
+				},
+			},
+		},
+	}
+
+	fakeGit := new(FakeGit)
+	fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+	r.git = fakeGit
+
+	updated, err := r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.True(t, updated)
+
+	// A pre-release version that is already indexed must not be added again.
+	fakeGit.indexFile = indexPath
+	updated, err = r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.False(t, updated)
+
+	indexFile, err := repo.LoadIndexFile(indexPath)
+	require.NoError(t, err)
+	assert.Len(t, indexFile.Entries["test-chart"], 1)
+	assert.True(t, indexFile.Has("test-chart", "0.2.0-beta2"))
+}
+
 func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 	indexDir := t.TempDir()
 
@@ -299,44 +339,7 @@ func TestReleaser_UpdateIndexFileGenerated(t *testing.T) {
 	}
 }
 
-func TestReleaser_splitPackageNameAndVersion(t *testing.T) {
-	tests := []struct {
-		name     string
-		pkg      string
-		expected []string
-	}{
-		{
-			"no-hyphen",
-			"foo",
-			nil,
-		},
-		{
-			"one-hyphen",
-			"foo-1.2.3",
-			[]string{"foo", "1.2.3"},
-		},
-		{
-			"two-hyphens",
-			"foo-bar-1.2.3",
-			[]string{"foo-bar", "1.2.3"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r := &Releaser{}
-			if tt.expected == nil {
-				assert.Panics(t, func() {
-					r.splitPackageNameAndVersion(tt.pkg)
-				}, "slice bounds out of range")
-			} else {
-				actual := r.splitPackageNameAndVersion(tt.pkg)
-				assert.Equal(t, tt.expected, actual)
-			}
-		})
-	}
-}
-
-func TestReleaser_addToIndexFile(t *testing.T) {
+func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 	tests := []struct {
 		name              string
 		chart             string
@@ -389,20 +392,28 @@ func TestReleaser_addToIndexFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			err := tt.releaser.addToIndexFile(indexFile, url)
+			updated, err := tt.releaser.maybeAddToIndexFile(indexFile, url)
 			if tt.error {
 				assert.Error(t, err)
+				assert.False(t, updated)
 				assert.False(t, indexFile.Has(tt.chart, tt.version))
-			} else {
-				assert.True(t, indexFile.Has(tt.chart, tt.version))
-
-				indexEntry, _ := indexFile.Get(tt.chart, tt.version)
-				if tt.packagesWithIndex {
-					assert.Equal(t, filepath.Base(url), indexEntry.URLs[0])
-				} else {
-					assert.Equal(t, url, indexEntry.URLs[0])
-				}
+				return
 			}
+
+			assert.True(t, updated)
+			assert.True(t, indexFile.Has(tt.chart, tt.version))
+
+			indexEntry, _ := indexFile.Get(tt.chart, tt.version)
+			if tt.packagesWithIndex {
+				assert.Equal(t, filepath.Base(url), indexEntry.URLs[0])
+			} else {
+				assert.Equal(t, url, indexEntry.URLs[0])
+			}
+
+			// Second time around is a no-op.
+			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url)
+			assert.NoError(t, err)
+			assert.False(t, updated)
 		})
 	}
 }

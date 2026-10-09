@@ -171,14 +171,13 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			if filepath.Ext(name) != chartAssetFileExtension {
 				continue
 			}
-			baseName := strings.TrimSuffix(name, filepath.Ext(name))
-			tagParts := r.splitPackageNameAndVersion(baseName)
-			packageName, packageVersion := tagParts[0], tagParts[1]
-			fmt.Printf("Found %s-%s.tgz\n", packageName, packageVersion)
-			if _, err := indexFile.Get(packageName, packageVersion); err != nil {
-				if err := r.addToIndexFile(indexFile, downloadURL.String()); err != nil {
-					return false, err
-				}
+			fmt.Printf("Found %s\n", name)
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String())
+			if err != nil {
+				return false, err
+			}
+
+			if updated {
 				update = true
 				break
 			}
@@ -315,17 +314,12 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 	return chart.Metadata.Description
 }
 
-func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
-	delimIndex := strings.LastIndex(pkg, "-")
-	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
-}
-
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, urlStr string) error {
+func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string) (bool, error) {
 	// Decode URL-encoded characters in the filename (e.g., %2B -> +)
 	filename := filepath.Base(urlStr)
 	decodedFilename, err := url.PathUnescape(filename)
 	if err != nil {
-		return fmt.Errorf("error decoding filename from URL %s: %w", urlStr, err)
+		return false, fmt.Errorf("error decoding filename from URL %s: %w", urlStr, err)
 	}
 	arch := filepath.Join(r.config.PackagePath, decodedFilename)
 
@@ -333,13 +327,19 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, urlStr string) erro
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
 	c, err := loader.LoadFile(arch)
 	if err != nil {
-		return fmt.Errorf("%s is not a helm chart package: %w", arch, err)
+		return false, fmt.Errorf("%s is not a helm chart package: %w", arch, err)
 	}
+
+	if _, err := indexFile.Get(c.Name(), c.Metadata.Version); err == nil {
+		fmt.Printf("Version %s of %s already present in index file\n", c.Metadata.Version, c.Name())
+		return false, nil
+	}
+
 	// calculate hash
 	fmt.Printf("Calculating Hash for %s\n", arch)
 	hash, err := provenance.DigestFile(arch)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	// remove url name from url as helm's index library
@@ -355,7 +355,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, urlStr string) erro
 	}
 
 	// Add to index
-	return indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	return true, indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
