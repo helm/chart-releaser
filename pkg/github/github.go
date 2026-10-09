@@ -16,6 +16,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -115,7 +116,14 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 
 	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
 	if err != nil {
-		return err
+		if !isErrTagAlreadyExist(err) {
+			return err
+		}
+
+		release, _, err = c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, input.Name)
+		if err != nil {
+			return fmt.Errorf("getting the existing release: %w", err)
+		}
 	}
 
 	for _, asset := range input.Assets {
@@ -167,6 +175,18 @@ func (c *Client) ListTagsWithPrefix(_ context.Context, prefix string) ([]string,
 		opts.Page = resp.NextPage
 	}
 	return tags, nil
+}
+
+func isErrTagAlreadyExist(err error) bool {
+	var ghErrs *github.ErrorResponse
+	if errors.As(err, &ghErrs) {
+		for _, ghErr := range ghErrs.Errors {
+			if ghErr.Code == "already_exists" && ghErr.Field == "tag_name" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // CreatePullRequest creates a pull request in the repository specified by repoURL.
