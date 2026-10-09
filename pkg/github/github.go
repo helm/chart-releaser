@@ -103,8 +103,14 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 	return result, nil
 }
 
-// CreateRelease creates a new release object in the GitHub API
+// CreateRelease creates a new release object in the GitHub API.
+// To support repositories with immutable releases enabled (see
+// https://github.blog/changelog/2025-10-28-immutable-releases-are-now-generally-available/),
+// the release is first created as a draft, assets are uploaded, and then
+// the release is published. This ensures that assets can be uploaded before
+// the release becomes immutable.
 func (c *Client) CreateRelease(_ context.Context, input *Release) error {
+	draft := true
 	req := &github.RepositoryRelease{
 		Name:                 &input.Name,
 		Body:                 &input.Description,
@@ -113,6 +119,7 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		GenerateReleaseNotes: &input.GenerateReleaseNotes,
 		MakeLatest:           &input.MakeLatest,
 		Prerelease:           &input.PreRelease,
+		Draft:                &draft,
 	}
 
 	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
@@ -125,6 +132,18 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 			return err
 		}
 	}
+
+	// Publish the release by setting draft to false
+	draft = false
+	req = &github.RepositoryRelease{
+		MakeLatest: &input.MakeLatest,
+		Draft:      &draft,
+	}
+	_, _, err = c.Repositories.EditRelease(context.TODO(), c.owner, c.repo, *release.ID, req)
+	if err != nil {
+		return fmt.Errorf("failed to publish release: %w", err)
+	}
+
 	return nil
 }
 
