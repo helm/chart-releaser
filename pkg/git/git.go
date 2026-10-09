@@ -16,6 +16,7 @@ package git
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -79,16 +80,50 @@ func (g *Git) Push(workingDir string, args ...string) error {
 	return runCommand(workingDir, command)
 }
 
-// GetPushURL returns the push url with a token inserted
+// GetPushURL returns the push url with a token inserted. The remote can use any
+// of the URL forms git understands (https, http, ssh:// or scp-like
+// git@host:owner/repo.git); the token is always sent over HTTP(S).
 func (g *Git) GetPushURL(remote string, token string) (string, error) {
 	pushURL, err := exec.Command("git", "remote", "get-url", "--push", remote).Output()
 	if err != nil {
 		return "", err
 	}
 
-	pushURLArray := strings.SplitAfter(strings.TrimSpace(string(pushURL)), "https://")
-	pushURLWithToken := fmt.Sprintf("https://x-access-token:%s@%s", token, pushURLArray[1])
-	return pushURLWithToken, nil
+	return buildPushURL(strings.TrimSpace(string(pushURL)), token)
+}
+
+func buildPushURL(remoteURL string, token string) (string, error) {
+	scheme, host, path := "https", "", ""
+
+	if strings.Contains(remoteURL, "://") {
+		u, err := url.Parse(remoteURL)
+		if err != nil {
+			return "", fmt.Errorf("unable to parse git remote URL: %w", err)
+		}
+		if u.Scheme == "http" {
+			scheme = "http"
+		}
+		host, path = u.Host, u.Path
+		if u.Scheme != "https" && u.Scheme != "http" {
+			// ssh:// and git:// remotes may use a port that is not valid for HTTPS
+			host = u.Hostname()
+		}
+	} else {
+		// scp-like syntax: [user@]host:path
+		hostAndUser, repoPath, found := strings.Cut(remoteURL, ":")
+		if !found {
+			return "", fmt.Errorf("unsupported git remote URL %q", remoteURL)
+		}
+		host = hostAndUser[strings.LastIndex(hostAndUser, "@")+1:]
+		path = repoPath
+	}
+
+	path = strings.TrimPrefix(path, "/")
+	if host == "" || path == "" {
+		return "", fmt.Errorf("unsupported git remote URL %q", remoteURL)
+	}
+
+	return fmt.Sprintf("%s://x-access-token:%s@%s/%s", scheme, token, host, path), nil
 }
 
 func runCommand(workingDir string, command *exec.Cmd) error {
