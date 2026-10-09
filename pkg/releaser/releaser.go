@@ -320,8 +320,14 @@ func (r *Releaser) splitPackageNameAndVersion(pkg string) []string {
 	return []string{pkg[0:delimIndex], pkg[delimIndex+1:]}
 }
 
-func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
-	arch := filepath.Join(r.config.PackagePath, filepath.Base(url))
+func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, urlStr string) error {
+	// Decode URL-encoded characters in the filename (e.g., %2B -> +)
+	filename := filepath.Base(urlStr)
+	decodedFilename, err := url.PathUnescape(filename)
+	if err != nil {
+		return fmt.Errorf("error decoding filename from URL %s: %w", urlStr, err)
+	}
+	arch := filepath.Join(r.config.PackagePath, decodedFilename)
 
 	// extract chart metadata
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
@@ -339,7 +345,7 @@ func (r *Releaser) addToIndexFile(indexFile *repo.IndexFile, url string) error {
 	// remove url name from url as helm's index library
 	// adds it in during .Add
 	// there should be a better way to handle this :(
-	s := strings.Split(url, "/")
+	s := strings.Split(urlStr, "/")
 	s = s[:len(s)-1]
 
 	if r.config.PackagesWithIndex {
