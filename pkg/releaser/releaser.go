@@ -214,7 +214,13 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return false, err
 	}
 
-	if err := r.git.Commit(worktree, fmt.Sprintf("Update %s", r.config.PagesIndexPath)); err != nil {
+	message, err := renderCommitMessage(r.config.IndexCommitMessage, defaultIndexCommitMessage,
+		struct{ PagesIndexPath string }{r.config.PagesIndexPath})
+	if err != nil {
+		return false, err
+	}
+
+	if err := r.git.Commit(worktree, message); err != nil {
 		return false, err
 	}
 
@@ -223,6 +229,31 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	}
 
 	return true, nil
+}
+
+const (
+	defaultIndexCommitMessage   = "Update {{ .PagesIndexPath }}"
+	defaultPackageCommitMessage = "Publishing chart package for {{ .ReleaseName }}"
+)
+
+// renderCommitMessage renders the commit message template, falling back to
+// the default template when none is configured.
+func renderCommitMessage(tmplText, defaultTmplText string, data any) (string, error) {
+	if tmplText == "" {
+		tmplText = defaultTmplText
+	}
+
+	tmpl, err := template.New("commit-message").Parse(tmplText)
+	if err != nil {
+		return "", fmt.Errorf("invalid commit message template: %w", err)
+	}
+
+	var buffer bytes.Buffer
+	if err := tmpl.Execute(&buffer, data); err != nil {
+		return "", fmt.Errorf("unable to render commit message template: %w", err)
+	}
+
+	return buffer.String(), nil
 }
 
 func (r *Releaser) computeReleaseName(chart *chart.Chart) (string, error) {
@@ -449,7 +480,13 @@ func (r *Releaser) CreateReleases() error {
 				return err
 			}
 
-			if err := r.git.Commit(worktree, fmt.Sprintf("Publishing chart package for %s", releaseName)); err != nil {
+			message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
+				struct{ ReleaseName string }{releaseName})
+			if err != nil {
+				return err
+			}
+
+			if err := r.git.Commit(worktree, message); err != nil {
 				return err
 			}
 		}

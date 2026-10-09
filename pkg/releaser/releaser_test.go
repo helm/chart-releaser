@@ -746,3 +746,103 @@ type FakeGitHubWithURLEncoding struct {
 func (f *FakeGitHubWithURLEncoding) GetRelease(_ context.Context, _ string) (*github.Release, error) {
 	return f.release, nil
 }
+
+func TestRenderCommitMessage(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		expected string
+		wantErr  bool
+	}{
+		{name: "default-when-empty", template: "", expected: "Update index.yaml"},
+		{name: "custom", template: "chore: update {{ .PagesIndexPath }}", expected: "chore: update index.yaml"},
+		{name: "invalid-template", template: "{{ .PagesIndexPath", wantErr: true},
+		{name: "unknown-field", template: "{{ .Unknown }}", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			message, err := renderCommitMessage(tt.template, defaultIndexCommitMessage,
+				struct{ PagesIndexPath string }{"index.yaml"})
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, message)
+		})
+	}
+}
+
+func TestReleaser_UpdateIndexFileCommitMessage(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{name: "default", template: "", expected: "Update index.yaml"},
+		{name: "conventional-commit", template: "chore: update {{ .PagesIndexPath }}", expected: "chore: update index.yaml"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGit := new(FakeGit)
+			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Pull", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Push", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("GetPushURL", mock.Anything, mock.Anything).Return("", nil)
+
+			r := &Releaser{
+				config: &config.Options{
+					IndexPath:          filepath.Join(t.TempDir(), "index.yaml"),
+					PackagePath:        "testdata/release-packages",
+					PagesIndexPath:     "index.yaml",
+					Push:               true,
+					IndexCommitMessage: tt.template,
+				},
+				github: new(FakeGitHub),
+				git:    fakeGit,
+			}
+
+			updated, err := r.UpdateIndexFile()
+			require.NoError(t, err)
+			assert.True(t, updated)
+			fakeGit.AssertCalled(t, "Commit", mock.Anything, tt.expected)
+		})
+	}
+}
+
+func TestReleaser_CreateReleasesPackageCommitMessage(t *testing.T) {
+	tests := []struct {
+		name     string
+		template string
+		expected string
+	}{
+		{name: "default", template: "", expected: "Publishing chart package for test-chart-0.1.0"},
+		{name: "conventional-commit", template: "chore: publish {{ .ReleaseName }}", expected: "chore: publish test-chart-0.1.0"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGit := new(FakeGit)
+			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
+			fakeGitHub := new(FakeGitHub)
+			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
+
+			r := &Releaser{
+				config: &config.Options{
+					PackagePath:          "testdata/release-packages",
+					ReleaseNameTemplate:  "{{ .Name }}-{{ .Version }}",
+					PackagesWithIndex:    true,
+					PackageCommitMessage: tt.template,
+				},
+				github: fakeGitHub,
+				git:    fakeGit,
+			}
+
+			require.NoError(t, r.CreateReleases())
+			fakeGit.AssertCalled(t, "Commit", mock.Anything, tt.expected)
+		})
+	}
+}

@@ -20,6 +20,7 @@ cr index [flags]
   -r, --git-repo string                GitHub repository
   -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
   -h, --help                           help for index
+      --index-commit-message string    Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}' (default "Update {{ .PagesIndexPath }}")
   -i, --index-path string              Path to index file (default ".cr-index/index.yaml")
   -o, --owner string                   GitHub username or organization
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
