@@ -625,6 +625,210 @@ func TestReleaser_ReleaseNotes(t *testing.T) {
 	}
 }
 
+const testKeepAChangelog = `# Changelog
+
+## [Unreleased]
+
+### Added
+
+- work in progress
+
+## [1.2.3] - 2024-01-02
+
+### Added
+
+- matching version notes
+
+## [1.2.2] - 2023-12-01
+
+### Fixed
+
+- older version notes
+`
+
+func TestParseChangelogSection(t *testing.T) {
+	tests := []struct {
+		name      string
+		changelog string
+		version   string
+		want      string
+	}{
+		{
+			name:      "bracket-version-with-date",
+			changelog: testKeepAChangelog,
+			version:   "1.2.3",
+			want:      "## [1.2.3] - 2024-01-02\n\n### Added\n\n- matching version notes",
+		},
+		{
+			name:      "skips-unreleased-and-older-versions",
+			changelog: testKeepAChangelog,
+			version:   "1.2.3",
+			want:      "## [1.2.3] - 2024-01-02\n\n### Added\n\n- matching version notes",
+		},
+		{
+			name: "bare-version-with-date",
+			changelog: `# Changelog
+
+## 1.2.3 - 2024-01-02
+
+- notes
+`,
+			version: "1.2.3",
+			want:    "## 1.2.3 - 2024-01-02\n\n- notes",
+		},
+		{
+			name: "bracket-version-without-date",
+			changelog: `# Changelog
+
+## [1.2.3]
+
+- notes
+`,
+			version: "1.2.3",
+			want:    "## [1.2.3]\n\n- notes",
+		},
+		{
+			name: "v-prefix-heading",
+			changelog: `# Changelog
+
+## v1.2.3
+
+- notes
+`,
+			version: "1.2.3",
+			want:    "## v1.2.3\n\n- notes",
+		},
+		{
+			name: "v-prefix-chart-version",
+			changelog: `# Changelog
+
+## [1.2.3] - 2024-01-02
+
+- notes
+`,
+			version: "v1.2.3",
+			want:    "## [1.2.3] - 2024-01-02\n\n- notes",
+		},
+		{
+			name:      "missing-version",
+			changelog: testKeepAChangelog,
+			version:   "9.9.9",
+			want:      "",
+		},
+		{
+			name:      "empty-changelog",
+			changelog: "",
+			version:   "1.2.3",
+			want:      "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, parseChangelogSection(tt.changelog, tt.version))
+		})
+	}
+}
+
+func TestReleaser_getReleaseNotes_changelog(t *testing.T) {
+	description := "A Helm chart for Kubernetes"
+	matchingNotes := "## [1.2.3] - 2024-01-02\n\n### Added\n\n- matching version notes"
+
+	tests := []struct {
+		name             string
+		source           string
+		releaseNotesFile string
+		version          string
+		files            []*chart.File
+		expected         string
+	}{
+		{
+			name:     "extracts-matching-version-section",
+			source:   "changelog",
+			version:  "1.2.3",
+			files:    []*chart.File{{Name: "CHANGELOG.md", Data: []byte(testKeepAChangelog)}},
+			expected: matchingNotes,
+		},
+		{
+			name:     "unreleased-and-older-versions-ignored",
+			source:   "CHANGELOG",
+			version:  "1.2.3",
+			files:    []*chart.File{{Name: "CHANGELOG.md", Data: []byte(testKeepAChangelog)}},
+			expected: matchingNotes,
+		},
+		{
+			name:     "missing-changelog-falls-back-to-description",
+			source:   "changelog",
+			version:  "1.2.3",
+			files:    nil,
+			expected: description,
+		},
+		{
+			name:     "missing-version-section-falls-back-to-description",
+			source:   "changelog",
+			version:  "9.9.9",
+			files:    []*chart.File{{Name: "CHANGELOG.md", Data: []byte(testKeepAChangelog)}},
+			expected: description,
+		},
+		{
+			name:    "v-prefix-version-match",
+			source:  "changelog",
+			version: "v1.2.3",
+			files: []*chart.File{{
+				Name: "CHANGELOG.md",
+				Data: []byte("# Changelog\n\n## v1.2.3\n\n- notes\n"),
+			}},
+			expected: "## v1.2.3\n\n- notes",
+		},
+		{
+			name:             "custom-changelog-filename",
+			source:           "changelog",
+			releaseNotesFile: "docs/HISTORY.md",
+			version:          "1.2.3",
+			files: []*chart.File{{
+				Name: "docs/HISTORY.md",
+				Data: []byte("# Changelog\n\n## [1.2.3]\n\n- notes\n"),
+			}},
+			expected: "## [1.2.3]\n\n- notes",
+		},
+		{
+			name:     "file-source-ignores-changelog",
+			source:   "file",
+			version:  "1.2.3",
+			files:    []*chart.File{{Name: "CHANGELOG.md", Data: []byte(testKeepAChangelog)}},
+			expected: description,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Releaser{
+				config: &config.Options{
+					ReleaseNotesSource: tt.source,
+					ReleaseNotesFile:   tt.releaseNotesFile,
+				},
+			}
+			ch := &chart.Chart{
+				Metadata: &chart.Metadata{Name: "test-chart", Version: tt.version, Description: description},
+				Files:    tt.files,
+			}
+			assert.Equal(t, tt.expected, r.getReleaseNotes(ch))
+		})
+	}
+}
+
+func TestReleaser_CreateReleases_invalidReleaseNotesSource(t *testing.T) {
+	r := &Releaser{
+		config: &config.Options{
+			PackagePath:        "testdata/release-packages",
+			ReleaseNotesSource: "github",
+		},
+		github: new(FakeGitHub),
+		git:    new(FakeGit),
+	}
+	err := r.CreateReleases()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `invalid --release-notes-source "github"`)
+}
+
 func TestReleaser_computePreviousReleaseName(t *testing.T) {
 	tests := []struct {
 		name         string

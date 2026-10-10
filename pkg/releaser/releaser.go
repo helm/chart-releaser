@@ -303,6 +303,9 @@ func (r *Releaser) computePreviousReleaseName(ctx context.Context, chart *chart.
 }
 
 func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
+	if strings.EqualFold(strings.TrimSpace(r.config.ReleaseNotesSource), "changelog") {
+		return r.releaseNotesFromChangelog(chart)
+	}
 	if r.config.ReleaseNotesFile != "" {
 		for _, f := range chart.Files {
 			if f.Name == r.config.ReleaseNotesFile {
@@ -312,6 +315,115 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 		fmt.Printf("The release note file %q, is not present in the chart package\n", r.config.ReleaseNotesFile)
 	}
 	return chart.Metadata.Description
+}
+
+func (r *Releaser) releaseNotesFromChangelog(chart *chart.Chart) string {
+	filename := r.config.ReleaseNotesFile
+	if filename == "" {
+		filename = "CHANGELOG.md"
+	}
+	for _, f := range chart.Files {
+		if f.Name == filename {
+			if notes := parseChangelogSection(string(f.Data), chart.Metadata.Version); notes != "" {
+				return notes
+			}
+			fmt.Printf("No changelog section found for version %q in %q\n", chart.Metadata.Version, filename)
+			return chart.Metadata.Description
+		}
+	}
+	fmt.Printf("The changelog file %q, is not present in the chart package\n", filename)
+	return chart.Metadata.Description
+}
+
+// parseChangelogSection returns the Keep a Changelog section for version,
+// including the heading. Comparison ignores an optional leading "v". Empty is
+// returned when the version heading is absent. ## Unreleased is skipped.
+func parseChangelogSection(changelog, version string) string {
+	if changelog == "" || version == "" {
+		return ""
+	}
+	lines := strings.Split(strings.ReplaceAll(changelog, "\r\n", "\n"), "\n")
+	start := -1
+	startLevel := 0
+	for i, line := range lines {
+		level, text, ok := atxHeading(line)
+		if !ok {
+			continue
+		}
+		if start >= 0 {
+			if level <= startLevel {
+				return trimChangelogSection(lines[start:i])
+			}
+			continue
+		}
+		if isUnreleasedChangelogHeading(text) {
+			continue
+		}
+		if changelogHeadingMatchesVersion(text, version) {
+			start = i
+			startLevel = level
+		}
+	}
+	if start >= 0 {
+		return trimChangelogSection(lines[start:])
+	}
+	return ""
+}
+
+func trimChangelogSection(lines []string) string {
+	return strings.TrimRight(strings.Join(lines, "\n"), " \t\n")
+}
+
+func atxHeading(line string) (int, string, bool) {
+	if !strings.HasPrefix(line, "#") {
+		return 0, "", false
+	}
+	level := 0
+	for level < len(line) && line[level] == '#' {
+		level++
+	}
+	if level == 0 || level > 6 || level == len(line) || (line[level] != ' ' && line[level] != '\t') {
+		return 0, "", false
+	}
+	return level, strings.TrimSpace(line[level:]), true
+}
+
+func isUnreleasedChangelogHeading(text string) bool {
+	name := strings.TrimSpace(text)
+	if strings.HasPrefix(name, "[") {
+		end := strings.Index(name, "]")
+		if end < 0 {
+			return false
+		}
+		name = name[1:end]
+	} else if i := strings.Index(name, " - "); i >= 0 {
+		name = strings.TrimSpace(name[:i])
+	}
+	return strings.EqualFold(name, "unreleased")
+}
+
+func changelogHeadingMatchesVersion(text, version string) bool {
+	text = strings.TrimSpace(text)
+	want := strings.TrimPrefix(version, "v")
+
+	var ver, rest string
+	if strings.HasPrefix(text, "[") {
+		end := strings.Index(text, "]")
+		if end < 0 {
+			return false
+		}
+		ver = text[1:end]
+		rest = strings.TrimSpace(text[end+1:])
+	} else if i := strings.Index(text, " - "); i >= 0 {
+		ver = strings.TrimSpace(text[:i])
+		rest = strings.TrimSpace(text[i:])
+	} else {
+		ver = text
+	}
+	if rest != "" && !strings.HasPrefix(rest, "-") {
+		return false
+	}
+	return strings.TrimPrefix(ver, "v") == want
 }
 
 func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string) (bool, error) {
@@ -360,6 +472,10 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string)
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
 func (r *Releaser) CreateReleases() error {
+	if err := config.ValidateReleaseNotesSource(r.config.ReleaseNotesSource); err != nil {
+		return err
+	}
+
 	worktree := ""
 	if r.config.PackagesWithIndex {
 		var err error
