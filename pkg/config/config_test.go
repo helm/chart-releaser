@@ -22,6 +22,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestLoadConfigurationReleaseNotesSource(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		want    string
+		wantErr string
+	}{
+		{name: "default empty", args: nil, want: ""},
+		{name: "file", args: []string{"--release-notes-source=file"}, want: "file"},
+		{name: "changelog", args: []string{"--release-notes-source=changelog"}, want: "changelog"},
+		{name: "case-insensitive changelog", args: []string{"--release-notes-source=CHANGELOG"}, want: "CHANGELOG"},
+		{name: "invalid", args: []string{"--release-notes-source=github"}, wantErr: `invalid --release-notes-source "github"`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := &cobra.Command{Use: "upload"}
+			cmd.Flags().String("release-notes-source", "", "")
+			require.NoError(t, cmd.ParseFlags(tt.args))
+
+			opts, err := LoadConfiguration("", cmd, nil)
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, opts.ReleaseNotesSource)
+		})
+	}
+}
+
 func TestLoadConfigurationPreRelease(t *testing.T) {
 	tests := []struct {
 		name       string
