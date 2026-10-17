@@ -194,6 +194,10 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 
 	indexFile.Generated = time.Now()
 
+	if err := os.MkdirAll(filepath.Dir(r.config.IndexPath), 0o755); err != nil {
+		return false, err
+	}
+
 	if err := indexFile.WriteFile(r.config.IndexPath, 0644); err != nil {
 		return false, err
 	}
