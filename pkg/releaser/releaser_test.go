@@ -746,3 +746,30 @@ type FakeGitHubWithURLEncoding struct {
 func (f *FakeGitHubWithURLEncoding) GetRelease(_ context.Context, _ string) (*github.Release, error) {
 	return f.release, nil
 }
+
+func TestReleaser_UpdateIndexFileCreatesPagesIndexDir(t *testing.T) {
+	// the directory of the pages index path does not exist in the Pages branch yet
+	fakeGit := new(FakeGit)
+	fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+	fakeGit.On("Pull", mock.Anything, mock.Anything).Return(nil)
+	fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
+	fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
+	fakeGit.On("Push", mock.Anything, mock.Anything).Return(nil)
+	fakeGit.On("GetPushURL", mock.Anything, mock.Anything).Return("", nil)
+
+	r := &Releaser{
+		config: &config.Options{
+			IndexPath:      filepath.Join(t.TempDir(), "index.yaml"),
+			PackagePath:    "testdata/release-packages",
+			PagesIndexPath: "dev/charts/index.yaml",
+			Push:           true,
+		},
+		github: new(FakeGitHub),
+		git:    fakeGit,
+	}
+
+	updated, err := r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.True(t, updated)
+	fakeGit.AssertCalled(t, "Commit", mock.Anything, "Update dev/charts/index.yaml")
+}

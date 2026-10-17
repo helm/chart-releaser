@@ -202,6 +202,10 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return true, nil
 	}
 
+	if err := os.MkdirAll(filepath.Dir(indexYamlPath), 0o755); err != nil {
+		return false, err
+	}
+
 	if err := copyFile(r.config.IndexPath, indexYamlPath); err != nil {
 		return false, err
 	}
