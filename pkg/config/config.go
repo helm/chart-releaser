@@ -59,6 +59,7 @@ type Options struct {
 	ReleaseNameTemplate  string `mapstructure:"release-name-template"`
 	SkipExisting         bool   `mapstructure:"skip-existing"`
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
+	ReleaseNotesSource   string `mapstructure:"release-notes-source"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
 	PreRelease           bool   `mapstructure:"pre-release"`
@@ -114,6 +115,10 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		return nil, fmt.Errorf("error unmarshaling configuration: %w", err)
 	}
 
+	if err := ValidateReleaseNotesSource(opts.ReleaseNotesSource); err != nil {
+		return nil, err
+	}
+
 	if opts.Push && opts.PR {
 		return nil, errors.New("specify either --push or --pr, but not both")
 	}
@@ -139,6 +144,17 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 	}
 
 	return opts, nil
+}
+
+// ValidateReleaseNotesSource reports whether source is a supported value for
+// --release-notes-source. Empty and "file" keep the historical behaviour.
+func ValidateReleaseNotesSource(source string) error {
+	switch strings.ToLower(strings.TrimSpace(source)) {
+	case "", "file", "changelog":
+		return nil
+	default:
+		return fmt.Errorf("invalid --release-notes-source %q: must be \"file\" or \"changelog\"", source)
+	}
 }
 
 func kebabCaseToTitleCamelCase(input string) (result string) {
