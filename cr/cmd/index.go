@@ -77,4 +77,5 @@ func init() {
 	flags.Bool("pr", false, "Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)")
 	flags.String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 	flags.Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
+	flags.String("index-commit-message", "Update {{ .PagesIndexPath }}", "Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}'")
 }
