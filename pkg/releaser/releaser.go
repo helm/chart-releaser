@@ -448,6 +448,16 @@ func (r *Releaser) CreateReleases() error {
 		if r.config.SkipExisting {
 			existingRelease, _ := r.github.GetRelease(context.TODO(), releaseName)
 			if existingRelease != nil {
+				if r.config.PackagesWithIndex {
+					pkgTargetPath := filepath.Join(worktree, filepath.Base(p))
+					if _, err := os.Stat(pkgTargetPath); errors.Is(err, os.ErrNotExist) {
+						if err := r.commitPackage(worktree, p, releaseName); err != nil {
+							return err
+						}
+					} else if err != nil {
+						return err
+					}
+				}
 				continue
 			}
 		}
@@ -479,22 +489,7 @@ func (r *Releaser) CreateReleases() error {
 		}
 
 		if r.config.PackagesWithIndex {
-			pkgTargetPath := filepath.Join(worktree, filepath.Base(p))
-			if err := copyFile(p, pkgTargetPath); err != nil {
-				return err
-			}
-
-			if err := r.git.Add(worktree, pkgTargetPath); err != nil {
-				return err
-			}
-
-			message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
-				struct{ ReleaseName string }{releaseName})
-			if err != nil {
-				return err
-			}
-
-			if err := r.git.Commit(worktree, message); err != nil {
+			if err := r.commitPackage(worktree, p, releaseName); err != nil {
 				return err
 			}
 		}
@@ -506,6 +501,22 @@ func (r *Releaser) CreateReleases() error {
 	}
 
 	return nil
+}
+
+func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) error {
+	pkgTargetPath := filepath.Join(worktree, filepath.Base(packagePath))
+	if err := copyFile(packagePath, pkgTargetPath); err != nil {
+		return err
+	}
+	if err := r.git.Add(worktree, pkgTargetPath); err != nil {
+		return err
+	}
+	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
+		struct{ ReleaseName string }{releaseName})
+	if err != nil {
+		return err
+	}
+	return r.git.Commit(worktree, message)
 }
 
 func (r *Releaser) getListOfPackages(dir string) ([]string, error) {
