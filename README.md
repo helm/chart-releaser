@@ -86,6 +86,10 @@ Unfortuntely the releaser-tool won't automatically add repositories for dependen
 
 Scans a path for Helm chart packages and creates releases in the specified GitHub repo uploading the packages.
 
+With `--skip-existing`, existing GitHub releases are left unchanged. When
+`--packages-with-index` is also set, missing chart packages are still copied to
+the Pages branch; packages already present there are left untouched.
+
 ```console
 $ cr upload --help
 Upload Helm chart packages to GitHub Releases
