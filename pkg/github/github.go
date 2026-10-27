@@ -104,13 +104,23 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 	return result, nil
 }
 
-// CreateRelease creates a new release object in the GitHub API.
+// CreateRelease adds assets to an existing published release or creates a new one.
 // To support repositories with immutable releases enabled (see
 // https://github.blog/changelog/2025-10-28-immutable-releases-are-now-generally-available/),
 // the release is first created as a draft, assets are uploaded, and then
 // the release is published. This ensures that assets can be uploaded before
 // the release becomes immutable.
 func (c *Client) CreateRelease(_ context.Context, input *Release) error {
+	// Check before creating a draft: GitHub can create another draft for a tag
+	// that already has a published release.
+	release, resp, err := c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, input.Name)
+	if err != nil && (resp == nil || resp.StatusCode != 404) {
+		return fmt.Errorf("getting the existing release: %w", err)
+	}
+	if err == nil {
+		return c.uploadReleaseAssets(release.GetID(), input.Assets)
+	}
+
 	draft := true
 	req := &github.RepositoryRelease{
 		Name:                 &input.Name,
@@ -123,7 +133,7 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		Draft:                &draft,
 	}
 
-	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
+	release, _, err = c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
 	if err != nil {
 		if !isErrTagAlreadyExist(err) {
 			return err
@@ -133,12 +143,11 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		if err != nil {
 			return fmt.Errorf("getting the existing release: %w", err)
 		}
+		return c.uploadReleaseAssets(release.GetID(), input.Assets)
 	}
 
-	for _, asset := range input.Assets {
-		if err := c.uploadReleaseAsset(context.TODO(), *release.ID, asset.Path); err != nil {
-			return err
-		}
+	if err := c.uploadReleaseAssets(release.GetID(), input.Assets); err != nil {
+		return err
 	}
 
 	// Publish the release by setting draft to false
@@ -152,6 +161,15 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		return fmt.Errorf("failed to publish release: %w", err)
 	}
 
+	return nil
+}
+
+func (c *Client) uploadReleaseAssets(releaseID int64, assets []*Asset) error {
+	for _, asset := range assets {
+		if err := c.uploadReleaseAsset(context.TODO(), releaseID, asset.Path); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
