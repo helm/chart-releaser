@@ -102,6 +102,45 @@ With `--skip-existing`, existing GitHub releases are left unchanged. When
 `--packages-with-index` is also set, missing chart packages are still copied to
 the Pages branch; packages already present there are left untouched.
 
+#### Replacing mutable chart releases
+
+To intentionally replace an already published chart version, pass
+`--replace-existing` to **both** `cr upload` and `cr index` (or set
+`CR_REPLACE_EXISTING=true` for both commands). This cannot be combined with
+`--skip-existing`. By default, existing releases still cause upload to fail.
+
+```sh
+cr upload --owner <owner> --git-repo <repo> --replace-existing
+cr index --owner <owner> --git-repo <repo> --replace-existing --push
+```
+
+Replacement preserves the release ID, tag, release notes, and other release
+metadata. It replaces only the chart archive and its matching `.tgz.prov` file;
+an old provenance file is removed if the replacement is unsigned. Unrelated
+release assets are retained. External signatures or attestations are not
+regenerated. Immutable releases are rejected before any asset changes: publish
+a new chart version instead.
+
+New assets are staged under temporary names before the originals are renamed.
+If uploading or promoting the replacement fails, the client attempts to restore
+the original names. A failed cleanup is reported with the asset ID; backups use
+names that index generation ignores. After a successful replacement, `cr index
+--replace-existing` refreshes the exact chart version's checksum, metadata, and
+URL while preserving other versions. Without this flag, existing index entries
+are left unchanged, which would leave an outdated checksum after replacement.
+
+For `--packages-with-index`, pass that flag to both commands and also pass
+`--push` to `cr upload`. The Pages archive and optional provenance are updated
+alongside the GitHub assets, including removal of stale provenance.
+
+Serialize publishing jobs. GitHub asset updates and Pages/index pushes are
+separate operations, with no atomic transaction across them. If a run is
+interrupted, inspect any reported temporary assets and rerun upload and index
+with the **same packages** before using the repository. Consumers may cache
+previous bytes for a version, so publishing a new version is generally preferable.
+The action needs a chart-releaser version containing this feature before it can
+expose a replacement input.
+
 ```console
 $ cr upload --help
 Upload Helm chart packages to GitHub Releases
@@ -121,11 +160,13 @@ Flags:
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --release-notes-file string      Markdown file with chart release notes. If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package
       --skip-existing                  Skip upload if release exists
+      --replace-existing               Replace chart assets in existing mutable releases (also use with cr index)
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
       --pre-release                    Mark the release as a pre-release
       --package-commit-message string  Go template for the commit message when the packages are hosted in the Pages branch (--packages-with-index) (default "Publishing chart package for {{ .ReleaseName }}")
       --packages-with-index            Host the package files in the GitHub Pages branch
+      --replace-existing               Update existing chart versions using the supplied packages, including checksums
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)

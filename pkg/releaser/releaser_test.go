@@ -96,6 +96,11 @@ func (f *FakeGitHub) CreateRelease(ctx context.Context, input *github.Release) e
 	return nil
 }
 
+func (f *FakeGitHub) ReplaceReleaseAssets(ctx context.Context, input *github.Release) (bool, error) {
+	args := f.Called(ctx, input)
+	return args.Bool(0), args.Error(1)
+}
+
 func (f *FakeGitHub) GetRelease(ctx context.Context, tag string) (*github.Release, error) { //nolint: revive
 	release := &github.Release{
 		Name:        "testdata/release-packages/test-chart-0.1.0",
@@ -465,7 +470,7 @@ func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
 			}
 			r := &Releaser{config: &config.Options{PackagePath: tt.packagePath}}
 			downloadURL := "https://myrepo/charts/test-chart-" + strings.ReplaceAll(tt.version, "+", "%2B") + ".tgz"
-			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL)
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL, "")
 			require.NoError(t, err)
 			require.Equal(t, tt.wantUpdated, updated)
 
@@ -479,7 +484,7 @@ func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
 			}
 			assert.ElementsMatch(t, wantVersions, versions)
 
-			updated, err = r.maybeAddToIndexFile(indexFile, downloadURL)
+			updated, err = r.maybeAddToIndexFile(indexFile, downloadURL, "")
 			require.NoError(t, err)
 			assert.False(t, updated, "an exact version already present must not be added again")
 			assert.Len(t, indexFile.Entries["test-chart"], len(wantVersions))
