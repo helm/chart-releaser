@@ -98,11 +98,12 @@ func TestReplaceIndexEntry(t *testing.T) {
 				if entry.Version == metadata.Version {
 					assert.Equal(t, digest, entry.Digest)
 					assert.Equal(t, "updated", entry.Description)
-					if tt.pages {
+					switch {
+					case tt.pages:
 						assert.Equal(t, []string{"example-1.0.0+new.tgz"}, entry.URLs)
-					} else if tt.useAPI {
+					case tt.useAPI:
 						assert.Equal(t, []string{apiURL}, entry.URLs)
-					} else {
+					default:
 						assert.Equal(t, []string{strings.ReplaceAll(assetURL, "%2B", "+")}, entry.URLs)
 					}
 				} else {

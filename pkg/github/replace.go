@@ -24,6 +24,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/go-github/v56/github"
 )
@@ -102,7 +103,8 @@ func (c *Client) ReplaceReleaseAssets(ctx context.Context, input *Release) (bool
 	var renamed []*github.ReleaseAsset
 	rollback := func(cause error) error {
 		// Cleanup must still be attempted after cancellation of the operation.
-		cleanupCtx := context.WithoutCancel(ctx)
+		cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+		defer cancel()
 		for _, asset := range staged {
 			if _, err := c.Repositories.DeleteReleaseAsset(cleanupCtx, c.owner, c.repo, asset.GetID()); err != nil {
 				cause = errors.Join(cause, fmt.Errorf("removing staged asset %d: %w", asset.GetID(), err))

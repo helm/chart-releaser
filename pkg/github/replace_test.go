@@ -44,6 +44,7 @@ func TestReplaceReleaseAssets(t *testing.T) {
 		{name: "failed second upload", provenance: true, failure: "upload", wantError: true},
 		{name: "failed backup rename", provenance: true, failure: "backup", wantError: true},
 		{name: "failed promotion", provenance: true, failure: "promote", wantError: true},
+		{name: "rollback failure reports retained original", provenance: true, failure: "rollback", wantError: true},
 		{name: "retained backup", provenance: true, failure: "cleanup"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -97,7 +98,7 @@ func TestReplaceReleaseAssets(t *testing.T) {
 						return
 					}
 					if r.Method == http.MethodDelete {
-						if tt.failure == "cleanup" && id == 1 {
+						if (tt.failure == "cleanup" && id == 1) || (tt.failure == "rollback" && id == 10) {
 							w.WriteHeader(http.StatusForbidden)
 							return
 						}
@@ -109,7 +110,7 @@ func TestReplaceReleaseAssets(t *testing.T) {
 					var update asset
 					require.NoError(t, json.NewDecoder(r.Body).Decode(&update))
 					if (tt.failure == "backup" && id == 2 && strings.HasSuffix(update.Name, "-backup")) ||
-						(tt.failure == "promote" && id == 11 && update.Name == "chart.tgz.prov") {
+						((tt.failure == "promote" || tt.failure == "rollback") && id == 11 && update.Name == "chart.tgz.prov") {
 						w.WriteHeader(http.StatusForbidden)
 						return
 					}
@@ -141,9 +142,16 @@ func TestReplaceReleaseAssets(t *testing.T) {
 			defer mu.Unlock()
 			if tt.wantError {
 				require.Error(t, err)
-				require.Len(t, assets, 3)
+				if tt.failure == "rollback" {
+					require.Len(t, assets, 4)
+					require.ErrorContains(t, err, "removing staged asset 10")
+					require.ErrorContains(t, err, "restoring asset 1 to chart.tgz")
+					assert.True(t, strings.HasSuffix(assets[1].Name, "-backup"), "the original bytes must be retained for recovery")
+				} else {
+					require.Len(t, assets, 3)
+					assert.Equal(t, "chart.tgz", assets[1].Name)
+				}
 				assert.Equal(t, "old archive", assets[1].Bytes)
-				assert.Equal(t, "chart.tgz", assets[1].Name)
 				assert.Equal(t, "old provenance", assets[2].Bytes)
 				assert.Equal(t, "chart.tgz.prov", assets[2].Name)
 			} else {

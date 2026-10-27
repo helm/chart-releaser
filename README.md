@@ -166,7 +166,6 @@ Flags:
       --pre-release                    Mark the release as a pre-release
       --package-commit-message string  Go template for the commit message when the packages are hosted in the Pages branch (--packages-with-index) (default "Publishing chart package for {{ .ReleaseName }}")
       --packages-with-index            Host the package files in the GitHub Pages branch
-      --replace-existing               Update existing chart versions using the supplied packages, including checksums
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
@@ -258,6 +257,7 @@ Flags:
       --index-commit-message string    Go template for the commit message of the index update (default "Update {{ .PagesIndexPath }}")
       --use-api-asset-url              Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)
       --packages-with-index            Host the package files in the GitHub Pages branch
+      --replace-existing               Update existing chart versions using the supplied packages, including checksums
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
