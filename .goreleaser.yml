@@ -55,132 +55,57 @@ checksum:
 snapshot:
   version_template: "{{ .Tag }}-next"
 
-dockers:
-  - goos: linux
-    goarch: amd64
-    skip_push: "{{ if ne .GitURL \"https://github.com/helm/chart-releaser\" }}true{{ else }}false{{ end }}"
+dockers_v2:
+  - &docker_defaults
+    id: multiarch
     dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
-      - quay.io/helmpack/chart-releaser:latest-amd64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-amd64
-      - ghcr.io/helm/chart-releaser:latest-amd64
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - --label=org.label-schema.schema-version=1.0
-      - --label=org.label-schema.version={{ .Version }}
-      - --label=org.label-schema.name={{ .ProjectName }}
-      - --label=org.label-schema.build-date={{ .Date }}
-      - --label=org.label-schema.description='cr - The chart release tool'
-      - --label=org.label-schema.vendor=Helm
+    images:
+      - quay.io/helmpack/chart-releaser
+      - ghcr.io/helm/chart-releaser
+    tags:
+      - '{{ .Tag }}'
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - linux/arm/v7
+      - linux/s390x
+      - linux/ppc64le
+    # Snapshot builds remain available on forks; releases only publish upstream.
+    disable: '{{ and (not .IsSnapshot) (ne .GitURL "https://github.com/helm/chart-releaser") }}'
+    # Preserve the existing image format; archive SBOMs are configured above.
+    sbom: false
+    flags:
+      - --provenance=false
+    labels:
+      org.label-schema.schema-version: '1.0'
+      org.label-schema.version: '{{ .Version }}'
+      org.label-schema.name: '{{ .ProjectName }}'
+      org.label-schema.build-date: '{{ .Date }}'
+      org.label-schema.description: cr - The chart release tool
+      org.label-schema.vendor: Helm
 
-  - goos: linux
-    goarch: arm64
-    skip_push: "{{ if ne .GitURL \"https://github.com/helm/chart-releaser\" }}true{{ else }}false{{ end }}"
-    dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
-      - quay.io/helmpack/chart-releaser:latest-arm64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-arm64
-      - ghcr.io/helm/chart-releaser:latest-arm64
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - --label=org.label-schema.schema-version=1.0
-      - --label=org.label-schema.version={{ .Version }}
-      - --label=org.label-schema.name={{ .ProjectName }}
-      - --label=org.label-schema.build-date={{ .Date }}
-      - --label=org.label-schema.description='cr - The chart release tool'
-      - --label=org.label-schema.vendor=Helm
-
-  - goos: linux
-    goarch: arm
-    goarm: 7
-    skip_push: "{{ if ne .GitURL \"https://github.com/helm/chart-releaser\" }}true{{ else }}false{{ end }}"
-    dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
-      - quay.io/helmpack/chart-releaser:latest-armv7
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-armv7
-      - ghcr.io/helm/chart-releaser:latest-armv7
-    build_flag_templates:
-      - "--platform=linux/arm/v7"
-      - --label=org.label-schema.schema-version=1.0
-      - --label=org.label-schema.version={{ .Version }}
-      - --label=org.label-schema.name={{ .ProjectName }}
-      - --label=org.label-schema.build-date={{ .Date }}
-      - --label=org.label-schema.description='cr - The chart release tool'
-      - --label=org.label-schema.vendor=Helm
-
-  - goos: linux
-    goarch: s390x
-    skip_push: "{{ if ne .GitURL \"https://github.com/helm/chart-releaser\" }}true{{ else }}false{{ end }}"
-    dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:latest-s390x
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-s390x
-      - ghcr.io/helm/chart-releaser:latest-s390x
-    build_flag_templates:
-      - "--platform=linux/s390x"
-      - --label=org.label-schema.schema-version=1.0
-      - --label=org.label-schema.version={{ .Version }}
-      - --label=org.label-schema.name={{ .ProjectName }}
-      - --label=org.label-schema.build-date={{ .Date }}
-      - --label=org.label-schema.description='cr - The chart release tool'
-      - --label=org.label-schema.vendor=Helm
-
-  - goos: linux
-    goarch: ppc64le
-    skip_push: "{{ if ne .GitURL \"https://github.com/helm/chart-releaser\" }}true{{ else }}false{{ end }}"
-    dockerfile: Dockerfile
-    use: buildx
-    image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
-      - quay.io/helmpack/chart-releaser:latest-ppc64le
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-ppc64le
-      - ghcr.io/helm/chart-releaser:latest-ppc64le
-    build_flag_templates:
-      - "--platform=linux/ppc64le"
-      - --label=org.label-schema.schema-version=1.0
-      - --label=org.label-schema.version={{ .Version }}
-      - --label=org.label-schema.name={{ .ProjectName }}
-      - --label=org.label-schema.build-date={{ .Date }}
-      - --label=org.label-schema.description='cr - The chart release tool'
-      - --label=org.label-schema.vendor=Helm
-
-docker_manifests:
-  - name_template: quay.io/helmpack/chart-releaser:{{ .Tag }}
-    image_templates:
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-amd64
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-arm64
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-armv7
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-s390x
-      - quay.io/helmpack/chart-releaser:{{ .Tag }}-ppc64le
-  - name_template: ghcr.io/helm/chart-releaser:{{ .Tag }}
-    image_templates:
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-amd64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-arm64
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-armv7
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-s390x
-      - ghcr.io/helm/chart-releaser:{{ .Tag }}-ppc64le
-  - name_template: quay.io/helmpack/chart-releaser:latest
-    image_templates:
-      - quay.io/helmpack/chart-releaser:latest-amd64
-      - quay.io/helmpack/chart-releaser:latest-arm64
-      - quay.io/helmpack/chart-releaser:latest-armv7
-      - quay.io/helmpack/chart-releaser:latest-s390x
-      - quay.io/helmpack/chart-releaser:latest-ppc64le
-  - name_template: ghcr.io/helm/chart-releaser:latest
-    image_templates:
-      - ghcr.io/helm/chart-releaser:latest-amd64
-      - ghcr.io/helm/chart-releaser:latest-arm64
-      - ghcr.io/helm/chart-releaser:latest-armv7
-      - ghcr.io/helm/chart-releaser:latest-s390x
-      - ghcr.io/helm/chart-releaser:latest-ppc64le
+  # Retain the published architecture-suffixed tags for existing consumers.
+  - <<: *docker_defaults
+    id: amd64
+    tags: ['{{ .Tag }}-amd64', latest-amd64]
+    platforms: [linux/amd64]
+  - <<: *docker_defaults
+    id: arm64
+    tags: ['{{ .Tag }}-arm64', latest-arm64]
+    platforms: [linux/arm64]
+  - <<: *docker_defaults
+    id: armv7
+    tags: ['{{ .Tag }}-armv7', latest-armv7]
+    platforms: [linux/arm/v7]
+  - <<: *docker_defaults
+    id: s390x
+    tags: ['{{ .Tag }}-s390x', latest-s390x]
+    platforms: [linux/s390x]
+  - <<: *docker_defaults
+    id: ppc64le
+    tags: ['{{ .Tag }}-ppc64le', latest-ppc64le]
+    platforms: [linux/ppc64le]
 
 signs:
   - id: all
@@ -193,4 +118,5 @@ docker_signs:
   - id: images
     cmd: cosign
     args: ["sign", "${artifact}"]
-    artifacts: manifests
+    ids:
+      - multiarch
