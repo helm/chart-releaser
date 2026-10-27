@@ -342,6 +342,9 @@ func (r *Releaser) computePreviousReleaseName(ctx context.Context, chart *chart.
 }
 
 func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
+	if strings.EqualFold(strings.TrimSpace(r.config.ReleaseNotesSource), "changelog") {
+		return r.releaseNotesFromChangelog(chart)
+	}
 	if r.config.ReleaseNotesFile != "" {
 		for _, f := range chart.Files {
 			if f.Name == r.config.ReleaseNotesFile {
@@ -351,6 +354,132 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 		fmt.Printf("The release note file %q, is not present in the chart package\n", r.config.ReleaseNotesFile)
 	}
 	return chart.Metadata.Description
+}
+
+func (r *Releaser) releaseNotesFromChangelog(chart *chart.Chart) string {
+	filename := r.config.ReleaseNotesFile
+	if filename == "" {
+		filename = "CHANGELOG.md"
+	}
+	for _, f := range chart.Files {
+		if f.Name == filename {
+			if notes := parseChangelogSection(string(f.Data), chart.Metadata.Version); notes != "" {
+				return notes
+			}
+			fmt.Printf("No changelog section found for version %q in %q\n", chart.Metadata.Version, filename)
+			return chart.Metadata.Description
+		}
+	}
+	fmt.Printf("The changelog file %q, is not present in the chart package\n", filename)
+	return chart.Metadata.Description
+}
+
+// parseChangelogSection returns the Keep a Changelog section for version,
+// including the heading. Comparison ignores an optional leading "v". Empty is
+// returned when the version heading is absent. ## Unreleased is skipped.
+func parseChangelogSection(changelog, version string) string {
+	if changelog == "" || version == "" {
+		return ""
+	}
+	lines := strings.Split(strings.ReplaceAll(changelog, "\r\n", "\n"), "\n")
+	start := -1
+	startLevel := 0
+	var fence byte
+	fenceLength := 0
+	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		indent := len(line) - len(trimmed)
+		if indent <= 3 && len(trimmed) > 0 && (trimmed[0] == '`' || trimmed[0] == '~') {
+			marker := trimmed[0]
+			length := len(trimmed) - len(strings.TrimLeft(trimmed, string(marker)))
+			rest := trimmed[length:]
+			if fence == 0 && length >= 3 && (marker != '`' || !strings.Contains(rest, "`")) {
+				fence, fenceLength = marker, length
+				continue
+			}
+			if fence == marker && length >= fenceLength && strings.TrimSpace(rest) == "" {
+				fence, fenceLength = 0, 0
+				continue
+			}
+		}
+		if fence != 0 {
+			continue
+		}
+		level, text, ok := atxHeading(line)
+		if !ok {
+			continue
+		}
+		if start >= 0 {
+			if level <= startLevel {
+				return trimChangelogSection(lines[start:i])
+			}
+			continue
+		}
+		if changelogHeadingMatchesVersion(text, version) {
+			start = i
+			startLevel = level
+		}
+	}
+	if start >= 0 {
+		return trimChangelogSection(lines[start:])
+	}
+	return ""
+}
+
+func trimChangelogSection(lines []string) string {
+	return strings.TrimRight(strings.Join(lines, "\n"), " \t\n")
+}
+
+func atxHeading(line string) (int, string, bool) {
+	trimmed := strings.TrimLeft(line, " ")
+	if len(line)-len(trimmed) > 3 {
+		return 0, "", false
+	}
+	line = trimmed
+	if !strings.HasPrefix(line, "#") {
+		return 0, "", false
+	}
+	level := 0
+	for level < len(line) && line[level] == '#' {
+		level++
+	}
+	if level == 0 || level > 6 || level == len(line) || (line[level] != ' ' && line[level] != '\t') {
+		return 0, "", false
+	}
+	text := strings.TrimSpace(line[level:])
+	withoutClosing := strings.TrimRight(text, "#")
+	if len(withoutClosing) < len(text) && (withoutClosing == "" || strings.HasSuffix(withoutClosing, " ") || strings.HasSuffix(withoutClosing, "\t")) {
+		text = strings.TrimSpace(withoutClosing)
+	}
+	return level, text, true
+}
+
+func changelogHeadingMatchesVersion(text, version string) bool {
+	text = strings.TrimSpace(text)
+	want := strings.TrimPrefix(version, "v")
+
+	var ver, rest string
+	if strings.HasPrefix(text, "[") {
+		end := strings.Index(text, "]")
+		if end < 0 {
+			return false
+		}
+		ver = text[1:end]
+		rest = strings.TrimSpace(text[end+1:])
+	} else {
+		parts := strings.Fields(text)
+		if len(parts) == 0 {
+			return false
+		}
+		ver = parts[0]
+		rest = strings.TrimSpace(strings.TrimPrefix(text, ver))
+	}
+	// Parentheses allow inline comparison links and parenthesized dates used
+	// by release-please and conventional-changelog.
+	if rest != "" && !strings.HasPrefix(rest, "-") && !strings.HasPrefix(rest, "(") {
+		return false
+	}
+	return strings.TrimPrefix(ver, "v") == want
 }
 
 func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string) (bool, error) {
@@ -399,6 +528,10 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string)
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
 func (r *Releaser) CreateReleases() error {
+	if err := config.ValidateReleaseNotesSource(r.config.ReleaseNotesSource); err != nil {
+		return err
+	}
+
 	worktree := ""
 	if r.config.PackagesWithIndex {
 		var err error

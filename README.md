@@ -86,6 +86,18 @@ Unfortuntely the releaser-tool won't automatically add repositories for dependen
 
 Scans a path for Helm chart packages and creates releases in the specified GitHub repo uploading the packages.
 
+Use `cr upload --release-notes-source changelog` to extract the chart version's
+section from `CHANGELOG.md` inside the chart package. To select another changelog
+file, also set `--release-notes-file path/to/CHANGELOG.md`. In the default `file`
+mode, `--release-notes-file` supplies the entire release notes body instead.
+Missing files or versions fall back to the chart description.
+
+Changelog headings use ATX Markdown (`## [1.2.3] - date`, `## v1.2.3`, or linked
+version headings with parenthesized dates). Up to three leading spaces and
+closing hashes are supported; setext headings are not. Fenced code blocks are
+preserved. `--generate-release-notes` appends GitHub's generated notes to the
+selected body.
+
 ```console
 $ cr upload --help
 Upload Helm chart packages to GitHub Releases
@@ -104,6 +116,7 @@ Flags:
   -p, --package-path string            Path to directory with chart packages (default ".cr-release-packages")
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --release-notes-file string      Markdown file with chart release notes. If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package
+      --release-notes-source string    Source of GitHub release notes: file uses --release-notes-file or the chart description; changelog extracts the section matching the chart version from CHANGELOG.md (or --release-notes-file if set). The file is read from the chart package (default "file")
       --skip-existing                  Skip upload if release exists
   -t, --token string                   GitHub Auth Token
       --make-release-latest bool       Mark the created GitHub release as 'latest' (default "true")
