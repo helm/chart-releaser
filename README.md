@@ -86,6 +86,12 @@ Unfortuntely the releaser-tool won't automatically add repositories for dependen
 
 Scans a path for Helm chart packages and creates releases in the specified GitHub repo uploading the packages.
 
+If a published release already exists for the chart's release name, `cr upload`
+adds assets to it without changing its name, notes, pre-release status, or latest
+status. Use `--skip-existing` to skip it instead. Existing assets are not
+overwritten. Published immutable releases cannot accept new assets. Existing
+draft releases are not reused; publish or remove them before uploading.
+
 ```console
 $ cr upload --help
 Upload Helm chart packages to GitHub Releases
