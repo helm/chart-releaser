@@ -384,7 +384,27 @@ func parseChangelogSection(changelog, version string) string {
 	lines := strings.Split(strings.ReplaceAll(changelog, "\r\n", "\n"), "\n")
 	start := -1
 	startLevel := 0
+	var fence byte
+	fenceLength := 0
 	for i, line := range lines {
+		trimmed := strings.TrimLeft(line, " ")
+		indent := len(line) - len(trimmed)
+		if indent <= 3 && len(trimmed) > 0 && (trimmed[0] == '`' || trimmed[0] == '~') {
+			marker := trimmed[0]
+			length := len(trimmed) - len(strings.TrimLeft(trimmed, string(marker)))
+			rest := trimmed[length:]
+			if fence == 0 && length >= 3 && (marker != '`' || !strings.Contains(rest, "`")) {
+				fence, fenceLength = marker, length
+				continue
+			}
+			if fence == marker && length >= fenceLength && strings.TrimSpace(rest) == "" {
+				fence, fenceLength = 0, 0
+				continue
+			}
+		}
+		if fence != 0 {
+			continue
+		}
 		level, text, ok := atxHeading(line)
 		if !ok {
 			continue
@@ -393,9 +413,6 @@ func parseChangelogSection(changelog, version string) string {
 			if level <= startLevel {
 				return trimChangelogSection(lines[start:i])
 			}
-			continue
-		}
-		if isUnreleasedChangelogHeading(text) {
 			continue
 		}
 		if changelogHeadingMatchesVersion(text, version) {
@@ -414,6 +431,11 @@ func trimChangelogSection(lines []string) string {
 }
 
 func atxHeading(line string) (int, string, bool) {
+	trimmed := strings.TrimLeft(line, " ")
+	if len(line)-len(trimmed) > 3 {
+		return 0, "", false
+	}
+	line = trimmed
 	if !strings.HasPrefix(line, "#") {
 		return 0, "", false
 	}
@@ -424,21 +446,12 @@ func atxHeading(line string) (int, string, bool) {
 	if level == 0 || level > 6 || level == len(line) || (line[level] != ' ' && line[level] != '\t') {
 		return 0, "", false
 	}
-	return level, strings.TrimSpace(line[level:]), true
-}
-
-func isUnreleasedChangelogHeading(text string) bool {
-	name := strings.TrimSpace(text)
-	if strings.HasPrefix(name, "[") {
-		end := strings.Index(name, "]")
-		if end < 0 {
-			return false
-		}
-		name = name[1:end]
-	} else if i := strings.Index(name, " - "); i >= 0 {
-		name = strings.TrimSpace(name[:i])
+	text := strings.TrimSpace(line[level:])
+	withoutClosing := strings.TrimRight(text, "#")
+	if len(withoutClosing) < len(text) && (withoutClosing == "" || strings.HasSuffix(withoutClosing, " ") || strings.HasSuffix(withoutClosing, "\t")) {
+		text = strings.TrimSpace(withoutClosing)
 	}
-	return strings.EqualFold(name, "unreleased")
+	return level, text, true
 }
 
 func changelogHeadingMatchesVersion(text, version string) bool {
@@ -453,13 +466,17 @@ func changelogHeadingMatchesVersion(text, version string) bool {
 		}
 		ver = text[1:end]
 		rest = strings.TrimSpace(text[end+1:])
-	} else if i := strings.Index(text, " - "); i >= 0 {
-		ver = strings.TrimSpace(text[:i])
-		rest = strings.TrimSpace(text[i:])
 	} else {
-		ver = text
+		parts := strings.Fields(text)
+		if len(parts) == 0 {
+			return false
+		}
+		ver = parts[0]
+		rest = strings.TrimSpace(strings.TrimPrefix(text, ver))
 	}
-	if rest != "" && !strings.HasPrefix(rest, "-") {
+	// Parentheses allow inline comparison links and parenthesized dates used
+	// by release-please and conventional-changelog.
+	if rest != "" && !strings.HasPrefix(rest, "-") && !strings.HasPrefix(rest, "(") {
 		return false
 	}
 	return strings.TrimPrefix(ver, "v") == want

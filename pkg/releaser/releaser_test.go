@@ -680,12 +680,6 @@ func TestParseChangelogSection(t *testing.T) {
 			want:      "## [1.2.3] - 2024-01-02\n\n### Added\n\n- matching version notes",
 		},
 		{
-			name:      "skips-unreleased-and-older-versions",
-			changelog: testKeepAChangelog,
-			version:   "1.2.3",
-			want:      "## [1.2.3] - 2024-01-02\n\n### Added\n\n- matching version notes",
-		},
-		{
 			name: "bare-version-with-date",
 			changelog: `# Changelog
 
@@ -763,13 +757,6 @@ func TestReleaser_getReleaseNotes_changelog(t *testing.T) {
 	}{
 		{
 			name:     "extracts-matching-version-section",
-			source:   "changelog",
-			version:  "1.2.3",
-			files:    []*chart.File{{Name: "CHANGELOG.md", Data: []byte(testKeepAChangelog)}},
-			expected: matchingNotes,
-		},
-		{
-			name:     "unreleased-and-older-versions-ignored",
 			source:   "CHANGELOG",
 			version:  "1.2.3",
 			files:    []*chart.File{{Name: "CHANGELOG.md", Data: []byte(testKeepAChangelog)}},

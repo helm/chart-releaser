@@ -55,8 +55,8 @@ func init() {
 	uploadCmd.Flags().String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 	uploadCmd.Flags().String("release-notes-file", "", "Markdown file with chart release notes. "+
 		"If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package")
-	uploadCmd.Flags().String("release-notes-source", "", "Source of GitHub release notes: "+
-		"file (default) uses --release-notes-file or the chart description; "+
+	uploadCmd.Flags().String("release-notes-source", "file", "Source of GitHub release notes: "+
+		"file uses --release-notes-file or the chart description; "+
 		"changelog extracts the Keep a Changelog section matching the chart version from CHANGELOG.md "+
 		"(or --release-notes-file if set). The file is read from the chart package")
 	uploadCmd.Flags().Bool("generate-release-notes", false, "Whether to automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases")
