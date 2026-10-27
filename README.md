@@ -13,6 +13,18 @@
 
 Download your preferred asset from the [releases page](https://github.com/helm/chart-releaser/releases) and install manually.
 
+Release artifacts signed with Cosign 3 include a `.sigstore.json` bundle instead
+of separate `.sig` and `.pem` files. To verify a downloaded artifact, use its
+matching bundle and the release tag's workflow identity:
+
+```sh
+cosign verify-blob \
+  --bundle chart-releaser_1.9.0_linux_amd64.tar.gz.sigstore.json \
+  --certificate-identity 'https://github.com/helm/chart-releaser/.github/workflows/release.yaml@refs/tags/v1.9.0' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  chart-releaser_1.9.0_linux_amd64.tar.gz
+```
+
 ### Homebrew
 
 ```console
