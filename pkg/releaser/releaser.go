@@ -172,6 +172,10 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			if filepath.Ext(name) != chartAssetFileExtension {
 				continue
 			}
+			// Ignore chart packages that are not selected by the package filters.
+			if r.packageSkipReason(name) != "" {
+				continue
+			}
 			fmt.Printf("Found %s\n", name)
 			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String())
 			if err != nil {
@@ -537,17 +541,25 @@ func (r *Releaser) filterPackages(packages []string) []string {
 	var filtered []string
 	for _, p := range packages {
 		name := filepath.Base(p)
-		if len(r.config.Include) > 0 && !matchesAny(r.config.Include, name) {
-			fmt.Printf("Skipping %s, it does not match any include pattern\n", name)
-			continue
-		}
-		if matchesAny(r.config.Exclude, name) {
-			fmt.Printf("Skipping %s, it matches an exclude pattern\n", name)
+		if reason := r.packageSkipReason(name); reason != "" {
+			fmt.Printf("Skipping %s, %s\n", name, reason)
 			continue
 		}
 		filtered = append(filtered, p)
 	}
 	return filtered
+}
+
+// packageSkipReason returns why the package file name is not selected by the
+// configured include and exclude patterns, or an empty string if it is.
+func (r *Releaser) packageSkipReason(name string) string {
+	if len(r.config.Include) > 0 && !matchesAny(r.config.Include, name) {
+		return "it does not match any include pattern"
+	}
+	if matchesAny(r.config.Exclude, name) {
+		return "it matches an exclude pattern"
+	}
+	return ""
 }
 
 func matchesAny(patterns []string, name string) bool {
