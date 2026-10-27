@@ -78,4 +78,6 @@ func init() {
 	flags.String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 	flags.Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
 	flags.String("index-commit-message", "Update {{ .PagesIndexPath }}", "Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}'")
+	flags.StringSlice("include", nil, "Only process chart packages whose file name matches one of these glob patterns, e.g. 'my-chart-*' (can be repeated or comma-separated)")
+	flags.StringSlice("exclude", nil, "Skip chart packages whose file name matches one of these glob patterns, e.g. '*-rc*'; takes precedence over --include (can be repeated or comma-separated)")
 }

@@ -140,6 +140,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	chartPackages = r.filterPackages(chartPackages)
 
 	var update bool
 	for _, chartPackage := range chartPackages {
@@ -419,6 +420,8 @@ func (r *Releaser) CreateReleases() error {
 		return fmt.Errorf("no charts found at %s", r.config.PackagePath)
 	}
 
+	packages = r.filterPackages(packages)
+
 	for _, p := range packages {
 		ch, err := loader.LoadFile(p)
 		if err != nil {
@@ -521,6 +524,40 @@ func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) erro
 
 func (r *Releaser) getListOfPackages(dir string) ([]string, error) {
 	return filepath.Glob(filepath.Join(dir, "*.tgz"))
+}
+
+// filterPackages returns the packages whose file names match any of the
+// configured include patterns (all packages if none are configured) and none
+// of the configured exclude patterns.
+func (r *Releaser) filterPackages(packages []string) []string {
+	if len(r.config.Include) == 0 && len(r.config.Exclude) == 0 {
+		return packages
+	}
+
+	var filtered []string
+	for _, p := range packages {
+		name := filepath.Base(p)
+		if len(r.config.Include) > 0 && !matchesAny(r.config.Include, name) {
+			fmt.Printf("Skipping %s, it does not match any include pattern\n", name)
+			continue
+		}
+		if matchesAny(r.config.Exclude, name) {
+			fmt.Printf("Skipping %s, it matches an exclude pattern\n", name)
+			continue
+		}
+		filtered = append(filtered, p)
+	}
+	return filtered
+}
+
+func matchesAny(patterns []string, name string) bool {
+	for _, pattern := range patterns {
+		// The patterns are validated when loading the configuration.
+		if matched, _ := filepath.Match(pattern, name); matched {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *Releaser) pushToPagesBranch(worktree string) error {

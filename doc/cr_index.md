@@ -16,10 +16,12 @@ cr index [flags]
 ### Options
 
 ```
+      --exclude strings                Skip chart packages whose file name matches one of these glob patterns, e.g. '*-rc*'; takes precedence over --include (can be repeated or comma-separated)
   -b, --git-base-url string            GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
   -r, --git-repo string                GitHub repository
   -u, --git-upload-url string          GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
   -h, --help                           help for index
+      --include strings                Only process chart packages whose file name matches one of these glob patterns, e.g. 'my-chart-*' (can be repeated or comma-separated)
       --index-commit-message string    Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}' (default "Update {{ .PagesIndexPath }}")
   -i, --index-path string              Path to index file (default ".cr-index/index.yaml")
   -o, --owner string                   GitHub username or organization
