@@ -40,8 +40,9 @@ type Release struct {
 }
 
 type Asset struct {
-	Path string
-	URL  string
+	Path   string
+	URL    string
+	APIURL string
 }
 
 // Client is the client for interacting with the GitHub API
@@ -97,7 +98,7 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 		Assets: []*Asset{},
 	}
 	for _, ass := range release.Assets {
-		asset := &Asset{*ass.Name, *ass.BrowserDownloadURL}
+		asset := &Asset{Path: ass.GetName(), URL: ass.GetBrowserDownloadURL(), APIURL: ass.GetURL()}
 		result.Assets = append(result.Assets, asset)
 	}
 	return result, nil

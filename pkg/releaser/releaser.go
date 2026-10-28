@@ -177,7 +177,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 				continue
 			}
 			fmt.Printf("Found %s\n", name)
-			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String())
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String(), asset.APIURL)
 			if err != nil {
 				return false, err
 			}
@@ -358,7 +358,7 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 	return chart.Metadata.Description
 }
 
-func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string) (bool, error) {
+func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL string) (bool, error) {
 	// Decode URL-encoded characters in the filename (e.g., %2B -> +)
 	filename := filepath.Base(urlStr)
 	decodedFilename, err := url.PathUnescape(filename)
@@ -398,8 +398,21 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr string)
 		s = s[:0]
 	}
 
-	// Add to index
-	return true, indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash)
+	if r.config.UseAPIAssetURL && !r.config.PackagesWithIndex && apiURL == "" {
+		return false, fmt.Errorf("no GitHub API asset URL for %s", decodedFilename)
+	}
+
+	if err := indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash); err != nil {
+		return false, err
+	}
+	if r.config.UseAPIAssetURL && !r.config.PackagesWithIndex {
+		entry, err := indexFile.Get(c.Name(), c.Metadata.Version)
+		if err != nil {
+			return false, err
+		}
+		entry.URLs = []string{apiURL}
+	}
+	return true, nil
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub

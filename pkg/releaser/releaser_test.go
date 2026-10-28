@@ -412,7 +412,7 @@ func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			updated, err := tt.releaser.maybeAddToIndexFile(indexFile, url)
+			updated, err := tt.releaser.maybeAddToIndexFile(indexFile, url, "")
 			if tt.error {
 				assert.Error(t, err)
 				assert.False(t, updated)
@@ -431,7 +431,7 @@ func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 			}
 
 			// Second time around is a no-op.
-			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url)
+			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url, "")
 			assert.NoError(t, err)
 			assert.False(t, updated)
 		})
@@ -1050,4 +1050,48 @@ func TestReleaser_UpdateIndexFileFilteredReleaseAssets(t *testing.T) {
 	versions := indexFile.Entries["test-chart"]
 	require.Len(t, versions, 1)
 	assert.Equal(t, "0.1.0", versions[0].Version)
+}
+
+func TestReleaser_UpdateIndexFileAPIAssetURL(t *testing.T) {
+	const browserURL = "https://github.com/owner/repo/releases/download/test-chart-0.1.0/test-chart-0.1.0.tgz"
+	const apiURL = "https://api.github.com/repos/owner/repo/releases/assets/42"
+	for _, tt := range []struct {
+		name                      string
+		useAPI, packagesWithIndex bool
+		assetURL, wantURL         string
+		wantErr                   bool
+	}{
+		{name: "browser URL by default", assetURL: apiURL, wantURL: browserURL},
+		{name: "API URL opt in", useAPI: true, assetURL: apiURL, wantURL: apiURL},
+		{name: "Pages packages retain relative URLs", useAPI: true, packagesWithIndex: true, wantURL: "test-chart-0.1.0.tgz"},
+		{name: "missing API URL", useAPI: true, wantErr: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGit := new(FakeGit)
+			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+			indexPath := filepath.Join(t.TempDir(), "index.yaml")
+			r := &Releaser{
+				config: &config.Options{PackagePath: "testdata/release-packages", IndexPath: indexPath, PagesIndexPath: "index.yaml", ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}", UseAPIAssetURL: tt.useAPI, PackagesWithIndex: tt.packagesWithIndex},
+				github: &FakeGitHubWithURLEncoding{release: &github.Release{Assets: []*github.Asset{
+					{Path: "unrelated.txt", URL: "https://example.com/unrelated.txt", APIURL: "https://api.github.com/repos/owner/repo/releases/assets/41"},
+					{Path: "test-chart-0.1.0.tgz", URL: browserURL, APIURL: tt.assetURL},
+				}}},
+				git: fakeGit,
+			}
+			updated, err := r.UpdateIndexFile()
+			if tt.wantErr {
+				require.ErrorContains(t, err, "no GitHub API asset URL")
+				assert.False(t, updated)
+				return
+			}
+			require.NoError(t, err)
+			require.True(t, updated)
+			index, err := repo.LoadIndexFile(indexPath)
+			require.NoError(t, err)
+			entry, err := index.Get("test-chart", "0.1.0")
+			require.NoError(t, err)
+			assert.Equal(t, []string{tt.wantURL}, entry.URLs)
+			assert.NotEmpty(t, entry.Digest)
+		})
+	}
 }
