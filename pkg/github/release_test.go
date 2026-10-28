@@ -85,3 +85,23 @@ func TestClient_CreateRelease_DraftThenPublish(t *testing.T) {
 	assert.Equal(t, false, patched["draft"])
 	assert.Equal(t, "false", patched["make_latest"])
 }
+
+func TestClient_GetReleaseAssetURLs(t *testing.T) {
+	for _, tt := range []struct{ name, body, browserURL, apiURL string }{
+		{name: "both URLs", body: `{"assets":[{"name":"chart.tgz","browser_download_url":"https://github.com/owner/repo/releases/download/v1/chart.tgz","url":"https://api.github.com/repos/owner/repo/releases/assets/42"}]}`, browserURL: "https://github.com/owner/repo/releases/download/v1/chart.tgz", apiURL: "https://api.github.com/repos/owner/repo/releases/assets/42"},
+		{name: "omitted optional fields", body: `{"assets":[{}]}`},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "/repos/owner/repo/releases/tags/v1", r.URL.Path)
+				_, _ = w.Write([]byte(tt.body))
+			}))
+			defer srv.Close()
+			release, err := NewClient("owner", "repo", "", srv.URL, srv.URL).GetRelease(context.Background(), "v1")
+			require.NoError(t, err)
+			require.Len(t, release.Assets, 1)
+			assert.Equal(t, tt.browserURL, release.Assets[0].URL)
+			assert.Equal(t, tt.apiURL, release.Assets[0].APIURL)
+		})
+	}
+}

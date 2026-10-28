@@ -54,3 +54,26 @@ func TestLoadConfigurationPreRelease(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadConfigurationUseAPIAssetURL(t *testing.T) {
+	for _, tt := range []struct {
+		name, env string
+		args      []string
+		want      bool
+	}{
+		{name: "disabled by default"},
+		{name: "flag", args: []string{"--use-api-asset-url"}, want: true},
+		{name: "environment", env: "true", want: true},
+		{name: "flag overrides environment", env: "true", args: []string{"--use-api-asset-url=false"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("CR_USE_API_ASSET_URL", tt.env)
+			cmd := &cobra.Command{Use: "index"}
+			cmd.Flags().Bool("use-api-asset-url", false, "")
+			require.NoError(t, cmd.ParseFlags(tt.args))
+			opts, err := LoadConfiguration("", cmd, nil)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, opts.UseAPIAssetURL)
+		})
+	}
+}

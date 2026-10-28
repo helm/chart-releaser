@@ -183,6 +183,14 @@ cr push --registry-url oci://ghcr.io/myorg/charts \
 
 Once uploaded you can create an `index.yaml` file that can be hosted on GitHub Pages (or elsewhere).
 
+For authenticated downloads from private GitHub repositories, opt in to API asset
+URLs with `cr index --use-api-asset-url`, `CR_USE_API_ASSET_URL=true`, or
+`use-api-asset-url: true` in the configuration file. The chart client must send
+`Accept: application/octet-stream` and authenticate requests to the GitHub API.
+The default continues to use browser download URLs. With `--packages-with-index`,
+package URLs remain relative to the index because the packages are hosted in the
+Pages branch.
+
 ```console
 $ cr index --help
 Update a Helm chart repository index.yaml file based on a the
@@ -207,6 +215,7 @@ Flags:
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
   -t, --token string                   GitHub Auth Token (only needed for private repos)
       --index-commit-message string    Go template for the commit message of the index update (default "Update {{ .PagesIndexPath }}")
+      --use-api-asset-url              Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)
       --packages-with-index            Host the package files in the GitHub Pages branch
 
 Global Flags:
