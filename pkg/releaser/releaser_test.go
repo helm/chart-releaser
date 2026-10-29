@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/helm/chart-releaser/pkg/github"
@@ -434,6 +435,54 @@ func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url, "")
 			assert.NoError(t, err)
 			assert.False(t, updated)
+		})
+	}
+}
+
+func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
+	tests := []struct {
+		name             string
+		existingVersions []string
+		version          string
+		packagePath      string
+		wantUpdated      bool
+	}{
+		{"base-then-build", []string{"0.1.0"}, "0.1.0+build.1", "testdata/release-packages-plus", true},
+		{"build-then-base", []string{"0.1.0+build.1"}, "0.1.0", "testdata/release-packages", true},
+		{"different-build", []string{"0.1.0+build.2"}, "0.1.0+build.1", "testdata/release-packages-plus", true},
+		{"same-build", []string{"0.1.0+build.1"}, "0.1.0+build.1", "testdata/release-packages-plus", false},
+		{"same-build-with-base", []string{"0.1.0", "0.1.0+build.1"}, "0.1.0+build.1", "testdata/release-packages-plus", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			indexFile := repo.NewIndexFile()
+			for _, version := range tt.existingVersions {
+				require.NoError(t, indexFile.MustAdd(&chart.Metadata{
+					APIVersion: "v2",
+					Name:       "test-chart",
+					Version:    version,
+				}, "test-chart-"+version+".tgz", "https://myrepo/charts", "existing-digest"))
+			}
+			r := &Releaser{config: &config.Options{PackagePath: tt.packagePath}}
+			downloadURL := "https://myrepo/charts/test-chart-" + strings.ReplaceAll(tt.version, "+", "%2B") + ".tgz"
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantUpdated, updated)
+
+			wantVersions := append([]string(nil), tt.existingVersions...)
+			if tt.wantUpdated {
+				wantVersions = append(wantVersions, tt.version)
+			}
+			versions := make([]string, 0, len(indexFile.Entries["test-chart"]))
+			for _, entry := range indexFile.Entries["test-chart"] {
+				versions = append(versions, entry.Version)
+			}
+			assert.ElementsMatch(t, wantVersions, versions)
+
+			updated, err = r.maybeAddToIndexFile(indexFile, downloadURL)
+			require.NoError(t, err)
+			assert.False(t, updated, "an exact version already present must not be added again")
+			assert.Len(t, indexFile.Entries["test-chart"], len(wantVersions))
 		})
 	}
 }

@@ -369,9 +369,13 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL
 		return false, fmt.Errorf("%s is not a helm chart package: %w", arch, err)
 	}
 
-	if _, err := indexFile.Get(c.Name(), c.Metadata.Version); err == nil {
-		fmt.Printf("Version %s of %s already present in index file\n", c.Metadata.Version, c.Name())
-		return false, nil
+	// Get also accepts SemVer constraints, which ignore build metadata.
+	// Only skip the exact version so distinct builds retain separate entries.
+	for _, entry := range indexFile.Entries[c.Name()] {
+		if entry.Version == c.Metadata.Version {
+			fmt.Printf("Version %s of %s already present in index file\n", c.Metadata.Version, c.Name())
+			return false, nil
+		}
 	}
 
 	// calculate hash
