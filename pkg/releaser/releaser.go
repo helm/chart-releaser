@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -50,6 +51,7 @@ import (
 type GitHub interface {
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
+	ReplaceReleaseAssets(ctx context.Context, input *github.Release) (bool, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 	GenerateReleaseNotes(ctx context.Context, tag string, previousTag string, commit string) (string, error)
 	ListTagsWithPrefix(ctx context.Context, prefix string) ([]string, error)
@@ -372,7 +374,7 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL
 	// Get also accepts SemVer constraints, which ignore build metadata.
 	// Only skip the exact version so distinct builds retain separate entries.
 	for _, entry := range indexFile.Entries[c.Name()] {
-		if entry.Version == c.Metadata.Version {
+		if entry.Version == c.Metadata.Version && !r.config.ReplaceExisting {
 			fmt.Printf("Version %s of %s already present in index file\n", c.Metadata.Version, c.Name())
 			return false, nil
 		}
@@ -401,21 +403,43 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL
 		return false, fmt.Errorf("no GitHub API asset URL for %s", decodedFilename)
 	}
 
-	if err := indexFile.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash); err != nil {
+	replacement := repo.NewIndexFile()
+	if err := replacement.MustAdd(c.Metadata, filepath.Base(arch), strings.Join(s, "/"), hash); err != nil {
 		return false, err
 	}
+	candidate := replacement.Entries[c.Name()][0]
 	if r.config.UseAPIAssetURL && !r.config.PackagesWithIndex {
-		entry, err := indexFile.Get(c.Name(), c.Metadata.Version)
-		if err != nil {
-			return false, err
-		}
-		entry.URLs = []string{apiURL}
+		candidate.URLs = []string{apiURL}
 	}
+	// Add to index
+	if r.config.ReplaceExisting {
+		entries := indexFile.Entries[c.Name()]
+		kept := make(repo.ChartVersions, 0, len(entries))
+		var existing *repo.ChartVersion
+		matches := 0
+		for _, entry := range entries {
+			if entry.Version != c.Metadata.Version {
+				kept = append(kept, entry)
+			} else {
+				existing = entry
+				matches++
+			}
+		}
+		if matches == 1 && existing.Digest == candidate.Digest && slices.Equal(existing.URLs, candidate.URLs) {
+			return false, nil
+		}
+		indexFile.Entries[c.Name()] = append(kept, candidate)
+		return true, nil
+	}
+	indexFile.Entries[c.Name()] = append(indexFile.Entries[c.Name()], candidate)
 	return true, nil
 }
 
 // CreateReleases finds and uploads Helm chart packages to GitHub
 func (r *Releaser) CreateReleases() error {
+	if r.config.SkipExisting && r.config.ReplaceExisting {
+		return errors.New("specify either --skip-existing or --replace-existing, but not both")
+	}
 	worktree := ""
 	if r.config.PackagesWithIndex {
 		var err error
@@ -478,6 +502,20 @@ func (r *Releaser) CreateReleases() error {
 				continue
 			}
 		}
+		if r.config.ReplaceExisting {
+			exists, err := r.github.ReplaceReleaseAssets(context.TODO(), release)
+			if err != nil {
+				return fmt.Errorf("error replacing assets for release %s: %w", releaseName, err)
+			}
+			if exists {
+				if r.config.PackagesWithIndex {
+					if err := r.commitPackage(worktree, p, releaseName); err != nil {
+						return err
+					}
+				}
+				continue
+			}
+		}
 		if r.config.GenerateReleaseNotes {
 			// GitHub's built-in release notes generation compares against the
 			// chronologically previous tag of the whole repository, which in
@@ -522,10 +560,61 @@ func (r *Releaser) CreateReleases() error {
 
 func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) error {
 	pkgTargetPath := filepath.Join(worktree, filepath.Base(packagePath))
+	if r.config.ReplaceExisting {
+		return r.commitReplacementPackage(worktree, packagePath, releaseName)
+	}
 	if err := copyFile(packagePath, pkgTargetPath); err != nil {
 		return err
 	}
 	if err := r.git.Add(worktree, pkgTargetPath); err != nil {
+		return err
+	}
+	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
+		struct{ ReleaseName string }{releaseName})
+	if err != nil {
+		return err
+	}
+	return r.git.Commit(worktree, message)
+}
+
+// commitReplacementPackage updates both the archive and its optional provenance
+// in Pages, removing stale provenance when replacing a signed archive with an
+// unsigned one. Identical files do not produce an empty Git commit.
+func (r *Releaser) commitReplacementPackage(worktree, packagePath, releaseName string) error {
+	var changed []string
+	for _, suffix := range []string{"", ".prov"} {
+		source := packagePath + suffix
+		target := filepath.Join(worktree, filepath.Base(source))
+		incoming, err := os.ReadFile(source)
+		if err != nil && (!errors.Is(err, os.ErrNotExist) || suffix == "") {
+			return err
+		}
+		missing := errors.Is(err, os.ErrNotExist)
+		existing, err := os.ReadFile(target)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if missing {
+			if errors.Is(err, os.ErrNotExist) {
+				continue
+			}
+			if err := os.Remove(target); err != nil {
+				return err
+			}
+		} else {
+			if err == nil && bytes.Equal(incoming, existing) {
+				continue
+			}
+			if err := copyFile(source, target); err != nil {
+				return err
+			}
+		}
+		changed = append(changed, target)
+	}
+	if len(changed) == 0 {
+		return nil
+	}
+	if err := r.git.Add(worktree, changed...); err != nil {
 		return err
 	}
 	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,

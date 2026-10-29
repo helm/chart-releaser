@@ -31,6 +31,7 @@ cr upload [flags]
       --release-name-template string    Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --release-notes-file string       Markdown file with chart release notes. If it is set to empty string, or the file is not found, the chart description will be used instead. The file is read from the chart package
       --remote string                   The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
+      --replace-existing                Replace chart assets in existing mutable releases (also use with cr index)
       --skip-existing                   Skip upload if release exists
   -t, --token string                    GitHub Auth Token
 ```

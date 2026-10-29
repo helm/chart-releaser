@@ -78,5 +78,6 @@ func init() {
 	flags.String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 	flags.Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
 	flags.Bool("use-api-asset-url", false, "Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)")
+	flags.Bool("replace-existing", false, "Update existing chart versions using the supplied packages, including checksums")
 	flags.String("index-commit-message", "Update {{ .PagesIndexPath }}", "Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}'")
 }
