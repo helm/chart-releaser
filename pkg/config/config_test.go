@@ -15,6 +15,8 @@
 package config
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -111,6 +113,29 @@ func TestLoadConfigurationUseAPIAssetURL(t *testing.T) {
 			opts, err := LoadConfiguration("", cmd, nil)
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, opts.UseAPIAssetURL)
+		})
+	}
+}
+
+func TestLoadConfigurationReplacement(t *testing.T) {
+	for _, source := range []string{"flags", "environment", "file"} {
+		t.Run(source, func(t *testing.T) {
+			cmd := &cobra.Command{Use: "upload"}
+			cmd.Flags().Bool("skip-existing", false, "")
+			cmd.Flags().Bool("replace-existing", false, "")
+			cfgFile := ""
+			switch source {
+			case "flags":
+				require.NoError(t, cmd.ParseFlags([]string{"--skip-existing", "--replace-existing"}))
+			case "environment":
+				t.Setenv("CR_SKIP_EXISTING", "true")
+				t.Setenv("CR_REPLACE_EXISTING", "true")
+			case "file":
+				cfgFile = filepath.Join(t.TempDir(), "cr.yaml")
+				require.NoError(t, os.WriteFile(cfgFile, []byte("skip-existing: true\nreplace-existing: true\n"), 0o600))
+			}
+			_, err := LoadConfiguration(cfgFile, cmd, nil)
+			require.ErrorContains(t, err, "specify either --skip-existing or --replace-existing")
 		})
 	}
 }

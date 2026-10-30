@@ -58,6 +58,7 @@ type Options struct {
 	Remote               string `mapstructure:"remote"`
 	ReleaseNameTemplate  string `mapstructure:"release-name-template"`
 	SkipExisting         bool   `mapstructure:"skip-existing"`
+	ReplaceExisting      bool   `mapstructure:"replace-existing"`
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`
@@ -122,6 +123,9 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	if opts.Push && opts.PR {
 		return nil, errors.New("specify either --push or --pr, but not both")
+	}
+	if opts.SkipExisting && opts.ReplaceExisting {
+		return nil, errors.New("specify either --skip-existing or --replace-existing, but not both")
 	}
 
 	if opts.PreRelease {
