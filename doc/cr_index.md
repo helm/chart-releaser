@@ -32,6 +32,7 @@ cr index [flags]
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
       --replace-existing               Update existing chart versions using the supplied packages, including checksums
+      --sign-commits                   Create the index commit through GitHub's API for GitHub signing (requires --push and --token; incompatible with --pr)
   -t, --token string                   GitHub Auth Token (only needed for private repos)
       --use-api-asset-url              Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)
 ```

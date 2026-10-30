@@ -44,6 +44,16 @@ type FakeGit struct {
 	mock.Mock
 }
 
+func (f *FakeGit) Head(workingDir string) (string, error) {
+	args := f.Called(workingDir)
+	return args.String(0), args.Error(1)
+}
+
+func (f *FakeGitHub) CreateSignedCommit(ctx context.Context, branch, expectedHead, path, message string, contents []byte) error {
+	args := f.Called(ctx, branch, expectedHead, path, message, contents)
+	return args.Error(0)
+}
+
 func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) { //nolint: revive
 	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {

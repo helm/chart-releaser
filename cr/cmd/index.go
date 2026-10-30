@@ -74,6 +74,7 @@ func init() {
 	flags.String("pages-index-path", "index.yaml", "The GitHub pages index path")
 	flags.String("remote", "origin", "The Git remote used when creating a local worktree for the GitHub Pages branch")
 	flags.Bool("push", false, "Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)")
+	flags.Bool("sign-commits", false, "Create the index commit through GitHub's API for GitHub signing (requires --push and --token; incompatible with --pr)")
 	flags.Bool("pr", false, "Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)")
 	flags.String("release-name-template", "{{ .Name }}-{{ .Version }}", "Go template for computing release names, using chart metadata")
 	flags.Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")

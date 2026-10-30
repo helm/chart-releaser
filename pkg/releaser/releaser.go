@@ -49,6 +49,7 @@ import (
 // GitHub contains the functions necessary for interacting with GitHub release
 // objects
 type GitHub interface {
+	CreateSignedCommit(ctx context.Context, branch, expectedHead, path, message string, contents []byte) error
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	ReplaceReleaseAssets(ctx context.Context, input *github.Release) (bool, error)
@@ -58,6 +59,7 @@ type GitHub interface {
 }
 
 type Git interface {
+	Head(workingDir string) (string, error)
 	AddWorktree(workingDir string, commitIsh string) (string, error)
 	RemoveWorktree(workingDir string, path string) error
 	Add(workingDir string, args ...string) error
@@ -91,6 +93,12 @@ func NewReleaser(config *config.Options, github GitHub, git Git) *Releaser {
 
 // UpdateIndexFile updates the index.yaml file for a given Git repo
 func (r *Releaser) UpdateIndexFile() (bool, error) {
+	if r.config.SignCommits && (!r.config.Push || r.config.PR) {
+		return false, errors.New("--sign-commits requires --push and cannot be used with --pr")
+	}
+	if r.config.SignCommits && r.config.Token == "" {
+		return false, errors.New("--token is required with --sign-commits")
+	}
 	// if index-path doesn't end with index.yaml we can try and fix it
 	if filepath.Base(r.config.IndexPath) != "index.yaml" {
 		// if path is a directory then add index.yaml
@@ -109,6 +117,16 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return false, err
 	}
 	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
+
+	var expectedHead string
+	if r.config.SignCommits {
+		// Use the exact revision read below, rather than fetching a newer head
+		// after merging, which could overwrite concurrent index updates.
+		expectedHead, err = r.git.Head(worktree)
+		if err != nil {
+			return false, err
+		}
+	}
 
 	// if pages-index-path doesn't end with index.yaml we can try and fix it
 	if filepath.Base(r.config.PagesIndexPath) != "index.yaml" {
@@ -208,6 +226,23 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return true, nil
 	}
 
+	message, err := renderCommitMessage(r.config.IndexCommitMessage, defaultIndexCommitMessage,
+		struct{ PagesIndexPath string }{r.config.PagesIndexPath})
+	if err != nil {
+		return false, err
+	}
+	if r.config.SignCommits {
+		contents, err := os.ReadFile(r.config.IndexPath)
+		if err != nil {
+			return false, err
+		}
+		if err := r.github.CreateSignedCommit(context.TODO(), r.config.PagesBranch, expectedHead,
+			filepath.ToSlash(filepath.Clean(r.config.PagesIndexPath)), message, contents); err != nil {
+			return false, fmt.Errorf("creating GitHub-signed index commit (if the branch changed, refresh it and rerun): %w", err)
+		}
+		return true, nil
+	}
+
 	if err := os.MkdirAll(filepath.Dir(indexYamlPath), 0o755); err != nil {
 		return false, err
 	}
@@ -221,12 +256,6 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	}
 
 	if err := r.git.Add(worktree, indexYamlPath); err != nil {
-		return false, err
-	}
-
-	message, err := renderCommitMessage(r.config.IndexCommitMessage, defaultIndexCommitMessage,
-		struct{ PagesIndexPath string }{r.config.PagesIndexPath})
-	if err != nil {
 		return false, err
 	}
 
