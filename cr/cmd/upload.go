@@ -65,4 +65,6 @@ func init() {
 	uploadCmd.Flags().Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
 	uploadCmd.Flags().String("package-commit-message", "Publishing chart package for {{ .ReleaseName }}", "Go template for the commit message when the packages are hosted in the Pages branch (--packages-with-index), e.g. 'chore: publish {{ .ReleaseName }}'")
 	uploadCmd.Flags().Bool("pre-release", false, "Mark the release as a pre-release")
+	uploadCmd.Flags().StringSlice("include", nil, "Only process chart packages whose file name matches one of these glob patterns, e.g. 'my-chart-*' (can be repeated or comma-separated)")
+	uploadCmd.Flags().StringSlice("exclude", nil, "Skip chart packages whose file name matches one of these glob patterns, e.g. '*-rc*'; takes precedence over --include (can be repeated or comma-separated)")
 }

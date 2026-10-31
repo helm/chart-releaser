@@ -102,6 +102,12 @@ With `--skip-existing`, existing GitHub releases are left unchanged. When
 `--packages-with-index` is also set, missing chart packages are still copied to
 the Pages branch; packages already present there are left untouched.
 
+Use `--include` and `--exclude` to limit which chart packages are processed. Both
+take glob patterns matched against the package file name (e.g. `my-chart-*` or
+`*-rc*`), can be repeated or comma-separated, and are also supported by
+`cr index`. When `--include` is set, only matching packages are processed;
+packages matching `--exclude` are always skipped.
+
 #### Replacing mutable chart releases
 
 To intentionally replace an already published chart version, pass
@@ -166,6 +172,8 @@ Flags:
       --pre-release                    Mark the release as a pre-release
       --package-commit-message string  Go template for the commit message when the packages are hosted in the Pages branch (--packages-with-index) (default "Publishing chart package for {{ .ReleaseName }}")
       --packages-with-index            Host the package files in the GitHub Pages branch
+      --include strings                Only process chart packages whose file name matches one of these glob patterns
+      --exclude strings                Skip chart packages whose file name matches one of these glob patterns; takes precedence over --include
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)
@@ -273,6 +281,8 @@ Flags:
       --index-commit-message string    Go template for the commit message of the index update (default "Update {{ .PagesIndexPath }}")
       --use-api-asset-url              Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)
       --packages-with-index            Host the package files in the GitHub Pages branch
+      --include strings                Only process chart packages whose file name matches one of these glob patterns
+      --exclude strings                Skip chart packages whose file name matches one of these glob patterns; takes precedence over --include
       --replace-existing               Update existing chart versions using the supplied packages, including checksums
 
 Global Flags:

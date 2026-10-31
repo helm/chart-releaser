@@ -69,6 +69,9 @@ type Options struct {
 	IndexCommitMessage   string `mapstructure:"index-commit-message"`
 	PackageCommitMessage string `mapstructure:"package-commit-message"`
 
+	Include []string `mapstructure:"include"`
+	Exclude []string `mapstructure:"exclude"`
+
 	RegistryURL           string `mapstructure:"registry-url"`
 	Username              string `mapstructure:"username"`
 	Password              string `mapstructure:"password"`
@@ -141,6 +144,12 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 		if opts.MakeReleaseLatest {
 			fmt.Println("Pre-release is set, disabling make-release-latest")
 			opts.MakeReleaseLatest = false
+		}
+	}
+
+	for _, pattern := range append(append([]string{}, opts.Include...), opts.Exclude...) {
+		if _, err := filepath.Match(pattern, ""); err != nil {
+			return nil, fmt.Errorf("invalid package filter pattern %q: %w", pattern, err)
 		}
 	}
 
