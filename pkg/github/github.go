@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Songmu/retry"
 
@@ -111,13 +112,32 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 // the release is published. This ensures that assets can be uploaded before
 // the release becomes immutable.
 func (c *Client) CreateRelease(_ context.Context, input *Release) error {
+	// Fetch generated notes before creating the release so the limit applies
+	// to the complete body, including GitHub's default comparison.
+	body := input.Description
+	if input.GenerateReleaseNotes {
+		notes, err := c.GenerateReleaseNotes(context.TODO(), input.Name, "", input.Commit)
+		if err != nil {
+			return fmt.Errorf("failed to generate release notes: %w", err)
+		}
+		if body != "" {
+			body += "\n\n"
+		}
+		body += notes
+	}
+	const maxReleaseBodyCharacters = 125000
+	if utf8.RuneCountInString(body) > maxReleaseBodyCharacters {
+		body = string([]rune(body)[:maxReleaseBodyCharacters])
+		fmt.Printf("Release notes for %s exceed GitHub's limit; truncating to %d characters\n", input.Name, maxReleaseBodyCharacters)
+	}
+	generateReleaseNotes := false
 	draft := true
 	req := &github.RepositoryRelease{
 		Name:                 &input.Name,
-		Body:                 &input.Description,
+		Body:                 &body,
 		TagName:              &input.Name,
 		TargetCommitish:      &input.Commit,
-		GenerateReleaseNotes: &input.GenerateReleaseNotes,
+		GenerateReleaseNotes: &generateReleaseNotes,
 		MakeLatest:           &input.MakeLatest,
 		Prerelease:           &input.PreRelease,
 		Draft:                &draft,
@@ -154,8 +174,10 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 // target of the comparison.
 func (c *Client) GenerateReleaseNotes(_ context.Context, tag string, previousTag string, commit string) (string, error) {
 	opts := &github.GenerateNotesOptions{
-		TagName:         tag,
-		PreviousTagName: &previousTag,
+		TagName: tag,
+	}
+	if previousTag != "" {
+		opts.PreviousTagName = &previousTag
 	}
 	if commit != "" {
 		opts.TargetCommitish = &commit

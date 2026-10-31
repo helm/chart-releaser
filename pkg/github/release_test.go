@@ -21,12 +21,91 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
+	"unicode/utf8"
+
+	"github.com/google/go-github/v56/github"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestClient_CreateRelease_BodyLimit(t *testing.T) {
+	const limit = 125000
+	for _, tt := range []struct {
+		name            string
+		description     string
+		notes           string
+		generate        bool
+		generationError bool
+		want            string
+	}{
+		{name: "empty"},
+		{name: "short", description: "Chart description", want: "Chart description"},
+		{name: "at limit", description: strings.Repeat("a", limit), want: strings.Repeat("a", limit)},
+		{name: "over limit", description: strings.Repeat("a", limit) + "b", want: strings.Repeat("a", limit)},
+		{name: "unicode at limit", description: strings.Repeat("界", limit), want: strings.Repeat("界", limit)},
+		{name: "unicode over limit", description: strings.Repeat("界", limit-1) + "🚀extra", want: strings.Repeat("界", limit-1) + "🚀"},
+		{name: "generated notes", description: "Chart", notes: "Changes", generate: true, want: "Chart\n\nChanges"},
+		{name: "generated notes without description", notes: "Changes", generate: true, want: "Changes"},
+		{name: "combined body over limit", description: "Chart", notes: strings.Repeat("a", limit), generate: true, want: "Chart\n\n" + strings.Repeat("a", limit-7)},
+		{name: "generation fails", generate: true, generationError: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			var generated, created, published bool
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.Method + " " + r.URL.Path {
+				case "POST /repos/owner/repo/releases/generate-notes":
+					generated = true
+					var opts map[string]any
+					require.NoError(t, json.NewDecoder(r.Body).Decode(&opts))
+					assert.Equal(t, "chart-1.0.0", opts["tag_name"])
+					assert.Equal(t, "commit-sha", opts["target_commitish"])
+					assert.NotContains(t, opts, "previous_tag_name", "omit the previous tag to use GitHub's default comparison")
+					if tt.generationError {
+						w.WriteHeader(http.StatusInternalServerError)
+						_, _ = w.Write([]byte(`{"message":"generation failed"}`))
+						return
+					}
+					require.NoError(t, json.NewEncoder(w).Encode(map[string]string{"body": tt.notes}))
+				case "POST /repos/owner/repo/releases":
+					created = true
+					var release github.RepositoryRelease
+					require.NoError(t, json.NewDecoder(r.Body).Decode(&release))
+					assert.Equal(t, tt.want, release.GetBody())
+					assert.LessOrEqual(t, utf8.RuneCountInString(release.GetBody()), limit)
+					assert.True(t, utf8.ValidString(release.GetBody()))
+					assert.False(t, release.GetGenerateReleaseNotes())
+					assert.True(t, release.GetDraft())
+					w.WriteHeader(http.StatusCreated)
+					_, _ = w.Write([]byte(`{"id":42}`))
+				case "PATCH /repos/owner/repo/releases/42":
+					published = true
+					_, _ = w.Write([]byte(`{"id":42}`))
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer srv.Close()
+
+			release := &Release{Name: "chart-1.0.0", Description: tt.description, GenerateReleaseNotes: tt.generate, Commit: "commit-sha"}
+			err := NewClient("owner", "repo", "", srv.URL, srv.URL).CreateRelease(context.Background(), release)
+			if tt.generationError {
+				require.ErrorContains(t, err, "failed to generate release notes")
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tt.generate, generated)
+			assert.Equal(t, !tt.generationError, created)
+			assert.Equal(t, !tt.generationError, published)
+			assert.Equal(t, tt.description, release.Description, "preserve the caller's input")
+			assert.Equal(t, tt.generate, release.GenerateReleaseNotes)
+		})
+	}
+}
 
 func TestClient_CreateRelease_DraftThenPublish(t *testing.T) {
 	var (
