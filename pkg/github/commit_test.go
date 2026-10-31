@@ -63,7 +63,7 @@ func TestCreateSignedCommit(t *testing.T) {
 				require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
 				assert.Contains(t, payload.Query, "createCommitOnBranch(input: $input)")
 				input := payload.Variables.Input
-				assert.Equal(t, map[string]string{"repositoryNameWithOwner": "owner/repo", "refName": "gh-pages"}, input.Branch)
+				assert.Equal(t, map[string]string{"repositoryNameWithOwner": "owner/repo", "branchName": "gh-pages"}, input.Branch)
 				assert.Equal(t, "old-head", input.ExpectedHead)
 				assert.Equal(t, map[string]string{"headline": "Update charts/index.yaml", "body": "Details"}, input.Message)
 				require.Len(t, input.FileChanges.Additions, 1)
