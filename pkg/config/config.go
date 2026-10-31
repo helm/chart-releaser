@@ -54,6 +54,7 @@ type Options struct {
 	PagesBranch          string `mapstructure:"pages-branch"`
 	PagesIndexPath       string `mapstructure:"pages-index-path"`
 	Push                 bool   `mapstructure:"push"`
+	SignCommits          bool   `mapstructure:"sign-commits"`
 	PR                   bool   `mapstructure:"pr"`
 	Remote               string `mapstructure:"remote"`
 	ReleaseNameTemplate  string `mapstructure:"release-name-template"`
@@ -120,6 +121,14 @@ func LoadConfiguration(cfgFile string, cmd *cobra.Command, requiredFlags []strin
 
 	if opts.Push && opts.PR {
 		return nil, errors.New("specify either --push or --pr, but not both")
+	}
+	if cmd.Name() == "index" && opts.SignCommits {
+		if !opts.Push || opts.PR {
+			return nil, errors.New("--sign-commits requires --push and cannot be used with --pr")
+		}
+		if opts.Token == "" {
+			return nil, errors.New("--token is required with --sign-commits")
+		}
 	}
 	if opts.SkipExisting && opts.ReplaceExisting {
 		return nil, errors.New("specify either --skip-existing or --replace-existing, but not both")

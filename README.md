@@ -231,6 +231,21 @@ The default continues to use browser download URLs. With `--packages-with-index`
 package URLs remain relative to the index because the packages are hosted in the
 Pages branch.
 
+To have GitHub sign the index update commit, use `cr index --push --sign-commits
+--token <token>`, set `CR_SIGN_COMMITS=true`, or set `sign-commits: true` in the
+configuration file. This requires `--push` and a token with repository contents
+write access, and cannot be combined with `--pr`. GitHub attributes the commit
+to the token's identity and signs it where supported; see
+[createCommitOnBranch](https://docs.github.com/en/graphql/reference/commits#createcommitonbranch).
+The existing `--index-commit-message` template is supported.
+
+This option keeps the local worktree for reading and merging the index, but
+publishes the commit through the GraphQL API. If the Pages branch changes since
+the checked-out revision, the update fails; fetch the latest Pages branch and
+rerun to merge against it. API request limits apply to large indexes. The option
+only covers the index commit; chart package commits made by
+`cr upload --packages-with-index` still use local Git.
+
 ```console
 $ cr index --help
 Update a Helm chart repository index.yaml file based on a the
@@ -253,6 +268,7 @@ Flags:
       --push                           Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)
       --release-name-template string   Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --remote string                  The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
+      --sign-commits                    Create the index commit through GitHub's API for GitHub signing (requires --push and --token; incompatible with --pr)
   -t, --token string                   GitHub Auth Token (only needed for private repos)
       --index-commit-message string    Go template for the commit message of the index update (default "Update {{ .PagesIndexPath }}")
       --use-api-asset-url              Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)

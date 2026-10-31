@@ -102,3 +102,58 @@ func TestLoadConfigurationReplacement(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadConfigurationSignCommits(t *testing.T) {
+	for _, source := range []string{"flags", "environment", "file"} {
+		for _, tt := range []struct {
+			name            string
+			push, pr, token bool
+			wantError       string
+		}{
+			{name: "valid", push: true, token: true},
+			{name: "requires push", token: true, wantError: "requires --push"},
+			{name: "rejects PR", pr: true, token: true, wantError: "cannot be used with --pr"},
+			{name: "requires token", push: true, wantError: "--token is required"},
+		} {
+			t.Run(source+"/"+tt.name, func(t *testing.T) {
+				cmd := &cobra.Command{Use: "index"}
+				cmd.Flags().Bool("sign-commits", false, "")
+				cmd.Flags().Bool("push", tt.push, "")
+				cmd.Flags().Bool("pr", tt.pr, "")
+				token := ""
+				if tt.token {
+					token = "token"
+				}
+				cmd.Flags().String("token", token, "")
+				cfgFile := ""
+				switch source {
+				case "flags":
+					require.NoError(t, cmd.ParseFlags([]string{"--sign-commits"}))
+				case "environment":
+					t.Setenv("CR_SIGN_COMMITS", "true")
+				case "file":
+					cfgFile = filepath.Join(t.TempDir(), "cr.yaml")
+					require.NoError(t, os.WriteFile(cfgFile, []byte("sign-commits: true\n"), 0o600))
+				}
+				opts, err := LoadConfiguration(cfgFile, cmd, nil)
+				if tt.wantError != "" {
+					require.ErrorContains(t, err, tt.wantError)
+				} else {
+					require.NoError(t, err)
+					assert.True(t, opts.SignCommits)
+				}
+			})
+		}
+	}
+}
+
+func TestSignCommitsSharedConfiguration(t *testing.T) {
+	cfgFile := filepath.Join(t.TempDir(), "cr.yaml")
+	require.NoError(t, os.WriteFile(cfgFile, []byte("sign-commits: true\n"), 0o600))
+	for _, name := range []string{"package", "upload"} {
+		t.Run(name, func(t *testing.T) {
+			_, err := LoadConfiguration(cfgFile, &cobra.Command{Use: name}, nil)
+			require.NoError(t, err, "index signing settings must not affect other commands")
+		})
+	}
+}
