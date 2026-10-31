@@ -31,11 +31,12 @@ import (
 
 func TestSignedIndexCommit(t *testing.T) {
 	for _, tt := range []struct {
-		name, path             string
-		unchanged, fail, merge bool
+		name, path                      string
+		unchanged, fail, merge, refresh bool
 	}{
 		{name: "new index", path: "index.yaml"},
 		{name: "merge existing chart", path: "index.yaml", merge: true},
+		{name: "refresh stale tracking ref", path: "index.yaml", merge: true, refresh: true},
 		{name: "nested index", path: "charts/index.yaml"},
 		{name: "directory path", path: "charts/"},
 		{name: "unchanged", path: "index.yaml", unchanged: true},
@@ -57,7 +58,7 @@ func TestSignedIndexCommit(t *testing.T) {
 			if tt.unchanged {
 				require.NoError(t, copyFile("testdata/repo/index.yaml", filepath.Join(root, "index.yaml")))
 			}
-			if tt.merge {
+			if tt.merge && !tt.refresh {
 				contents, err := os.ReadFile("testdata/repo/index.yaml")
 				require.NoError(t, err)
 				require.NoError(t, os.WriteFile(filepath.Join(root, "index.yaml"), []byte(strings.ReplaceAll(string(contents), "test-chart", "existing-chart")), 0o600))
@@ -67,6 +68,15 @@ func TestSignedIndexCommit(t *testing.T) {
 			head := runGit("rev-parse", "HEAD")
 			// Point the local tracking ref at the snapshot used to generate the index.
 			runGit("update-ref", "refs/remotes/origin/gh-pages", head)
+			runGit("remote", "add", "origin", root)
+			if tt.refresh {
+				contents, err := os.ReadFile("testdata/repo/index.yaml")
+				require.NoError(t, err)
+				require.NoError(t, os.WriteFile(filepath.Join(root, "index.yaml"), []byte(strings.ReplaceAll(string(contents), "test-chart", "existing-chart")), 0o600))
+				runGit("add", "index.yaml")
+				runGit("-c", "commit.gpgsign=false", "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "Concurrent index update")
+				head = runGit("rev-parse", "HEAD")
+			}
 			gh := new(FakeGitHub)
 			indexPath := filepath.Join(t.TempDir(), "index.yaml")
 			wantPath := tt.path

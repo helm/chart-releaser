@@ -120,6 +120,11 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 
 	var expectedHead string
 	if r.config.SignCommits {
+		// Package uploads push through an authenticated URL and may leave the
+		// tracking ref behind. Refresh before reading the index and its HEAD.
+		if err := r.git.Pull(worktree, "--ff-only", r.config.Remote, r.config.PagesBranch); err != nil {
+			return false, fmt.Errorf("refreshing index worktree for GitHub signing: %w", err)
+		}
 		// Use the exact revision read below, rather than fetching a newer head
 		// after merging, which could overwrite concurrent index updates.
 		expectedHead, err = r.git.Head(worktree)

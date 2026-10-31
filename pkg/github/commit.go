@@ -27,7 +27,7 @@ import (
 func (c *Client) CreateSignedCommit(ctx context.Context, branch, expectedHead, path, message string, contents []byte) error {
 	headline, body, _ := strings.Cut(message, "\n")
 	input := map[string]any{
-		"branch":          map[string]string{"repositoryNameWithOwner": c.owner + "/" + c.repo, "refName": branch},
+		"branch":          map[string]string{"repositoryNameWithOwner": c.owner + "/" + c.repo, "branchName": branch},
 		"expectedHeadOid": expectedHead,
 		"message":         map[string]string{"headline": headline, "body": strings.TrimLeft(body, "\r\n")},
 		"fileChanges": map[string]any{"additions": []map[string]string{{
