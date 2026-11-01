@@ -45,7 +45,7 @@ jobs:
       - name: Install syft
         uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
-      - uses: chainguard-dev/actions/goimports@3403a578b543fd3f0debdaef9dd989ae54e3fcef # v1.6.41
+      - uses: chainguard-dev/actions/goimports@e94104128fff55b3c5e1831a8bbbf198603156f9 # v1.7.1
 
       - name: Run Mage
         uses: magefile/mage-action@a662bd8c29d8106879588cfff83b2faf6e6f59db # v4.0.0
