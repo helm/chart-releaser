@@ -47,11 +47,11 @@ jobs:
       - name: Install syft
         uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
-      - uses: chainguard-dev/actions/goimports@3403a578b543fd3f0debdaef9dd989ae54e3fcef # v1.6.41
+      - uses: chainguard-dev/actions/goimports@e94104128fff55b3c5e1831a8bbbf198603156f9 # v1.7.1
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: quay.io
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
-        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
