@@ -80,5 +80,6 @@ func init() {
 	flags.Bool("packages-with-index", false, "Host the package files in the GitHub Pages branch")
 	flags.Bool("use-api-asset-url", false, "Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)")
 	flags.Bool("replace-existing", false, "Update existing chart versions using the supplied packages, including checksums")
+	flags.Bool("rebuild", false, "Rebuild the index from the chart packages of all GitHub releases instead of adding the supplied packages")
 	flags.String("index-commit-message", "Update {{ .PagesIndexPath }}", "Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}'")
 }
