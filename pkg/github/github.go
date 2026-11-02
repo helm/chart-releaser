@@ -17,6 +17,8 @@ package github
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -38,9 +40,11 @@ type Release struct {
 	GenerateReleaseNotes bool
 	MakeLatest           string
 	PreRelease           bool
+	PublishedAt          time.Time
 }
 
 type Asset struct {
+	ID     int64
 	Path   string
 	URL    string
 	APIURL string
@@ -95,14 +99,65 @@ func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 		return nil, err
 	}
 
+	return toRelease(release), nil
+}
+
+// ListReleases returns all published releases of the repository. Draft releases are skipped.
+func (c *Client) ListReleases(ctx context.Context) ([]*Release, error) {
+	var releases []*Release
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		page, resp, err := c.Repositories.ListReleases(ctx, c.owner, c.repo, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, release := range page {
+			if release.GetDraft() {
+				continue
+			}
+			releases = append(releases, toRelease(release))
+		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return releases, nil
+}
+
+// DownloadReleaseAsset writes the contents of a release asset to path.
+func (c *Client) DownloadReleaseAsset(ctx context.Context, asset *Asset, path string) error {
+	return retry.Retry(3, 3*time.Second, func() error {
+		rc, _, err := c.Repositories.DownloadReleaseAsset(ctx, c.owner, c.repo, asset.ID, http.DefaultClient)
+		if err != nil {
+			return fmt.Errorf("failed to download release asset %s: %w", asset.Path, err)
+		}
+		defer rc.Close()
+
+		f, err := os.Create(path)
+		if err != nil {
+			return err
+		}
+		if _, err := io.Copy(f, rc); err != nil {
+			f.Close()
+			return fmt.Errorf("failed to download release asset %s: %w", asset.Path, err)
+		}
+		return f.Close()
+	})
+}
+
+func toRelease(release *github.RepositoryRelease) *Release {
 	result := &Release{
-		Assets: []*Asset{},
+		Name:        release.GetTagName(),
+		Assets:      []*Asset{},
+		PreRelease:  release.GetPrerelease(),
+		PublishedAt: release.GetPublishedAt().Time,
 	}
 	for _, ass := range release.Assets {
-		asset := &Asset{Path: ass.GetName(), URL: ass.GetBrowserDownloadURL(), APIURL: ass.GetURL()}
+		asset := &Asset{ID: ass.GetID(), Path: ass.GetName(), URL: ass.GetBrowserDownloadURL(), APIURL: ass.GetURL()}
 		result.Assets = append(result.Assets, asset)
 	}
-	return result, nil
+	return result
 }
 
 // CreateRelease creates a new release object in the GitHub API.

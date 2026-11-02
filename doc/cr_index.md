@@ -29,6 +29,7 @@ cr index [flags]
       --pages-index-path string            The GitHub pages index path (default "index.yaml")
       --pr[=true|false]                    Create a pull request for index.yaml against the GitHub Pages branch (must not be set if --push is set)
       --push[=true|false]                  Push index.yaml to the GitHub Pages branch (must not be set if --pr is set)
+      --rebuild[=true|false]               Rebuild the index from the chart packages of all GitHub releases instead of adding the supplied packages
       --release-name-template string       Go template for computing release names, using chart metadata (default "{{ .Name }}-{{ .Version }}")
       --remote string                      The Git remote used when creating a local worktree for the GitHub Pages branch (default "origin")
       --replace-existing[=true|false]      Update existing chart versions using the supplied packages, including checksums

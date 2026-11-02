@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/helm/chart-releaser/pkg/config"
 	"github.com/stretchr/testify/assert"
@@ -90,7 +91,7 @@ func TestReplaceIndexEntry(t *testing.T) {
 			r := NewReleaser(&config.Options{PackagePath: packageDir, ReplaceExisting: true, PackagesWithIndex: tt.pages, UseAPIAssetURL: tt.useAPI}, nil, nil)
 			assetURL := "https://github.com/owner/repo/releases/download/example-1.0.0%2Bnew/example-1.0.0%2Bnew.tgz"
 			apiURL := "https://api.github.com/repos/owner/repo/releases/assets/123"
-			updated, err := r.maybeAddToIndexFile(index, assetURL, apiURL)
+			updated, err := r.maybeAddToIndexFile(index, assetURL, apiURL, r.config.PackagePath, time.Time{})
 			require.NoError(t, err)
 			require.True(t, updated)
 			require.Len(t, index.Entries["example"], 3)
@@ -110,12 +111,12 @@ func TestReplaceIndexEntry(t *testing.T) {
 					assert.Equal(t, "old-digest", entry.Digest)
 				}
 			}
-			updated, err = r.maybeAddToIndexFile(index, assetURL, apiURL)
+			updated, err = r.maybeAddToIndexFile(index, assetURL, apiURL, r.config.PackagePath, time.Time{})
 			require.NoError(t, err)
 			assert.False(t, updated, "identical replacement must not change index timestamps or produce duplicate entries")
 			if tt.useAPI && !tt.pages {
 				newAPIURL := "https://api.github.com/repos/owner/repo/releases/assets/456"
-				updated, err = r.maybeAddToIndexFile(index, assetURL, newAPIURL)
+				updated, err = r.maybeAddToIndexFile(index, assetURL, newAPIURL, r.config.PackagePath, time.Time{})
 				require.NoError(t, err)
 				assert.True(t, updated, "a replacement asset ID must refresh the API URL even when bytes are unchanged")
 				for _, entry := range index.Entries["example"] {
