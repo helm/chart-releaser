@@ -552,7 +552,10 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL
 				matches++
 			}
 		}
-		if matches == 1 && existing.Digest == candidate.Digest && slices.Equal(existing.URLs, candidate.URLs) {
+		// When the creation time comes from a release, a newer release of the same package replaces the entry,
+		// so that the newest release wins.
+		if matches == 1 && existing.Digest == candidate.Digest && slices.Equal(existing.URLs, candidate.URLs) &&
+			(created.IsZero() || existing.Created.Equal(candidate.Created)) {
 			return false, nil
 		}
 		indexFile.Entries[c.Name()] = append(kept, candidate)
