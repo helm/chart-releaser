@@ -465,6 +465,37 @@ func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 	}
 }
 
+func TestReleaser_maybeAddToIndexFileReplaceExistingSamePackage(t *testing.T) {
+	r := &Releaser{
+		config: &config.Options{
+			PackagePath:       "testdata/release-packages",
+			PackagesWithIndex: true,
+			ReplaceExisting:   true,
+		},
+	}
+	indexFile := repo.NewIndexFile()
+	url := "https://myrepo/charts/test-chart-0.1.0.tgz"
+	older := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+	newer := older.Add(48 * time.Hour)
+
+	updated, err := r.maybeAddToIndexFile(indexFile, url, "", r.config.PackagePath, older)
+	require.NoError(t, err)
+	assert.True(t, updated)
+
+	// The same package in a newer release has the same digest and URL, and still replaces the entry.
+	updated, err = r.maybeAddToIndexFile(indexFile, url, "", r.config.PackagePath, newer)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	entry, err := indexFile.Get("test-chart", "0.1.0")
+	require.NoError(t, err)
+	assert.True(t, newer.Equal(entry.Created), "the newest release wins, got %s", entry.Created)
+
+	// Adding the same release again changes nothing.
+	updated, err = r.maybeAddToIndexFile(indexFile, url, "", r.config.PackagePath, newer)
+	require.NoError(t, err)
+	assert.False(t, updated)
+}
+
 func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
 	tests := []struct {
 		name             string
