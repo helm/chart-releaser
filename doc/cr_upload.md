@@ -14,11 +14,13 @@ cr upload [flags]
 
 ```
   -c, --commit string                   Target commit for release
+      --exclude strings                 Skip chart packages whose file name matches one of these glob patterns, e.g. '*-rc*'; takes precedence over --include (can be repeated or comma-separated)
       --generate-release-notes          Whether to automatically generate the name and body for this release. See https://docs.github.com/en/rest/releases/releases
   -b, --git-base-url string             GitHub Base URL (only needed for private GitHub) (default "https://api.github.com/")
   -r, --git-repo string                 GitHub repository
   -u, --git-upload-url string           GitHub Upload URL (only needed for private GitHub) (default "https://uploads.github.com/")
   -h, --help                            help for upload
+      --include strings                 Only process chart packages whose file name matches one of these glob patterns, e.g. 'my-chart-*' (can be repeated or comma-separated)
       --make-release-latest             Mark the created GitHub release as 'latest' (default true)
   -o, --owner string                    GitHub username or organization
       --package-commit-message string   Go template for the commit message when the packages are hosted in the Pages branch (--packages-with-index), e.g. 'chore: publish {{ .ReleaseName }}' (default "Publishing chart package for {{ .ReleaseName }}")

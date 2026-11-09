@@ -958,6 +958,164 @@ func TestReleaser_CreateReleasesPackageCommitMessage(t *testing.T) {
 	}
 }
 
+func TestReleaser_filterPackages(t *testing.T) {
+	packages := []string{
+		"pkgs/app-1.0.0.tgz",
+		"pkgs/app-1.1.0-rc.1.tgz",
+		"pkgs/lib-0.1.0.tgz",
+	}
+	tests := []struct {
+		name     string
+		include  []string
+		exclude  []string
+		expected []string
+	}{
+		{
+			name:     "no-filters",
+			expected: packages,
+		},
+		{
+			name:     "include",
+			include:  []string{"app-*"},
+			expected: []string{"pkgs/app-1.0.0.tgz", "pkgs/app-1.1.0-rc.1.tgz"},
+		},
+		{
+			name:     "multiple-includes",
+			include:  []string{"app-1.0.0.tgz", "lib-*"},
+			expected: []string{"pkgs/app-1.0.0.tgz", "pkgs/lib-0.1.0.tgz"},
+		},
+		{
+			name:     "exclude",
+			exclude:  []string{"*-rc.*"},
+			expected: []string{"pkgs/app-1.0.0.tgz", "pkgs/lib-0.1.0.tgz"},
+		},
+		{
+			name:     "exclude-takes-precedence",
+			include:  []string{"app-*"},
+			exclude:  []string{"*-rc.*"},
+			expected: []string{"pkgs/app-1.0.0.tgz"},
+		},
+		{
+			name:     "nothing-matches",
+			include:  []string{"other-*"},
+			expected: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Releaser{config: &config.Options{Include: tt.include, Exclude: tt.exclude}}
+			assert.Equal(t, tt.expected, r.filterPackages(packages))
+		})
+	}
+}
+
+func TestReleaser_CreateReleasesFiltered(t *testing.T) {
+	packageDir := t.TempDir()
+	for _, p := range []string{
+		"testdata/release-packages/test-chart-0.1.0.tgz",
+		"testdata/release-packages-prerelease/test-chart-0.2.0-beta2.tgz",
+	} {
+		require.NoError(t, copyFile(p, filepath.Join(packageDir, filepath.Base(p))))
+	}
+
+	tests := []struct {
+		name     string
+		include  []string
+		exclude  []string
+		expected []string
+	}{
+		{name: "no-filters", expected: []string{"test-chart-0.1.0", "test-chart-0.2.0-beta2"}},
+		{name: "include", include: []string{"*-beta*"}, expected: []string{"test-chart-0.2.0-beta2"}},
+		{name: "exclude", exclude: []string{"*-beta*"}, expected: []string{"test-chart-0.1.0"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGitHub := new(FakeGitHub)
+			var released []string
+			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+				released = append(released, args.Get(1).(*github.Release).Name)
+			})
+			r := &Releaser{
+				config: &config.Options{
+					PackagePath:         packageDir,
+					ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}",
+					Include:             tt.include,
+					Exclude:             tt.exclude,
+				},
+				github: fakeGitHub,
+			}
+			require.NoError(t, r.CreateReleases())
+			assert.Equal(t, tt.expected, released)
+		})
+	}
+}
+
+func TestReleaser_UpdateIndexFileFiltered(t *testing.T) {
+	fakeGit := new(FakeGit)
+	fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+	fakeGitHub := new(FakeGitHub)
+	r := &Releaser{
+		config: &config.Options{
+			IndexPath:      filepath.Join(t.TempDir(), "index.yaml"),
+			PackagePath:    "testdata/release-packages",
+			PagesIndexPath: "index.yaml",
+			Exclude:        []string{"test-chart-*"},
+		},
+		github: fakeGitHub,
+		git:    fakeGit,
+	}
+
+	updated, err := r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.False(t, updated)
+	_, err = os.Stat(r.config.IndexPath)
+	assert.ErrorIs(t, err, os.ErrNotExist)
+}
+
+func TestReleaser_UpdateIndexFileFilteredReleaseAssets(t *testing.T) {
+	packageDir := t.TempDir()
+	for _, p := range []string{
+		"testdata/release-packages/test-chart-0.1.0.tgz",
+		"testdata/release-packages-prerelease/test-chart-0.2.0-beta2.tgz",
+	} {
+		require.NoError(t, copyFile(p, filepath.Join(packageDir, filepath.Base(p))))
+	}
+
+	// The release lists the excluded chart asset before the selected one.
+	fakeGitHub := &FakeGitHubWithURLEncoding{
+		release: &github.Release{
+			Name: "test-chart-0.1.0",
+			Assets: []*github.Asset{
+				{URL: "https://myrepo/charts/test-chart-0.2.0-beta2.tgz"},
+				{URL: "https://myrepo/charts/test-chart-0.1.0.tgz"},
+			},
+		},
+	}
+	fakeGit := new(FakeGit)
+	fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+	r := &Releaser{
+		config: &config.Options{
+			IndexPath:           filepath.Join(t.TempDir(), "index.yaml"),
+			PackagePath:         packageDir,
+			PagesIndexPath:      "index.yaml",
+			ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}",
+			Exclude:             []string{"*-beta*"},
+		},
+		github: fakeGitHub,
+		git:    fakeGit,
+	}
+
+	updated, err := r.UpdateIndexFile()
+	require.NoError(t, err)
+	assert.True(t, updated)
+
+	indexFile, err := repo.LoadIndexFile(r.config.IndexPath)
+	require.NoError(t, err)
+	versions := indexFile.Entries["test-chart"]
+	require.Len(t, versions, 1)
+	assert.Equal(t, "0.1.0", versions[0].Version)
+}
+
 func TestReleaser_UpdateIndexFileAPIAssetURL(t *testing.T) {
 	const browserURL = "https://github.com/owner/repo/releases/download/test-chart-0.1.0/test-chart-0.1.0.tgz"
 	const apiURL = "https://api.github.com/repos/owner/repo/releases/assets/42"
