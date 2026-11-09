@@ -47,7 +47,7 @@ jobs:
       - name: Install syft
         uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
-      - uses: chainguard-dev/actions/goimports@e94104128fff55b3c5e1831a8bbbf198603156f9 # v1.7.1
+      - uses: chainguard-dev/actions/goimports@8f31e9482b447ff2c69eca944a09b4b31a4a85d0 # v1.7.2
 
       - name: Login to registry
         if: github.repository == 'helm/chart-releaser'
