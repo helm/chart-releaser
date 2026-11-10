@@ -73,13 +73,17 @@ func TestReleaser_CreateReleasesSkipExistingPages(t *testing.T) {
 	for _, tt := range []struct {
 		name                                            string
 		releaseExists, packageExists, packagesWithIndex bool
+		refreshFails                                    bool
 	}{
 		{name: "restore missing Pages package", releaseExists: true, packagesWithIndex: true},
 		{name: "preserve existing Pages package", releaseExists: true, packageExists: true, packagesWithIndex: true},
 		{name: "skip release without Pages packages", releaseExists: true},
 		{name: "publish new release and Pages package", packagesWithIndex: true},
+		{name: "failed refresh stops publishing", packagesWithIndex: true, refreshFails: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("GIT_AUTHOR_DATE", "2020-01-01T00:00:00Z")
+			t.Setenv("GIT_COMMITTER_DATE", "2020-01-01T00:00:00Z")
 			root := t.TempDir()
 			runGit := func(dir string, args ...string) string {
 				t.Helper()
@@ -104,6 +108,9 @@ func TestReleaser_CreateReleasesSkipExistingPages(t *testing.T) {
 			runGit(repo, "commit", "-m", "Initial Pages files")
 			runGit(repo, "push", "origin", "gh-pages")
 			before := runGit(root, "--git-dir", remote, "rev-parse", "gh-pages")
+			if tt.refreshFails {
+				require.NoError(t, os.Rename(remote, remote+".unavailable"))
+			}
 
 			gh := &pagesTestGitHub{exists: tt.releaseExists}
 			if !tt.releaseExists {
@@ -119,7 +126,14 @@ func TestReleaser_CreateReleasesSkipExistingPages(t *testing.T) {
 				github: gh,
 				git:    &pagesTestGit{repo: repo, remote: remote},
 			}
-			require.NoError(t, r.CreateReleases())
+			err := r.CreateReleases()
+			if tt.refreshFails {
+				require.Error(t, err)
+				gh.AssertNumberOfCalls(t, "CreateRelease", 0)
+				assert.Equal(t, 1, strings.Count(runGit(repo, "worktree", "list", "--porcelain"), "worktree "))
+				return
+			}
+			require.NoError(t, err)
 			after := runGit(root, "--git-dir", remote, "rev-parse", "gh-pages")
 			if tt.packagesWithIndex {
 				got := runGit(root, "--git-dir", remote, "show", "gh-pages:"+packageName)
@@ -134,6 +148,9 @@ func TestReleaser_CreateReleasesSkipExistingPages(t *testing.T) {
 					assert.Equal(t, "chore: publish test-chart-0.1.0", runGit(root, "--git-dir", remote, "log", "-1", "--format=%s", "gh-pages"))
 				}
 				gh.exists = true
+				// A stale worktree must not be hidden by identical commit timestamps.
+				t.Setenv("GIT_AUTHOR_DATE", "2020-01-02T00:00:00Z")
+				t.Setenv("GIT_COMMITTER_DATE", "2020-01-02T00:00:00Z")
 				require.NoError(t, r.CreateReleases(), "rerunning must succeed without an empty commit")
 				assert.Equal(t, after, runGit(root, "--git-dir", remote, "rev-parse", "gh-pages"))
 			} else {

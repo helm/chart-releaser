@@ -481,6 +481,13 @@ func (r *Releaser) CreateReleases() error {
 		}
 
 		defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
+		remoteURL, err := r.git.GetPushURL(r.config.Remote, r.config.Token)
+		if err != nil {
+			return err
+		}
+		if err := r.git.Pull(worktree, "--ff-only", remoteURL, r.config.PagesBranch); err != nil {
+			return fmt.Errorf("refreshing Pages worktree: %w", err)
+		}
 	}
 
 	packages, err := r.getListOfPackages(r.config.PackagePath)
