@@ -106,8 +106,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			r.config.IndexPath = filepath.Join(r.config.IndexPath, "index.yaml")
 			// otherwise error out
 		} else {
-			fmt.Printf("index-path (%s) should be a directory or a file called index.yaml\n", r.config.IndexPath)
-			os.Exit(1)
+			return false, fmt.Errorf("index-path (%s) should be a directory or a file called index.yaml", r.config.IndexPath)
 		}
 	}
 
@@ -140,8 +139,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			r.config.PagesIndexPath = filepath.Join(r.config.PagesIndexPath, "index.yaml")
 			// otherwise error out
 		} else {
-			fmt.Printf("pages-index-path (%s) should be a directory or a file called index.yaml\n", r.config.PagesIndexPath)
-			os.Exit(1) // nolint: gocritic
+			return false, fmt.Errorf("pages-index-path (%s) should be a directory or a file called index.yaml", r.config.PagesIndexPath)
 		}
 	}
 	indexYamlPath := filepath.Join(worktree, r.config.PagesIndexPath)
