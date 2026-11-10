@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/helm/chart-releaser/pkg/github"
 	"github.com/stretchr/testify/assert"
@@ -137,6 +138,16 @@ func (f *FakeGitHub) GenerateReleaseNotes(ctx context.Context, tag string, previ
 func (f *FakeGitHub) ListTagsWithPrefix(ctx context.Context, prefix string) ([]string, error) { //nolint: revive
 	args := f.Called(ctx, prefix)
 	return args.Get(0).([]string), args.Error(1)
+}
+
+func (f *FakeGitHub) ListReleases(ctx context.Context) ([]*github.Release, error) {
+	args := f.Called(ctx)
+	return args.Get(0).([]*github.Release), args.Error(1)
+}
+
+func (f *FakeGitHub) DownloadReleaseAsset(ctx context.Context, asset *github.Asset, path string) error {
+	args := f.Called(ctx, asset, path)
+	return args.Error(0)
 }
 
 func (f *FakeGitHub) CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error) {
@@ -428,7 +439,7 @@ func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			indexFile := repo.NewIndexFile()
 			url := fmt.Sprintf("https://myrepo/charts/%s-%s.tgz", tt.chart, tt.version)
-			updated, err := tt.releaser.maybeAddToIndexFile(indexFile, url, "")
+			updated, err := tt.releaser.maybeAddToIndexFile(indexFile, url, "", tt.releaser.config.PackagePath, time.Time{})
 			if tt.error {
 				assert.Error(t, err)
 				assert.False(t, updated)
@@ -447,11 +458,42 @@ func TestReleaser_maybeAddToIndexFile(t *testing.T) {
 			}
 
 			// Second time around is a no-op.
-			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url, "")
+			updated, err = tt.releaser.maybeAddToIndexFile(indexFile, url, "", tt.releaser.config.PackagePath, time.Time{})
 			assert.NoError(t, err)
 			assert.False(t, updated)
 		})
 	}
+}
+
+func TestReleaser_maybeAddToIndexFileReplaceExistingSamePackage(t *testing.T) {
+	r := &Releaser{
+		config: &config.Options{
+			PackagePath:       "testdata/release-packages",
+			PackagesWithIndex: true,
+			ReplaceExisting:   true,
+		},
+	}
+	indexFile := repo.NewIndexFile()
+	url := "https://myrepo/charts/test-chart-0.1.0.tgz"
+	older := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
+	newer := older.Add(48 * time.Hour)
+
+	updated, err := r.maybeAddToIndexFile(indexFile, url, "", r.config.PackagePath, older)
+	require.NoError(t, err)
+	assert.True(t, updated)
+
+	// The same package in a newer release has the same digest and URL, and still replaces the entry.
+	updated, err = r.maybeAddToIndexFile(indexFile, url, "", r.config.PackagePath, newer)
+	require.NoError(t, err)
+	assert.True(t, updated)
+	entry, err := indexFile.Get("test-chart", "0.1.0")
+	require.NoError(t, err)
+	assert.True(t, newer.Equal(entry.Created), "the newest release wins, got %s", entry.Created)
+
+	// Adding the same release again changes nothing.
+	updated, err = r.maybeAddToIndexFile(indexFile, url, "", r.config.PackagePath, newer)
+	require.NoError(t, err)
+	assert.False(t, updated)
 }
 
 func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
@@ -480,7 +522,7 @@ func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
 			}
 			r := &Releaser{config: &config.Options{PackagePath: tt.packagePath}}
 			downloadURL := "https://myrepo/charts/test-chart-" + strings.ReplaceAll(tt.version, "+", "%2B") + ".tgz"
-			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL, "")
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL, "", r.config.PackagePath, time.Time{})
 			require.NoError(t, err)
 			require.Equal(t, tt.wantUpdated, updated)
 
@@ -494,7 +536,7 @@ func TestReleaser_maybeAddToIndexFileBuildMetadata(t *testing.T) {
 			}
 			assert.ElementsMatch(t, wantVersions, versions)
 
-			updated, err = r.maybeAddToIndexFile(indexFile, downloadURL, "")
+			updated, err = r.maybeAddToIndexFile(indexFile, downloadURL, "", r.config.PackagePath, time.Time{})
 			require.NoError(t, err)
 			assert.False(t, updated, "an exact version already present must not be added again")
 			assert.Len(t, indexFile.Entries["test-chart"], len(wantVersions))

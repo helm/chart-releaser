@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"unicode/utf8"
 
 	"github.com/google/go-github/v56/github"
@@ -183,4 +184,58 @@ func TestClient_GetReleaseAssetURLs(t *testing.T) {
 			assert.Equal(t, tt.apiURL, release.Assets[0].APIURL)
 		})
 	}
+}
+
+func TestClient_ListReleases(t *testing.T) {
+	var srvURL string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/repos/owner/repo/releases", r.URL.Path)
+		switch r.URL.Query().Get("page") {
+		case "":
+			w.Header().Set("Link", `<`+srvURL+`/repos/owner/repo/releases?page=2>; rel="next"`)
+			_, _ = w.Write([]byte(`[
+				{"tag_name":"chart-1.1.0","draft":true,"assets":[{"id":3,"name":"chart-1.1.0.tgz"}]},
+				{"tag_name":"chart-1.0.0","published_at":"2025-01-02T03:04:05Z","assets":[{"id":2,"name":"chart-1.0.0.tgz","browser_download_url":"https://github.com/owner/repo/releases/download/chart-1.0.0/chart-1.0.0.tgz","url":"https://api.github.com/repos/owner/repo/releases/assets/2"}]}
+			]`))
+		case "2":
+			_, _ = w.Write([]byte(`[{"tag_name":"chart-0.9.0","prerelease":true,"published_at":"2024-12-01T00:00:00Z","assets":[]}]`))
+		default:
+			t.Errorf("unexpected page %q", r.URL.Query().Get("page"))
+		}
+	}))
+	defer srv.Close()
+	srvURL = srv.URL
+
+	releases, err := NewClient("owner", "repo", "", srv.URL, srv.URL).ListReleases(context.Background())
+	require.NoError(t, err)
+	require.Len(t, releases, 2, "draft releases are skipped")
+
+	assert.Equal(t, "chart-1.0.0", releases[0].Name)
+	assert.Equal(t, time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC), releases[0].PublishedAt.UTC())
+	assert.Equal(t, []*Asset{{
+		ID:     2,
+		Path:   "chart-1.0.0.tgz",
+		URL:    "https://github.com/owner/repo/releases/download/chart-1.0.0/chart-1.0.0.tgz",
+		APIURL: "https://api.github.com/repos/owner/repo/releases/assets/2",
+	}}, releases[0].Assets)
+
+	assert.Equal(t, "chart-0.9.0", releases[1].Name)
+	assert.True(t, releases[1].PreRelease)
+	assert.Empty(t, releases[1].Assets)
+}
+
+func TestClient_DownloadReleaseAsset(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/repos/owner/repo/releases/assets/42", r.URL.Path)
+		assert.Equal(t, "application/octet-stream", r.Header.Get("Accept"))
+		_, _ = w.Write([]byte("chart contents"))
+	}))
+	defer srv.Close()
+
+	path := filepath.Join(t.TempDir(), "chart-1.0.0.tgz")
+	err := NewClient("owner", "repo", "token", srv.URL, srv.URL).DownloadReleaseAsset(context.Background(), &Asset{ID: 42, Path: "chart-1.0.0.tgz"}, path)
+	require.NoError(t, err)
+	contents, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, "chart contents", string(contents))
 }
