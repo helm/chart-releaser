@@ -29,6 +29,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/registry"
+	"oras.land/oras-go/v2/errdef"
 
 	"github.com/helm/chart-releaser/pkg/config"
 )
@@ -122,7 +123,10 @@ func chartExists(client *registry.Client, remote, chartPackage string) (bool, er
 		strings.ReplaceAll(ch.Metadata.Version, "+", "_"),
 	)
 	if _, err := client.Resolve(ref); err != nil {
-		return false, nil
+		if errors.Is(err, errdef.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
 	}
 	return true, nil
 }
