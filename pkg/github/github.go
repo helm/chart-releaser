@@ -127,7 +127,7 @@ func (c *Client) ListReleases(ctx context.Context) ([]*Release, error) {
 
 // DownloadReleaseAsset writes the contents of a release asset to path.
 func (c *Client) DownloadReleaseAsset(ctx context.Context, asset *Asset, path string) error {
-	return retry.Retry(3, 3*time.Second, func() error {
+	return retry.WithContext(ctx, 3, 3*time.Second, func() error { //nolint: revive
 		rc, _, err := c.Repositories.DownloadReleaseAsset(ctx, c.owner, c.repo, asset.ID, http.DefaultClient)
 		if err != nil {
 			return fmt.Errorf("failed to download release asset %s: %w", asset.Path, err)
