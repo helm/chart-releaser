@@ -9,8 +9,8 @@ cr version [flags]
 ### Options
 
 ```
-  -h, --help   help for version
-      --json   print JSON instead of text
+  -h, --help[=true|false]   help for version
+      --json[=true|false]   print JSON instead of text
 ```
 
 ### Options inherited from parent commands

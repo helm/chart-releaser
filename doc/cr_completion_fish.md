@@ -24,8 +24,8 @@ cr completion fish [flags]
 ### Options
 
 ```
-  -h, --help              help for fish
-      --no-descriptions   disable completion descriptions
+  -h, --help[=true|false]              help for fish
+      --no-descriptions[=true|false]   disable completion descriptions
 ```
 
 ### Options inherited from parent commands

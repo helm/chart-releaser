@@ -12,8 +12,8 @@ and Chart metadata to GitHub Releases and creating a suitable index file
 ### Options
 
 ```
-      --config string   Config file (default is $HOME/.cr.yaml)
-  -h, --help            help for cr
+      --config string       Config file (default is $HOME/.cr.yaml)
+  -h, --help[=true|false]   help for cr
 ```
 
 ### SEE ALSO
