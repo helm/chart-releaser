@@ -494,6 +494,7 @@ func (r *Releaser) CreateReleases() error {
 		return fmt.Errorf("no charts found at %s", r.config.PackagePath)
 	}
 
+	committed := false
 	for _, p := range packages {
 		ch, err := loader.LoadFile(p)
 		if err != nil {
@@ -526,9 +527,11 @@ func (r *Releaser) CreateReleases() error {
 				if r.config.PackagesWithIndex {
 					pkgTargetPath := filepath.Join(worktree, filepath.Base(p))
 					if _, err := os.Stat(pkgTargetPath); errors.Is(err, os.ErrNotExist) {
-						if err := r.commitPackage(worktree, p, releaseName); err != nil {
+						changed, err := r.commitPackage(worktree, p, releaseName)
+						if err != nil {
 							return err
 						}
+						committed = committed || changed
 					} else if err != nil {
 						return err
 					}
@@ -543,9 +546,11 @@ func (r *Releaser) CreateReleases() error {
 			}
 			if exists {
 				if r.config.PackagesWithIndex {
-					if err := r.commitPackage(worktree, p, releaseName); err != nil {
+					changed, err := r.commitPackage(worktree, p, releaseName)
+					if err != nil {
 						return err
 					}
+					committed = committed || changed
 				}
 				continue
 			}
@@ -578,12 +583,16 @@ func (r *Releaser) CreateReleases() error {
 		}
 
 		if r.config.PackagesWithIndex {
-			if err := r.commitPackage(worktree, p, releaseName); err != nil {
+			changed, err := r.commitPackage(worktree, p, releaseName)
+			if err != nil {
 				return err
 			}
+			committed = committed || changed
 		}
 	}
-	if r.config.Push {
+	// Publish package commits in the Pages worktree with --push or --pr.
+	// Without --packages-with-index, there is nothing to publish.
+	if committed && (r.config.Push || r.config.PR) {
 		if err := r.pushToPagesBranch(worktree); err != nil {
 			return err
 		}
@@ -592,71 +601,79 @@ func (r *Releaser) CreateReleases() error {
 	return nil
 }
 
-func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) error {
+// commitPackage commits the package to the Pages worktree and reports whether
+// a commit was created.
+func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) (bool, error) {
 	pkgTargetPath := filepath.Join(worktree, filepath.Base(packagePath))
 	if r.config.ReplaceExisting {
 		return r.commitReplacementPackage(worktree, packagePath, releaseName)
 	}
 	if err := copyFile(packagePath, pkgTargetPath); err != nil {
-		return err
+		return false, err
 	}
 	if err := r.git.Add(worktree, pkgTargetPath); err != nil {
-		return err
+		return false, err
 	}
 	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
 		struct{ ReleaseName string }{releaseName})
 	if err != nil {
-		return err
+		return false, err
 	}
-	return r.git.Commit(worktree, message)
+	if err := r.git.Commit(worktree, message); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // commitReplacementPackage updates both the archive and its optional provenance
 // in Pages, removing stale provenance when replacing a signed archive with an
 // unsigned one. Identical files do not produce an empty Git commit.
-func (r *Releaser) commitReplacementPackage(worktree, packagePath, releaseName string) error {
+func (r *Releaser) commitReplacementPackage(worktree, packagePath, releaseName string) (bool, error) {
 	var changed []string
 	for _, suffix := range []string{"", ".prov"} {
 		source := packagePath + suffix
 		target := filepath.Join(worktree, filepath.Base(source))
 		incoming, err := os.ReadFile(source)
 		if err != nil && (!errors.Is(err, os.ErrNotExist) || suffix == "") {
-			return err
+			return false, err
 		}
 		missing := errors.Is(err, os.ErrNotExist)
 		existing, err := os.ReadFile(target)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
+			return false, err
 		}
 		if missing {
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
 			if err := os.Remove(target); err != nil {
-				return err
+				return false, err
 			}
 		} else {
 			if err == nil && bytes.Equal(incoming, existing) {
 				continue
 			}
 			if err := copyFile(source, target); err != nil {
-				return err
+				return false, err
 			}
 		}
 		changed = append(changed, target)
 	}
 	if len(changed) == 0 {
-		return nil
+		return false, nil
 	}
 	if err := r.git.Add(worktree, changed...); err != nil {
-		return err
+		return false, err
 	}
 	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
 		struct{ ReleaseName string }{releaseName})
 	if err != nil {
-		return err
+		return false, err
 	}
-	return r.git.Commit(worktree, message)
+	if err := r.git.Commit(worktree, message); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *Releaser) getListOfPackages(dir string) ([]string, error) {

@@ -143,7 +143,9 @@ func TestCommitReplacementPackage(t *testing.T) {
 			git.On("Add", pagesDir, mock.Anything).Return(nil).Once()
 			git.On("Commit", pagesDir, "Publishing chart package for chart").Return(nil).Once()
 			r := NewReleaser(&config.Options{ReplaceExisting: true}, nil, git)
-			require.NoError(t, r.commitPackage(pagesDir, archive, "chart"))
+			committed, err := r.commitPackage(pagesDir, archive, "chart")
+			require.NoError(t, err)
+			assert.True(t, committed)
 			actual, err := os.ReadFile(filepath.Join(pagesDir, "chart.tgz"))
 			require.NoError(t, err)
 			assert.Equal(t, "new archive", string(actual))
@@ -154,7 +156,9 @@ func TestCommitReplacementPackage(t *testing.T) {
 			} else {
 				require.ErrorIs(t, err, os.ErrNotExist)
 			}
-			require.NoError(t, r.commitPackage(pagesDir, archive, "chart"), "identical replacement must not create an empty commit")
+			committed, err = r.commitPackage(pagesDir, archive, "chart")
+			require.NoError(t, err)
+			assert.False(t, committed, "identical replacement must not create an empty commit")
 			git.AssertExpectations(t)
 		})
 	}
