@@ -582,6 +582,9 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					Commit:            "5e239bd19fbefb9eb0181ecf0c7ef73b8fe2753c",
 					PackagesWithIndex: true,
 					Push:              true,
+					Remote:            "origin",
+					PagesBranch:       "gh-pages",
+					Token:             "test-token",
 					MakeReleaseLatest: true,
 				},
 			},
@@ -619,6 +622,7 @@ func TestReleaser_CreateReleases(t *testing.T) {
 			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
 			fakeGit.On("Push", mock.Anything, mock.Anything).Return(nil)
 			pushURL := fmt.Sprintf("https://x-access-token:%s@github.com/owner/repo", tt.Releaser.config.Token)
+			fakeGit.On("Pull", mock.Anything, []string{"--ff-only", pushURL, tt.Releaser.config.PagesBranch}).Return(nil)
 			fakeGit.On("GetPushURL", mock.Anything, mock.Anything).Return(pushURL, nil)
 			tt.Releaser.git = fakeGit
 			tt.Releaser.config.ReleaseNameTemplate = "{{ .Name }}-{{ .Version }}"
@@ -646,6 +650,9 @@ func TestReleaser_CreateReleases(t *testing.T) {
 					fakeGit.AssertNumberOfCalls(t, "Add", 0)
 					fakeGit.AssertNumberOfCalls(t, "Commit", 0)
 					fakeGit.AssertNumberOfCalls(t, "Push", 0)
+					fakeGit.AssertNumberOfCalls(t, "Pull", 0)
+				} else {
+					fakeGit.AssertCalled(t, "Pull", mock.Anything, []string{"--ff-only", pushURL, tt.Releaser.config.PagesBranch})
 				}
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
@@ -674,6 +681,7 @@ func TestReleaser_CreateReleasesPublishesPackages(t *testing.T) {
 			fakeGitHub.On("CreatePullRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 			fakeGit := new(FakeGit)
 			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Pull", mock.Anything, mock.Anything).Return(nil)
 			fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
 			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
 			fakeGit.On("Push", mock.Anything, mock.Anything).Return(nil)
@@ -984,6 +992,8 @@ func TestReleaser_CreateReleasesPackageCommitMessage(t *testing.T) {
 			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
 			fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
 			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Pull", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("GetPushURL", mock.Anything, mock.Anything).Return("", nil)
 			fakeGitHub := new(FakeGitHub)
 			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
 
