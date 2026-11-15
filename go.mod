@@ -13,7 +13,7 @@ require (
 	github.com/spf13/pflag v1.1.0
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/oauth2 v0.37.0
+	golang.org/x/oauth2 v0.38.0
 	helm.sh/helm/v3 v3.22.1
 	oras.land/oras-go/v2 v2.6.2
 )
