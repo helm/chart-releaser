@@ -246,6 +246,21 @@ rerun to merge against it. API request limits apply to large indexes. The option
 only covers the index commit; chart package commits made by
 `cr upload --packages-with-index` still use local Git.
 
+Each chart version's `created` time in the index is the time its GitHub release
+was published, so tools that read it as the release date, like Renovate's
+`minimumReleaseAge`, see the real age of a version.
+
+To build the index from scratch, use `cr index --rebuild`. Instead of adding the
+packages in `--package-path` to the existing index, it downloads the chart
+packages of all published GitHub releases of the repository and builds a new
+index from them. Versions in the existing index that no longer have a release
+are dropped. Assets that are not chart packages are skipped, and if a version is
+in more than one release, the oldest release is used (the newest one with
+`--replace-existing`). Running it again for the
+same releases gives the same index, so nothing is committed. The URLs follow the
+same rules as without `--rebuild`, and `--push`, `--pr` and `--sign-commits`
+work the same way. For private repositories, pass `--token`.
+
 ```console
 $ cr index --help
 Update a Helm chart repository index.yaml file based on a the
@@ -274,6 +289,7 @@ Flags:
       --use-api-asset-url              Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)
       --packages-with-index            Host the package files in the GitHub Pages branch
       --replace-existing               Update existing chart versions using the supplied packages, including checksums
+      --rebuild                        Rebuild the index from the chart packages of all GitHub releases instead of adding the supplied packages
 
 Global Flags:
       --config string   Config file (default is $HOME/.cr.yaml)

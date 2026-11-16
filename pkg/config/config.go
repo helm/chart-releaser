@@ -60,6 +60,7 @@ type Options struct {
 	ReleaseNameTemplate  string `mapstructure:"release-name-template"`
 	SkipExisting         bool   `mapstructure:"skip-existing"`
 	ReplaceExisting      bool   `mapstructure:"replace-existing"`
+	Rebuild              bool   `mapstructure:"rebuild"`
 	ReleaseNotesFile     string `mapstructure:"release-notes-file"`
 	GenerateReleaseNotes bool   `mapstructure:"generate-release-notes"`
 	MakeReleaseLatest    bool   `mapstructure:"make-release-latest"`

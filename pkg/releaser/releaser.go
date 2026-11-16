@@ -52,6 +52,8 @@ type GitHub interface {
 	CreateSignedCommit(ctx context.Context, branch, expectedHead, path, message string, contents []byte) error
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
+	ListReleases(ctx context.Context) ([]*github.Release, error)
+	DownloadReleaseAsset(ctx context.Context, asset *github.Asset, path string) error
 	ReplaceReleaseAssets(ctx context.Context, input *github.Release) (bool, error)
 	CreatePullRequest(owner string, repo string, message string, head string, base string) (string, error)
 	GenerateReleaseNotes(ctx context.Context, tag string, previousTag string, commit string) (string, error)
@@ -157,54 +159,16 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return false, err
 	}
 
-	// We have to explicitly glob for *.tgz files only. If GPG signing is enabled,
-	// this would also return *.tgz.prov files otherwise, which we don't want here.
-	chartPackages, err := filepath.Glob(r.config.PackagePath + "/*.tgz")
-	if err != nil {
-		return false, err
-	}
-
 	var update bool
-	for _, chartPackage := range chartPackages {
-		ch, err := loader.LoadFile(chartPackage)
+	if r.config.Rebuild {
+		rebuilt, err := r.rebuildIndexFile()
 		if err != nil {
 			return false, err
 		}
-		releaseName, err := r.computeReleaseName(ch)
-		if err != nil {
-			return false, err
-		}
-
-		var release *github.Release
-		if err := retry.Retry(3, 3*time.Second, func() error {
-			rel, err := r.github.GetRelease(context.TODO(), releaseName)
-			if err != nil {
-				return err
-			}
-			release = rel
-			return nil
-		}); err != nil {
-			return false, err
-		}
-
-		for _, asset := range release.Assets {
-			downloadURL, _ := url.Parse(asset.URL)
-			name := filepath.Base(downloadURL.Path)
-			// Ignore any other files added in the release by the users.
-			if filepath.Ext(name) != chartAssetFileExtension {
-				continue
-			}
-			fmt.Printf("Found %s\n", name)
-			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String(), asset.APIURL)
-			if err != nil {
-				return false, err
-			}
-
-			if updated {
-				update = true
-				break
-			}
-		}
+		update = !sameEntries(indexFile, rebuilt)
+		indexFile = rebuilt
+	} else if update, err = r.addPackagesToIndexFile(indexFile); err != nil {
+		return false, err
 	}
 
 	if !update {
@@ -271,6 +235,132 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	}
 
 	return true, nil
+}
+
+// addPackagesToIndexFile adds the chart packages in the package path to the index, using their GitHub releases.
+func (r *Releaser) addPackagesToIndexFile(indexFile *repo.IndexFile) (bool, error) {
+	// We have to explicitly glob for *.tgz files only. If GPG signing is enabled,
+	// this would also return *.tgz.prov files otherwise, which we don't want here.
+	chartPackages, err := filepath.Glob(r.config.PackagePath + "/*.tgz")
+	if err != nil {
+		return false, err
+	}
+
+	var update bool
+	for _, chartPackage := range chartPackages {
+		ch, err := loader.LoadFile(chartPackage)
+		if err != nil {
+			return false, err
+		}
+		releaseName, err := r.computeReleaseName(ch)
+		if err != nil {
+			return false, err
+		}
+
+		var release *github.Release
+		if err := retry.Retry(3, 3*time.Second, func() error {
+			rel, err := r.github.GetRelease(context.TODO(), releaseName)
+			if err != nil {
+				return err
+			}
+			release = rel
+			return nil
+		}); err != nil {
+			return false, err
+		}
+
+		for _, asset := range release.Assets {
+			downloadURL, _ := url.Parse(asset.URL)
+			name := filepath.Base(downloadURL.Path)
+			// Ignore any other files added in the release by the users.
+			if filepath.Ext(name) != chartAssetFileExtension {
+				continue
+			}
+			fmt.Printf("Found %s\n", name)
+			updated, err := r.maybeAddToIndexFile(indexFile, downloadURL.String(), asset.APIURL, r.config.PackagePath, release.PublishedAt)
+			if err != nil {
+				return false, err
+			}
+
+			if updated {
+				update = true
+				break
+			}
+		}
+	}
+	return update, nil
+}
+
+// rebuildIndexFile builds a new index from the chart packages of all GitHub releases of the repository.
+// Each chart version is created at the time its release was published, so rebuilding is idempotent.
+func (r *Releaser) rebuildIndexFile() (*repo.IndexFile, error) {
+	releases, err := r.github.ListReleases(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	// Add the oldest releases first, like publishing them one by one would.
+	slices.SortStableFunc(releases, func(a, b *github.Release) int {
+		return a.PublishedAt.Compare(b.PublishedAt)
+	})
+
+	dir, err := os.MkdirTemp("", "chart-releaser-rebuild-")
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(dir)
+
+	indexFile := repo.NewIndexFile()
+	for _, release := range releases {
+		for _, asset := range release.Assets {
+			downloadURL, err := url.Parse(asset.URL)
+			if err != nil {
+				return nil, err
+			}
+			name, err := url.PathUnescape(filepath.Base(downloadURL.Path))
+			if err != nil {
+				return nil, fmt.Errorf("error decoding filename from URL %s: %w", asset.URL, err)
+			}
+			// Ignore any other files added in the release by the users.
+			if filepath.Ext(name) != chartAssetFileExtension {
+				continue
+			}
+			fmt.Printf("Downloading %s from release %s\n", name, release.Name)
+			arch := filepath.Join(dir, name)
+			if err := r.github.DownloadReleaseAsset(context.TODO(), asset, arch); err != nil {
+				return nil, err
+			}
+			if _, err := loader.LoadFile(arch); err != nil {
+				fmt.Printf("Skipping %s from release %s, it is not a helm chart package: %v\n", name, release.Name, err)
+				continue
+			}
+			if _, err := r.maybeAddToIndexFile(indexFile, downloadURL.String(), asset.APIURL, dir, release.PublishedAt); err != nil {
+				return nil, err
+			}
+		}
+	}
+	indexFile.SortEntries()
+	return indexFile, nil
+}
+
+// sameEntries reports whether two indexes have the same chart versions, digests, URLs and creation times.
+func sameEntries(a, b *repo.IndexFile) bool {
+	if len(a.Entries) != len(b.Entries) {
+		return false
+	}
+	a.SortEntries()
+	for name, versions := range b.Entries {
+		existing, ok := a.Entries[name]
+		if !ok || len(existing) != len(versions) {
+			return false
+		}
+		for i, v := range versions {
+			e := existing[i]
+			if e.Version != v.Version || e.Digest != v.Digest || !slices.Equal(e.URLs, v.URLs) || !e.Created.Equal(v.Created) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 const (
@@ -387,14 +477,16 @@ func (r *Releaser) getReleaseNotes(chart *chart.Chart) string {
 	return chart.Metadata.Description
 }
 
-func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL string) (bool, error) {
+// maybeAddToIndexFile adds the chart package at urlStr, read from packagePath, to the index. A non-zero created
+// is used as the creation time of the chart version instead of the current time.
+func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL, packagePath string, created time.Time) (bool, error) {
 	// Decode URL-encoded characters in the filename (e.g., %2B -> +)
 	filename := filepath.Base(urlStr)
 	decodedFilename, err := url.PathUnescape(filename)
 	if err != nil {
 		return false, fmt.Errorf("error decoding filename from URL %s: %w", urlStr, err)
 	}
-	arch := filepath.Join(r.config.PackagePath, decodedFilename)
+	arch := filepath.Join(packagePath, decodedFilename)
 
 	// extract chart metadata
 	fmt.Printf("Extracting chart metadata from %s\n", arch)
@@ -440,6 +532,9 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL
 		return false, err
 	}
 	candidate := replacement.Entries[c.Name()][0]
+	if !created.IsZero() {
+		candidate.Created = created
+	}
 	if r.config.UseAPIAssetURL && !r.config.PackagesWithIndex {
 		candidate.URLs = []string{apiURL}
 	}
@@ -457,7 +552,10 @@ func (r *Releaser) maybeAddToIndexFile(indexFile *repo.IndexFile, urlStr, apiURL
 				matches++
 			}
 		}
-		if matches == 1 && existing.Digest == candidate.Digest && slices.Equal(existing.URLs, candidate.URLs) {
+		// When the creation time comes from a release, a newer release of the same package replaces the entry,
+		// so that the newest release wins.
+		if matches == 1 && existing.Digest == candidate.Digest && slices.Equal(existing.URLs, candidate.URLs) &&
+			(created.IsZero() || existing.Created.Equal(candidate.Created)) {
 			return false, nil
 		}
 		indexFile.Entries[c.Name()] = append(kept, candidate)
