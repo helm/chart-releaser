@@ -81,4 +81,6 @@ func init() {
 	flags.Bool("use-api-asset-url", false, "Use GitHub API asset URLs in the index (requires a client that sends Accept: application/octet-stream)")
 	flags.Bool("replace-existing", false, "Update existing chart versions using the supplied packages, including checksums")
 	flags.String("index-commit-message", "Update {{ .PagesIndexPath }}", "Go template for the commit message of the index update, e.g. 'chore: update {{ .PagesIndexPath }}'")
+	flags.StringSlice("include", nil, "Only process chart packages whose file name matches one of these glob patterns, e.g. 'my-chart-*' (can be repeated or comma-separated)")
+	flags.StringSlice("exclude", nil, "Skip chart packages whose file name matches one of these glob patterns, e.g. '*-rc*'; takes precedence over --include (can be repeated or comma-separated)")
 }

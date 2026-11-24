@@ -57,6 +57,43 @@ func TestLoadConfigurationPreRelease(t *testing.T) {
 	}
 }
 
+func TestLoadConfigurationPackageFilters(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		wantInclude []string
+		wantExclude []string
+		wantErr     bool
+	}{
+		{name: "defaults", args: nil, wantInclude: []string{}, wantExclude: []string{}},
+		{
+			name:        "repeated and comma-separated",
+			args:        []string{"--include", "a-*", "--include", "b-*,c-*", "--exclude", "*-rc*"},
+			wantInclude: []string{"a-*", "b-*", "c-*"},
+			wantExclude: []string{"*-rc*"},
+		},
+		{name: "invalid include pattern", args: []string{"--include", "[a-"}, wantErr: true},
+		{name: "invalid exclude pattern", args: []string{"--exclude", "[a-"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cmd := &cobra.Command{Use: "upload"}
+			cmd.Flags().StringSlice("include", nil, "")
+			cmd.Flags().StringSlice("exclude", nil, "")
+			require.NoError(t, cmd.ParseFlags(tt.args))
+
+			opts, err := LoadConfiguration("", cmd, nil)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantInclude, opts.Include)
+			assert.Equal(t, tt.wantExclude, opts.Exclude)
+		})
+	}
+}
+
 func TestLoadConfigurationUseAPIAssetURL(t *testing.T) {
 	for _, tt := range []struct {
 		name, env string
