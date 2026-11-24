@@ -24,6 +24,17 @@ import (
 
 type Git struct{}
 
+// Head returns the commit checked out in workingDir.
+func (g *Git) Head(workingDir string) (string, error) {
+	command := exec.Command("git", "rev-parse", "HEAD")
+	command.Dir = workingDir
+	output, err := command.Output()
+	if err != nil {
+		return "", fmt.Errorf("reading worktree HEAD: %w", err)
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 // AddWorktree creates a new Git worktree with a detached HEAD for the given commit-ish and returns its path.
 func (g *Git) AddWorktree(workingDir string, commitIsh string) (string, error) {
 	dir, err := os.MkdirTemp("", "chart-releaser-")

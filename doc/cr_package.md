@@ -19,12 +19,12 @@ cr package [CHART_PATH] [...] [flags]
 ### Options
 
 ```
-  -h, --help                     help for package
+  -h, --help[=true|false]        help for package
       --key string               Name of the key to use when signing
       --keyring string           Location of a public keyring (default "~/.gnupg/pubring.gpg")
   -p, --package-path string      Path to directory with chart packages (default ".cr-release-packages")
       --passphrase-file string   Location of a file which contains the passphrase for the signing key. Use '-' in order to read from stdin
-      --sign                     Use a PGP private key to sign this package
+      --sign[=true|false]        Use a PGP private key to sign this package
 ```
 
 ### Options inherited from parent commands

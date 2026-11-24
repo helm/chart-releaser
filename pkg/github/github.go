@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Songmu/retry"
 
@@ -87,9 +88,9 @@ func NewClient(owner, repo, token, baseURL, uploadURL string) *Client {
 }
 
 // GetRelease queries the GitHub API for a specified release object
-func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
+func (c *Client) GetRelease(ctx context.Context, tag string) (*Release, error) {
 	// Check Release whether already exists or not
-	release, _, err := c.Repositories.GetReleaseByTag(context.TODO(), c.owner, c.repo, tag)
+	release, _, err := c.Repositories.GetReleaseByTag(ctx, c.owner, c.repo, tag)
 	if err != nil {
 		return nil, err
 	}
@@ -110,26 +111,45 @@ func (c *Client) GetRelease(_ context.Context, tag string) (*Release, error) {
 // the release is first created as a draft, assets are uploaded, and then
 // the release is published. This ensures that assets can be uploaded before
 // the release becomes immutable.
-func (c *Client) CreateRelease(_ context.Context, input *Release) error {
+func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
+	// Fetch generated notes before creating the release so the limit applies
+	// to the complete body, including GitHub's default comparison.
+	body := input.Description
+	if input.GenerateReleaseNotes {
+		notes, err := c.GenerateReleaseNotes(ctx, input.Name, "", input.Commit)
+		if err != nil {
+			return fmt.Errorf("failed to generate release notes: %w", err)
+		}
+		if body != "" {
+			body += "\n\n"
+		}
+		body += notes
+	}
+	const maxReleaseBodyCharacters = 125000
+	if utf8.RuneCountInString(body) > maxReleaseBodyCharacters {
+		body = string([]rune(body)[:maxReleaseBodyCharacters])
+		fmt.Printf("Release notes for %s exceed GitHub's limit; truncating to %d characters\n", input.Name, maxReleaseBodyCharacters)
+	}
+	generateReleaseNotes := false
 	draft := true
 	req := &github.RepositoryRelease{
 		Name:                 &input.Name,
-		Body:                 &input.Description,
+		Body:                 &body,
 		TagName:              &input.Name,
 		TargetCommitish:      &input.Commit,
-		GenerateReleaseNotes: &input.GenerateReleaseNotes,
+		GenerateReleaseNotes: &generateReleaseNotes,
 		MakeLatest:           &input.MakeLatest,
 		Prerelease:           &input.PreRelease,
 		Draft:                &draft,
 	}
 
-	release, _, err := c.Repositories.CreateRelease(context.TODO(), c.owner, c.repo, req)
+	release, _, err := c.Repositories.CreateRelease(ctx, c.owner, c.repo, req)
 	if err != nil {
 		return err
 	}
 
 	for _, asset := range input.Assets {
-		if err := c.uploadReleaseAsset(context.TODO(), *release.ID, asset.Path); err != nil {
+		if err := c.uploadReleaseAsset(ctx, *release.ID, asset.Path); err != nil {
 			return err
 		}
 	}
@@ -140,7 +160,7 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 		MakeLatest: &input.MakeLatest,
 		Draft:      &draft,
 	}
-	_, _, err = c.Repositories.EditRelease(context.TODO(), c.owner, c.repo, *release.ID, req)
+	_, _, err = c.Repositories.EditRelease(ctx, c.owner, c.repo, *release.ID, req)
 	if err != nil {
 		return fmt.Errorf("failed to publish release: %w", err)
 	}
@@ -152,16 +172,18 @@ func (c *Client) CreateRelease(_ context.Context, input *Release) error {
 // against previousTag. Since the tag may not exist yet at generation time,
 // commit (falling back to the default branch when empty) determines the
 // target of the comparison.
-func (c *Client) GenerateReleaseNotes(_ context.Context, tag string, previousTag string, commit string) (string, error) {
+func (c *Client) GenerateReleaseNotes(ctx context.Context, tag string, previousTag string, commit string) (string, error) {
 	opts := &github.GenerateNotesOptions{
-		TagName:         tag,
-		PreviousTagName: &previousTag,
+		TagName: tag,
+	}
+	if previousTag != "" {
+		opts.PreviousTagName = &previousTag
 	}
 	if commit != "" {
 		opts.TargetCommitish = &commit
 	}
 
-	notes, _, err := c.Repositories.GenerateReleaseNotes(context.TODO(), c.owner, c.repo, opts)
+	notes, _, err := c.Repositories.GenerateReleaseNotes(ctx, c.owner, c.repo, opts)
 	if err != nil {
 		return "", err
 	}
@@ -169,14 +191,14 @@ func (c *Client) GenerateReleaseNotes(_ context.Context, tag string, previousTag
 }
 
 // ListTagsWithPrefix returns the names of all tags starting with the given prefix
-func (c *Client) ListTagsWithPrefix(_ context.Context, prefix string) ([]string, error) {
+func (c *Client) ListTagsWithPrefix(ctx context.Context, prefix string) ([]string, error) {
 	var tags []string
 	opts := &github.ReferenceListOptions{
 		Ref:         "tags/" + prefix,
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
 	for {
-		refs, resp, err := c.Git.ListMatchingRefs(context.TODO(), c.owner, c.repo, opts)
+		refs, resp, err := c.Git.ListMatchingRefs(ctx, c.owner, c.repo, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +236,7 @@ func (c *Client) CreatePullRequest(owner string, repo string, message string, he
 }
 
 // UploadAsset uploads specified assets to a given release object
-func (c *Client) uploadReleaseAsset(_ context.Context, releaseID int64, filename string) error {
+func (c *Client) uploadReleaseAsset(ctx context.Context, releaseID int64, filename string) error {
 	filename, err := filepath.Abs(filename)
 	if err != nil {
 		return fmt.Errorf("failed to get abs path: %w", err)
@@ -225,13 +247,13 @@ func (c *Client) uploadReleaseAsset(_ context.Context, releaseID int64, filename
 		Name: filepath.Base(filename),
 	}
 
-	if err := retry.Retry(3, 3*time.Second, func() error { //nolint: revive
+	if err := retry.WithContext(ctx, 3, 3*time.Second, func() error { //nolint: revive
 		f, err := os.Open(filename)
 		if err != nil {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
 		defer f.Close()
-		if _, _, err = c.Repositories.UploadReleaseAsset(context.TODO(), c.owner, c.repo, releaseID, opts, f); err != nil {
+		if _, _, err = c.Repositories.UploadReleaseAsset(ctx, c.owner, c.repo, releaseID, opts, f); err != nil {
 			return fmt.Errorf("failed to upload release asset: %s: %w", filename, err)
 		}
 		return nil

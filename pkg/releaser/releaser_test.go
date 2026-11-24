@@ -44,6 +44,16 @@ type FakeGit struct {
 	mock.Mock
 }
 
+func (f *FakeGit) Head(workingDir string) (string, error) {
+	args := f.Called(workingDir)
+	return args.String(0), args.Error(1)
+}
+
+func (f *FakeGitHub) CreateSignedCommit(ctx context.Context, branch, expectedHead, path, message string, contents []byte) error {
+	args := f.Called(ctx, branch, expectedHead, path, message, contents)
+	return args.Error(0)
+}
+
 func (f *FakeGit) AddWorktree(workingDir string, committish string) (string, error) { //nolint: revive
 	dir, err := os.MkdirTemp("", "chart-releaser-")
 	if err != nil {
@@ -639,6 +649,52 @@ func TestReleaser_CreateReleases(t *testing.T) {
 				}
 				fakeGitHub.AssertNumberOfCalls(t, "CreateRelease", 1)
 			}
+		})
+	}
+}
+
+func TestReleaser_CreateReleasesPublishesPackages(t *testing.T) {
+	tests := []struct {
+		name              string
+		packagesWithIndex bool
+		push              bool
+		pr                bool
+		pushes            int
+		pullRequests      int
+	}{
+		{name: "push-packages-with-index", packagesWithIndex: true, push: true, pushes: 1},
+		{name: "pr-packages-with-index", packagesWithIndex: true, pr: true, pushes: 1, pullRequests: 1},
+		{name: "push-without-packages-with-index", push: true},
+		{name: "pr-without-packages-with-index", pr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeGitHub := new(FakeGitHub)
+			fakeGitHub.On("CreateRelease", mock.Anything, mock.Anything).Return(nil)
+			fakeGitHub.On("CreatePullRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+			fakeGit := new(FakeGit)
+			fakeGit.On("RemoveWorktree", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Add", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Commit", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("Push", mock.Anything, mock.Anything).Return(nil)
+			fakeGit.On("GetPushURL", mock.Anything, mock.Anything).Return("", nil)
+
+			r := &Releaser{
+				config: &config.Options{
+					PackagePath:         "testdata/release-packages",
+					ReleaseNameTemplate: "{{ .Name }}-{{ .Version }}",
+					PackagesWithIndex:   tt.packagesWithIndex,
+					Push:                tt.push,
+					PR:                  tt.pr,
+					PagesBranch:         "gh-pages",
+				},
+				github: fakeGitHub,
+				git:    fakeGit,
+			}
+
+			require.NoError(t, r.CreateReleases())
+			fakeGit.AssertNumberOfCalls(t, "Push", tt.pushes)
+			fakeGitHub.AssertNumberOfCalls(t, "CreatePullRequest", tt.pullRequests)
 		})
 	}
 }

@@ -49,6 +49,7 @@ import (
 // GitHub contains the functions necessary for interacting with GitHub release
 // objects
 type GitHub interface {
+	CreateSignedCommit(ctx context.Context, branch, expectedHead, path, message string, contents []byte) error
 	CreateRelease(ctx context.Context, input *github.Release) error
 	GetRelease(ctx context.Context, tag string) (*github.Release, error)
 	ReplaceReleaseAssets(ctx context.Context, input *github.Release) (bool, error)
@@ -58,6 +59,7 @@ type GitHub interface {
 }
 
 type Git interface {
+	Head(workingDir string) (string, error)
 	AddWorktree(workingDir string, commitIsh string) (string, error)
 	RemoveWorktree(workingDir string, path string) error
 	Add(workingDir string, args ...string) error
@@ -91,6 +93,12 @@ func NewReleaser(config *config.Options, github GitHub, git Git) *Releaser {
 
 // UpdateIndexFile updates the index.yaml file for a given Git repo
 func (r *Releaser) UpdateIndexFile() (bool, error) {
+	if r.config.SignCommits && (!r.config.Push || r.config.PR) {
+		return false, errors.New("--sign-commits requires --push and cannot be used with --pr")
+	}
+	if r.config.SignCommits && r.config.Token == "" {
+		return false, errors.New("--token is required with --sign-commits")
+	}
 	// if index-path doesn't end with index.yaml we can try and fix it
 	if filepath.Base(r.config.IndexPath) != "index.yaml" {
 		// if path is a directory then add index.yaml
@@ -98,8 +106,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			r.config.IndexPath = filepath.Join(r.config.IndexPath, "index.yaml")
 			// otherwise error out
 		} else {
-			fmt.Printf("index-path (%s) should be a directory or a file called index.yaml\n", r.config.IndexPath)
-			os.Exit(1)
+			return false, fmt.Errorf("index-path (%s) should be a directory or a file called index.yaml", r.config.IndexPath)
 		}
 	}
 
@@ -110,6 +117,21 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	}
 	defer r.git.RemoveWorktree("", worktree) // nolint: errcheck
 
+	var expectedHead string
+	if r.config.SignCommits {
+		// Package uploads push through an authenticated URL and may leave the
+		// tracking ref behind. Refresh before reading the index and its HEAD.
+		if err := r.git.Pull(worktree, "--ff-only", r.config.Remote, r.config.PagesBranch); err != nil {
+			return false, fmt.Errorf("refreshing index worktree for GitHub signing: %w", err)
+		}
+		// Use the exact revision read below, rather than fetching a newer head
+		// after merging, which could overwrite concurrent index updates.
+		expectedHead, err = r.git.Head(worktree)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	// if pages-index-path doesn't end with index.yaml we can try and fix it
 	if filepath.Base(r.config.PagesIndexPath) != "index.yaml" {
 		// if path is a directory then add index.yaml
@@ -117,8 +139,7 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 			r.config.PagesIndexPath = filepath.Join(r.config.PagesIndexPath, "index.yaml")
 			// otherwise error out
 		} else {
-			fmt.Printf("pages-index-path (%s) should be a directory or a file called index.yaml\n", r.config.PagesIndexPath)
-			os.Exit(1) // nolint: gocritic
+			return false, fmt.Errorf("pages-index-path (%s) should be a directory or a file called index.yaml", r.config.PagesIndexPath)
 		}
 	}
 	indexYamlPath := filepath.Join(worktree, r.config.PagesIndexPath)
@@ -213,6 +234,23 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 		return true, nil
 	}
 
+	message, err := renderCommitMessage(r.config.IndexCommitMessage, defaultIndexCommitMessage,
+		struct{ PagesIndexPath string }{r.config.PagesIndexPath})
+	if err != nil {
+		return false, err
+	}
+	if r.config.SignCommits {
+		contents, err := os.ReadFile(r.config.IndexPath)
+		if err != nil {
+			return false, err
+		}
+		if err := r.github.CreateSignedCommit(context.TODO(), r.config.PagesBranch, expectedHead,
+			filepath.ToSlash(filepath.Clean(r.config.PagesIndexPath)), message, contents); err != nil {
+			return false, fmt.Errorf("creating GitHub-signed index commit (if the branch changed, refresh it and rerun): %w", err)
+		}
+		return true, nil
+	}
+
 	if err := os.MkdirAll(filepath.Dir(indexYamlPath), 0o755); err != nil {
 		return false, err
 	}
@@ -226,12 +264,6 @@ func (r *Releaser) UpdateIndexFile() (bool, error) {
 	}
 
 	if err := r.git.Add(worktree, indexYamlPath); err != nil {
-		return false, err
-	}
-
-	message, err := renderCommitMessage(r.config.IndexCommitMessage, defaultIndexCommitMessage,
-		struct{ PagesIndexPath string }{r.config.PagesIndexPath})
-	if err != nil {
 		return false, err
 	}
 
@@ -467,6 +499,7 @@ func (r *Releaser) CreateReleases() error {
 
 	packages = r.filterPackages(packages)
 
+	committed := false
 	for _, p := range packages {
 		ch, err := loader.LoadFile(p)
 		if err != nil {
@@ -499,9 +532,11 @@ func (r *Releaser) CreateReleases() error {
 				if r.config.PackagesWithIndex {
 					pkgTargetPath := filepath.Join(worktree, filepath.Base(p))
 					if _, err := os.Stat(pkgTargetPath); errors.Is(err, os.ErrNotExist) {
-						if err := r.commitPackage(worktree, p, releaseName); err != nil {
+						changed, err := r.commitPackage(worktree, p, releaseName)
+						if err != nil {
 							return err
 						}
+						committed = committed || changed
 					} else if err != nil {
 						return err
 					}
@@ -516,9 +551,11 @@ func (r *Releaser) CreateReleases() error {
 			}
 			if exists {
 				if r.config.PackagesWithIndex {
-					if err := r.commitPackage(worktree, p, releaseName); err != nil {
+					changed, err := r.commitPackage(worktree, p, releaseName)
+					if err != nil {
 						return err
 					}
+					committed = committed || changed
 				}
 				continue
 			}
@@ -551,12 +588,16 @@ func (r *Releaser) CreateReleases() error {
 		}
 
 		if r.config.PackagesWithIndex {
-			if err := r.commitPackage(worktree, p, releaseName); err != nil {
+			changed, err := r.commitPackage(worktree, p, releaseName)
+			if err != nil {
 				return err
 			}
+			committed = committed || changed
 		}
 	}
-	if r.config.Push {
+	// Publish package commits in the Pages worktree with --push or --pr.
+	// Without --packages-with-index, there is nothing to publish.
+	if committed && (r.config.Push || r.config.PR) {
 		if err := r.pushToPagesBranch(worktree); err != nil {
 			return err
 		}
@@ -565,71 +606,79 @@ func (r *Releaser) CreateReleases() error {
 	return nil
 }
 
-func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) error {
+// commitPackage commits the package to the Pages worktree and reports whether
+// a commit was created.
+func (r *Releaser) commitPackage(worktree, packagePath, releaseName string) (bool, error) {
 	pkgTargetPath := filepath.Join(worktree, filepath.Base(packagePath))
 	if r.config.ReplaceExisting {
 		return r.commitReplacementPackage(worktree, packagePath, releaseName)
 	}
 	if err := copyFile(packagePath, pkgTargetPath); err != nil {
-		return err
+		return false, err
 	}
 	if err := r.git.Add(worktree, pkgTargetPath); err != nil {
-		return err
+		return false, err
 	}
 	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
 		struct{ ReleaseName string }{releaseName})
 	if err != nil {
-		return err
+		return false, err
 	}
-	return r.git.Commit(worktree, message)
+	if err := r.git.Commit(worktree, message); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // commitReplacementPackage updates both the archive and its optional provenance
 // in Pages, removing stale provenance when replacing a signed archive with an
 // unsigned one. Identical files do not produce an empty Git commit.
-func (r *Releaser) commitReplacementPackage(worktree, packagePath, releaseName string) error {
+func (r *Releaser) commitReplacementPackage(worktree, packagePath, releaseName string) (bool, error) {
 	var changed []string
 	for _, suffix := range []string{"", ".prov"} {
 		source := packagePath + suffix
 		target := filepath.Join(worktree, filepath.Base(source))
 		incoming, err := os.ReadFile(source)
 		if err != nil && (!errors.Is(err, os.ErrNotExist) || suffix == "") {
-			return err
+			return false, err
 		}
 		missing := errors.Is(err, os.ErrNotExist)
 		existing, err := os.ReadFile(target)
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
-			return err
+			return false, err
 		}
 		if missing {
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
 			if err := os.Remove(target); err != nil {
-				return err
+				return false, err
 			}
 		} else {
 			if err == nil && bytes.Equal(incoming, existing) {
 				continue
 			}
 			if err := copyFile(source, target); err != nil {
-				return err
+				return false, err
 			}
 		}
 		changed = append(changed, target)
 	}
 	if len(changed) == 0 {
-		return nil
+		return false, nil
 	}
 	if err := r.git.Add(worktree, changed...); err != nil {
-		return err
+		return false, err
 	}
 	message, err := renderCommitMessage(r.config.PackageCommitMessage, defaultPackageCommitMessage,
 		struct{ ReleaseName string }{releaseName})
 	if err != nil {
-		return err
+		return false, err
 	}
-	return r.git.Commit(worktree, message)
+	if err := r.git.Commit(worktree, message); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (r *Releaser) getListOfPackages(dir string) ([]string, error) {
