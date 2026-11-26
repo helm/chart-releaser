@@ -165,6 +165,97 @@ func TestClient_CreateRelease_DraftThenPublish(t *testing.T) {
 	assert.Equal(t, "false", patched["make_latest"])
 }
 
+func TestClient_CreateRelease_DeletesDraftWhenUploadFails(t *testing.T) {
+	for _, tt := range []struct {
+		name       string
+		deleteCode int
+		wantRemove bool
+	}{
+		{name: "draft removed", deleteCode: http.StatusNoContent},
+		{name: "draft removal fails", deleteCode: http.StatusInternalServerError, wantRemove: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			// The upload is retried with a pause between attempts.
+			t.Parallel()
+			var (
+				mu       sync.Mutex
+				requests []string
+			)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+				requests = append(requests, r.Method+" "+r.URL.Path)
+				switch {
+				case r.Method == http.MethodPost && r.URL.Path == "/repos/owner/repo/releases":
+					w.WriteHeader(http.StatusCreated)
+					_, _ = w.Write([]byte(`{"id": 42}`))
+				case r.Method == http.MethodPost && r.URL.Path == "/repos/owner/repo/releases/42/assets":
+					w.WriteHeader(http.StatusUnprocessableEntity)
+					_, _ = w.Write([]byte(`{"message":"Validation Failed"}`))
+				case r.Method == http.MethodDelete && r.URL.Path == "/repos/owner/repo/releases/42":
+					w.WriteHeader(tt.deleteCode)
+				default:
+					t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer srv.Close()
+
+			asset := filepath.Join(t.TempDir(), "chart-0.1.0.tgz")
+			require.NoError(t, os.WriteFile(asset, []byte("chart"), 0o600))
+
+			err := NewClient("owner", "repo", "", srv.URL, srv.URL).CreateRelease(context.Background(), &Release{
+				Name:   "chart-0.1.0",
+				Assets: []*Asset{{Path: asset}},
+			})
+			require.ErrorContains(t, err, "failed to upload release asset")
+			if tt.wantRemove {
+				assert.ErrorContains(t, err, "removing draft release chart-0.1.0 (id 42)")
+			} else {
+				assert.NotContains(t, err.Error(), "removing draft release")
+			}
+
+			// The release must never be published when an asset is missing.
+			assert.NotContains(t, requests, "PATCH /repos/owner/repo/releases/42")
+			assert.Contains(t, requests, "DELETE /repos/owner/repo/releases/42")
+		})
+	}
+}
+
+func TestClient_CreateRelease_KeepsReleaseWhenPublishFails(t *testing.T) {
+	var requests []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests = append(requests, r.Method+" "+r.URL.Path)
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/repos/owner/repo/releases":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id": 42}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/repos/owner/repo/releases/42/assets":
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"id": 1}`))
+		case r.Method == http.MethodPatch && r.URL.Path == "/repos/owner/repo/releases/42":
+			w.WriteHeader(http.StatusInternalServerError)
+		default:
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer srv.Close()
+
+	asset := filepath.Join(t.TempDir(), "chart-0.1.0.tgz")
+	require.NoError(t, os.WriteFile(asset, []byte("chart"), 0o600))
+
+	err := NewClient("owner", "repo", "", srv.URL, srv.URL).CreateRelease(context.Background(), &Release{
+		Name:   "chart-0.1.0",
+		Assets: []*Asset{{Path: asset}},
+	})
+	require.ErrorContains(t, err, "failed to publish release")
+
+	// A failed publish can still have been applied by GitHub, so deleting the
+	// release here could remove a live one.
+	assert.NotContains(t, requests, "DELETE /repos/owner/repo/releases/42")
+}
+
 func TestClient_GetReleaseAssetURLs(t *testing.T) {
 	for _, tt := range []struct{ name, body, browserURL, apiURL string }{
 		{name: "both URLs", body: `{"assets":[{"name":"chart.tgz","browser_download_url":"https://github.com/owner/repo/releases/download/v1/chart.tgz","url":"https://api.github.com/repos/owner/repo/releases/assets/42"}]}`, browserURL: "https://github.com/owner/repo/releases/download/v1/chart.tgz", apiURL: "https://api.github.com/repos/owner/repo/releases/assets/42"},
