@@ -16,6 +16,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -150,7 +151,7 @@ func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 
 	for _, asset := range input.Assets {
 		if err := c.uploadReleaseAsset(ctx, *release.ID, asset.Path); err != nil {
-			return err
+			return c.discardDraftRelease(ctx, *release.ID, input.Name, err)
 		}
 	}
 
@@ -166,6 +167,20 @@ func (c *Client) CreateRelease(ctx context.Context, input *Release) error {
 	}
 
 	return nil
+}
+
+// discardDraftRelease deletes a draft release whose assets could not be
+// uploaded and returns cause. GetRelease does not see drafts, so a leftover
+// draft is invisible to --skip-existing and every rerun would add another one
+// with the same tag. The cleanup runs even when ctx was canceled, and a failure
+// to delete is reported together with cause.
+func (c *Client) discardDraftRelease(ctx context.Context, id int64, name string, cause error) error {
+	cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
+	if _, err := c.Repositories.DeleteRelease(cleanupCtx, c.owner, c.repo, id); err != nil {
+		return errors.Join(cause, fmt.Errorf("removing draft release %s (id %d), delete it manually: %w", name, id, err))
+	}
+	return cause
 }
 
 // GenerateReleaseNotes generates release notes for the given tag, comparing

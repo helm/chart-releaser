@@ -59,8 +59,8 @@ func TestClientHonorsRequestContext(t *testing.T) {
 			return c.CreateRelease(ctx, &Release{Name: "v1", GenerateReleaseNotes: true})
 		}},
 		{name: "upload asset", call: func(c *Client, ctx context.Context, asset string) error { return c.uploadReleaseAsset(ctx, 42, asset) }},
-		{name: "cancel after draft creation", call: create, cancelAfter: "POST /repos/owner/repo/releases", wantRequests: []string{"POST /repos/owner/repo/releases"}},
-		{name: "cancel during upload", call: create, cancelAfter: "POST /repos/owner/repo/releases/42/assets", failAfterCancel: true, wantRequests: []string{"POST /repos/owner/repo/releases", "POST /repos/owner/repo/releases/42/assets"}},
+		{name: "cancel after draft creation", call: create, cancelAfter: "POST /repos/owner/repo/releases", wantRequests: []string{"POST /repos/owner/repo/releases", "DELETE /repos/owner/repo/releases/42"}},
+		{name: "cancel during upload", call: create, cancelAfter: "POST /repos/owner/repo/releases/42/assets", failAfterCancel: true, wantRequests: []string{"POST /repos/owner/repo/releases", "POST /repos/owner/repo/releases/42/assets", "DELETE /repos/owner/repo/releases/42"}},
 		{name: "cancel between tag pages", call: func(c *Client, ctx context.Context, _ string) error {
 			_, err := c.ListTagsWithPrefix(ctx, "chart-")
 			return err
